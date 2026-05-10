@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+backend/venv/
+#.env
+
+# React
+frontend/node_modules/
+frontend/dist/
+
+# Uploaded outputs
+#backend/app/static/uploads/*
+#backend/app/static/predictions/*
+#backend/app/static/reports/*
+
+# Training outputs
+runs/
+wandb/
+
+# Large datasets
+#datasets/
+
+# OS files
+.DS_Store
+Thumbs.db
