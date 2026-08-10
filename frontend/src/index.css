@@ -51,18 +51,21 @@
 }
 
 body {
-  margin: 0;
+   margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: #130b07;
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  text-align: initial;
+  border-inline: none;
+  min-height: 100vh;
+  display: block;
   box-sizing: border-box;
 }
 
@@ -109,3 +112,4 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
