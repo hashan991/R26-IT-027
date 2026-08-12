@@ -2,24 +2,28 @@ function SensorMetricCard({
   label,
   value,
   unit,
-  status = "normal",
   icon,
   description,
+  measured = false,
 }) {
   return (
-    <div className={`sensor-metric-card status-${status}`}>
+    <div className="sensor-metric-card">
       <div className="sensor-card-top">
         <div className="sensor-icon">{icon}</div>
 
-        <span className={`sensor-status sensor-status-${status}`}>
-          {status}
+        <span
+          className={`sensor-status ${
+            measured ? "sensor-measured" : "sensor-waiting"
+          }`}
+        >
+          {measured ? "Measured" : "Waiting"}
         </span>
       </div>
 
       <div className="sensor-name">{label}</div>
 
       <div className="sensor-value-row">
-        <strong>{value}</strong>
+        <strong>{value ?? "--"}</strong>
         <span>{unit}</span>
       </div>
 
@@ -53,7 +57,8 @@ function SensorMetricCard({
           display: grid;
           place-items: center;
           border-radius: 14px;
-          font-size: 20px;
+          font-size: 18px;
+          font-weight: 800;
           background: rgba(221, 149, 77, 0.12);
           border: 1px solid rgba(255, 210, 150, 0.12);
         }
@@ -68,22 +73,16 @@ function SensorMetricCard({
           letter-spacing: 0.8px;
         }
 
-        .sensor-status-normal {
+        .sensor-measured {
           color: #a6e8ae;
           background: rgba(78, 180, 91, 0.12);
           border: 1px solid rgba(107, 210, 119, 0.18);
         }
 
-        .sensor-status-warning {
+        .sensor-waiting {
           color: #ffd48f;
-          background: rgba(222, 153, 55, 0.12);
-          border: 1px solid rgba(237, 168, 74, 0.2);
-        }
-
-        .sensor-status-poor {
-          color: #ffaaa0;
-          background: rgba(210, 65, 52, 0.12);
-          border: 1px solid rgba(230, 84, 70, 0.2);
+          background: rgba(222, 153, 55, 0.1);
+          border: 1px solid rgba(237, 168, 74, 0.15);
         }
 
         .sensor-name {
