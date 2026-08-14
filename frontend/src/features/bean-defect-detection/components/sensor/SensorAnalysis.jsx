@@ -589,26 +589,63 @@ function SensorAnalysis({ onComplete }) {
   // =========================================================
 
   const handleComplete = () => {
-    /*
-      Continue karanna පුළුවන් only:
-      - data thiyenawa
-      - monitoring stopped
-      - reading request නැහැ
-      - snapshot locked
-      - stability confirmed
-    */
+    // =========================================================
+    // TEMPORARY DEVELOPMENT MODE
+    // STEP 1 can be skipped
+    // =========================================================
 
-    if (
-      !sensorData ||
-      autoReading ||
-      reading ||
-      !lockedAt ||
-      stabilityStatus !== "stable"
-    ) {
+    const step1CompletedNormally =
+      sensorData &&
+      !autoReading &&
+      !reading &&
+      lockedAt &&
+      stabilityStatus === "stable";
+
+    // =========================================================
+    // STEP 1 SKIPPED
+    // =========================================================
+
+    if (!step1CompletedNormally) {
+      const skippedResult = {
+        skipped: true,
+
+        readings: sensorData
+          ? {
+              ...sensorData,
+            }
+          : {},
+
+        device: deviceStatus
+          ? {
+              ...deviceStatus,
+            }
+          : {},
+
+        stability: {
+          status: "skipped",
+
+          samples: readingHistory?.length || 0,
+
+          details: null,
+        },
+
+        lockedAt: null,
+
+        collectedAt: new Date().toISOString(),
+      };
+
+      onComplete(skippedResult);
+
       return;
     }
 
+    // =========================================================
+    // NORMAL STEP 1 COMPLETION
+    // =========================================================
+
     const result = {
+      skipped: false,
+
       readings: {
         ...sensorData,
       },
@@ -632,7 +669,6 @@ function SensorAnalysis({ onComplete }) {
 
     onComplete(result);
   };
-
   // =========================================================
   // FORMAT TIME
   // =========================================================
@@ -1098,13 +1134,13 @@ function SensorAnalysis({ onComplete }) {
 
           <button
             className="continue-button"
-            disabled={
-              !sensorData ||
-              autoReading ||
-              reading ||
-              !lockedAt ||
-              stabilityStatus !== "stable"
-            }
+          // disabled={
+              //!sensorData ||
+              //autoReading ||
+              //reading ||
+              //!lockedAt ||
+              //stabilityStatus !== "stable"
+           // }
             onClick={handleComplete}
           >
             Continue to Physical AI Analysis →

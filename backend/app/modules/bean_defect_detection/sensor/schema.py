@@ -2,6 +2,8 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+
+
 class SensorReading(BaseModel):
     mq2: int
     mq135: int
@@ -16,3 +18,9 @@ class SensorDeviceStatus(BaseModel):
     port: str
     baud_rate: int
     device: str
+
+
+class WeightReading(BaseModel):
+    connected: bool
+    weight_grams: Optional[float] = None
+    unit: str = "g"

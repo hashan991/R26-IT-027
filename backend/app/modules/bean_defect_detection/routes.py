@@ -9,17 +9,33 @@ from pathlib import Path
 import shutil
 import uuid
 
+
 from app.auth.dependencies import require_roles
 from app.auth.schema import UserRole
+
 
 from app.modules.bean_defect_detection.service import (
     predict_bean_image,
 )
 
+
 from app.modules.bean_defect_detection.sensor.routes import (
     router as sensor_router,
 )
 
+
+from app.modules.bean_defect_detection.sensor.service import (
+    arduino_sensor_service,
+)
+
+
+from app.modules.bean_defect_detection.sensor.schema import (
+    WeightReading,
+)
+
+from app.modules.bean_defect_detection.phone_camera.routes import (
+    router as phone_camera_router,
+)
 
 # =========================================================
 # BEAN ROUTER
@@ -53,11 +69,20 @@ UPLOAD_DIR.mkdir(
 # =========================================================
 # SENSOR ROUTES
 # =========================================================
+#
+# Includes:
+#
+# GET /api/beans/sensors/status
+# GET /api/beans/sensors/latest
+#
 
 router.include_router(
     sensor_router
 )
 
+router.include_router(
+    phone_camera_router
+)
 
 # =========================================================
 # BEAN MODULE HOME
@@ -74,7 +99,32 @@ def bean_home():
 
 
 # =========================================================
-# PHYSICAL AI PREDICTION
+# STEP 2 - PHYSICAL ANALYSIS WEIGHT
+# =========================================================
+
+@router.get(
+    "/physical/weight",
+    response_model=WeightReading,
+)
+def get_physical_weight():
+
+    """
+    Get the current coffee bean sample weight
+    from the HX711 load cell.
+
+    Weight belongs to Step 2 - Physical Analysis.
+    It is intentionally separate from
+    Step 1 - Sensor-Based Quality Analysis.
+    """
+
+    return (
+        arduino_sensor_service
+        .get_weight_reading()
+    )
+
+
+# =========================================================
+# STEP 2 - PHYSICAL AI PREDICTION
 # =========================================================
 
 @router.post("/predict")
@@ -83,21 +133,56 @@ async def predict_beans(
 ):
 
     """
-    Upload coffee bean image and predict defects.
+    Upload a coffee bean sample image and run
+    the complete Physical AI Analysis pipeline.
+
+    Pipeline:
+
+    Uploaded Image
+        ↓
+    Coffee Bean Detection
+        ↓
+    Individual Bean Crop
+        ↓
+    Color Classification
+        +
+    Shape Classification
+        ↓
+    Final Bean Category
     """
+
+    # =====================================================
+    # GET FILE EXTENSION
+    # =====================================================
 
     file_extension = Path(
         file.filename
     ).suffix
+
+
+    # =====================================================
+    # GENERATE UNIQUE FILE NAME
+    # =====================================================
 
     unique_filename = (
         f"bean_{uuid.uuid4().hex}"
         f"{file_extension}"
     )
 
+
+    # =====================================================
+    # CREATE UPLOAD PATH
+    # =====================================================
+
     upload_path = (
-        UPLOAD_DIR / unique_filename
+        UPLOAD_DIR
+        / unique_filename
     )
+
+
+    # =====================================================
+    # SAVE UPLOADED IMAGE
+    # =====================================================
 
     with upload_path.open(
         "wb"
@@ -108,11 +193,22 @@ async def predict_beans(
             buffer,
         )
 
+
+    # =====================================================
+    # RUN PHYSICAL AI PIPELINE
+    # =====================================================
+
     result = predict_bean_image(
         str(upload_path)
     )
 
+
+    # =====================================================
+    # API RESPONSE
+    # =====================================================
+
     return {
+
         "message": (
             "Bean prediction completed"
         ),
