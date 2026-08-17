@@ -37,6 +37,11 @@ from app.modules.bean_defect_detection.phone_camera.routes import (
     router as phone_camera_router,
 )
 
+
+from app.modules.bean_defect_detection.quality_report.routes import (
+    router as quality_report_router,
+)
+
 # =========================================================
 # BEAN ROUTER
 # =========================================================
@@ -82,6 +87,10 @@ router.include_router(
 
 router.include_router(
     phone_camera_router
+)
+
+router.include_router(
+    quality_report_router
 )
 
 # =========================================================
