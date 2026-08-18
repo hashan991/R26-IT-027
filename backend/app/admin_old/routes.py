@@ -16,7 +16,6 @@ from .service import (
     disable_registered_user,
     enable_registered_user,
     update_registered_user_role,
-    delete_registered_user,
 )
 
 
@@ -152,27 +151,5 @@ async def change_user_role(
     return await update_registered_user_role(
         user_id=user_id,
         new_role=data.role,
-        current_admin=current_admin,
-    )
-
-# =========================================================
-# DELETE USER
-# =========================================================
-
-@router.delete(
-    "/users/{user_id}",
-    response_model=AdminActionResponse,
-)
-async def delete_user_account(
-    user_id: str,
-    current_admin=Depends(
-        require_roles(
-            UserRole.ADMIN
-        )
-    ),
-):
-
-    return await delete_registered_user(
-        user_id=user_id,
         current_admin=current_admin,
     )

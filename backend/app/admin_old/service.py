@@ -10,7 +10,6 @@ from .crud import (
     disable_user,
     enable_user,
     change_user_role,
-    delete_user,
 )
 
 
@@ -240,55 +239,4 @@ async def update_registered_user_role(
     return {
         "message": "User role updated successfully",
         "user": format_user(updated_user),
-    }
-
-# =========================================================
-# DELETE USER
-# =========================================================
-
-async def delete_registered_user(
-    user_id: str,
-    current_admin: dict,
-):
-
-    user = await get_admin_user_by_id(
-        user_id
-    )
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-
-    # Logged-in admin cannot delete their own account here.
-    if str(user["_id"]) == str(
-        current_admin["_id"]
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You cannot delete your own administrator account from User Management",
-        )
-
-    # Administrator accounts are protected in User Management.
-    # Admin self-deletion, when allowed by policy, belongs to My Profile.
-    if user.get("role") == UserRole.ADMIN.value:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Administrator accounts are protected and cannot be deleted from User Management",
-        )
-
-    deleted_user = await delete_user(
-        user_id
-    )
-
-    if not deleted_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-
-    return {
-        "message": "User deleted successfully",
-        "user": format_user(deleted_user),
     }

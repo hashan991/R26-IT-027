@@ -203,20 +203,3 @@ async def change_user_role(
     return await get_admin_user_by_id(
         user_id
     )
-
-# =========================================================
-# DELETE USER
-# =========================================================
-
-async def delete_user(
-    user_id: str,
-):
-
-    if not ObjectId.is_valid(user_id):
-        return None
-
-    return await users_collection.find_one_and_delete(
-        {
-            "_id": ObjectId(user_id)
-        }
-    )

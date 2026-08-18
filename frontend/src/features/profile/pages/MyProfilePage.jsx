@@ -590,30 +590,31 @@ function MyProfilePage() {
         {/* ==========================================
             DANGER ZONE
         ========================================== */}
+        {profile?.role !== "ADMIN" && (
+          <div className="danger-card">
+            <div>
+              <span className="danger-label">DANGER ZONE</span>
 
-        <div className="danger-card">
-          <div>
-            <span className="danger-label">DANGER ZONE</span>
+              <h2>Delete Account</h2>
 
-            <h2>Delete Account</h2>
+              <p>
+                Permanently delete your account. This action cannot be undone.
+              </p>
+            </div>
 
-            <p>
-              Permanently delete your account. This action cannot be undone.
-            </p>
+            <button
+              type="button"
+              className="delete-button"
+              onClick={() => {
+                setDeleteConfirmation("");
+                setDeleteError("");
+                setShowDeleteModal(true);
+              }}
+            >
+              Delete My Account
+            </button>
           </div>
-
-          <button
-            type="button"
-            className="delete-button"
-            onClick={() => {
-              setDeleteConfirmation("");
-              setDeleteError("");
-              setShowDeleteModal(true);
-            }}
-          >
-            Delete My Account
-          </button>
-        </div>
+        )}
       </div>
 
       {/* ==========================================

@@ -61,3 +61,13 @@ export const changeUserRole = async (userId, role) => {
 
   return response.data;
 };
+
+// =========================================================
+// DELETE USER
+// =========================================================
+
+export const deleteUser = async (userId) => {
+  const response = await api.delete(`/api/admin/users/${userId}`);
+
+  return response.data;
+};
