@@ -6,7 +6,28 @@ import { useEffect, useRef, useState } from "react";
 
 // Coffee beans දාලා Scan Now click කරපු පස්සේ
 // stability checking start කරන්න කලින් wait කරන කාලය.
-const SAMPLE_EXPOSURE_TIME = 120;
+const SAMPLE_EXPOSURE_TIME = 1;
+
+// =========================================================
+// SENSOR QUALITY SCORING
+// =========================================================
+//
+// IMPORTANT:
+// These thresholds mirror the current backend quality-report
+// sensor scoring logic so Step 1 shows the same score/status
+// that will later appear in the Final Quality Report.
+//
+// They are research-defined experimental thresholds, not an
+// official coffee-industry grading standard.
+// =========================================================
+
+const MQ2_GOOD_MAX = 44;
+const MQ2_BAD_THRESHOLD = 73;
+const MQ2_BAD_MAX = 277;
+
+const MQ135_GOOD_MAX = 15;
+const MQ135_BAD_THRESHOLD = 22.5;
+const MQ135_BAD_MAX = 103;
 
 function SensorScanWorkflow({
   sensorData,
@@ -524,6 +545,161 @@ function SensorScanWorkflow({
     }
 
     return date.toLocaleTimeString();
+  };
+
+  // =========================================================
+  // SENSOR QUALITY ASSESSMENT
+  // =========================================================
+
+  const clampScore = (value) => {
+    return Math.max(0, Math.min(100, Number(value)));
+  };
+
+  const calculateNumericDifference = (sample, baseline) => {
+    if (
+      sample === null ||
+      sample === undefined ||
+      baseline === null ||
+      baseline === undefined
+    ) {
+      return null;
+    }
+
+    const sampleValue = Number(sample);
+    const baselineValue = Number(baseline);
+
+    if (!Number.isFinite(sampleValue) || !Number.isFinite(baselineValue)) {
+      return null;
+    }
+
+    return Number((sampleValue - baselineValue).toFixed(2));
+  };
+
+  const calculateMq2Score = (response) => {
+    if (response === null || response === undefined) {
+      return null;
+    }
+
+    const value = Number(response);
+
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+
+    if (value <= MQ2_GOOD_MAX) {
+      return 100;
+    }
+
+    if (value < MQ2_BAD_THRESHOLD) {
+      const score =
+        100 -
+        (30 * (value - MQ2_GOOD_MAX)) /
+          (MQ2_BAD_THRESHOLD - MQ2_GOOD_MAX);
+
+      return Number(clampScore(score).toFixed(2));
+    }
+
+    const score =
+      (70 * (MQ2_BAD_MAX - value)) /
+      (MQ2_BAD_MAX - MQ2_BAD_THRESHOLD);
+
+    return Number(clampScore(score).toFixed(2));
+  };
+
+  const calculateMq135Score = (response) => {
+    if (response === null || response === undefined) {
+      return null;
+    }
+
+    const value = Number(response);
+
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+
+    if (value <= MQ135_GOOD_MAX) {
+      return 100;
+    }
+
+    if (value < MQ135_BAD_THRESHOLD) {
+      const score =
+        100 -
+        (30 * (value - MQ135_GOOD_MAX)) /
+          (MQ135_BAD_THRESHOLD - MQ135_GOOD_MAX);
+
+      return Number(clampScore(score).toFixed(2));
+    }
+
+    const score =
+      (70 * (MQ135_BAD_MAX - value)) /
+      (MQ135_BAD_MAX - MQ135_BAD_THRESHOLD);
+
+    return Number(clampScore(score).toFixed(2));
+  };
+
+  const mq2QualityResponse = calculateNumericDifference(
+    sampleData?.mq2,
+    baselineData?.mq2,
+  );
+
+  const mq135QualityResponse = calculateNumericDifference(
+    sampleData?.mq135,
+    baselineData?.mq135,
+  );
+
+  const mq2QualityScore = calculateMq2Score(mq2QualityResponse);
+
+  const mq135QualityScore = calculateMq135Score(mq135QualityResponse);
+
+  const availablePrimaryScores = [mq2QualityScore, mq135QualityScore].filter(
+    (score) => score !== null && score !== undefined,
+  );
+
+  const sensorQualityScore = availablePrimaryScores.length
+    ? Number(
+        (
+          availablePrimaryScores.reduce((total, score) => total + score, 0) /
+          availablePrimaryScores.length
+        ).toFixed(2),
+      )
+    : 0;
+
+  const getSensorQualityStatus = () => {
+    if (mq2QualityResponse === null || mq135QualityResponse === null) {
+      return "REVIEW";
+    }
+
+    if (
+      mq2QualityResponse < MQ2_BAD_THRESHOLD &&
+      mq135QualityResponse < MQ135_BAD_THRESHOLD
+    ) {
+      return "GOOD";
+    }
+
+    if (
+      mq2QualityResponse >= MQ2_BAD_THRESHOLD &&
+      mq135QualityResponse >= MQ135_BAD_THRESHOLD
+    ) {
+      return "BAD";
+    }
+
+    return "REVIEW";
+  };
+
+  const sensorQualityStatus = getSensorQualityStatus();
+
+  const formatQualityNumber = (value, decimals = 2) => {
+    if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+      return "--";
+    }
+
+    const numericValue = Number(value);
+
+    if (Number.isInteger(numericValue)) {
+      return numericValue.toString();
+    }
+
+    return numericValue.toFixed(decimals);
   };
 
   // =========================================================
@@ -1168,6 +1344,99 @@ function SensorScanWorkflow({
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              {/* =================================================
+                  SENSOR QUALITY ASSESSMENT
+              ================================================= */}
+
+              <div
+                className={`sensor-quality-assessment sensor-quality-${sensorQualityStatus.toLowerCase()}`}
+              >
+                <div className="sensor-quality-header">
+                  <div>
+                    <span className="sensor-quality-label">
+                      SENSOR QUALITY ASSESSMENT
+                    </span>
+
+                    <h4>Sensor Score & Status</h4>
+
+                    <p>
+                      Calculated from the stable sample response relative to the
+                      captured baseline using the same current scoring rules as
+                      the final quality report.
+                    </p>
+                  </div>
+
+                  <div
+                    className={`sensor-quality-status sensor-quality-status-${sensorQualityStatus.toLowerCase()}`}
+                  >
+                    {sensorQualityStatus}
+                  </div>
+                </div>
+
+                <div className="sensor-quality-main-grid">
+                  <div className="sensor-quality-score-card">
+                    <span>Sensor Score</span>
+
+                    <div className="sensor-quality-score-value">
+                      <strong>{formatQualityNumber(sensorQualityScore)}</strong>
+                      <small>/100</small>
+                    </div>
+
+                    <div className="sensor-quality-score-track">
+                      <div
+                        className="sensor-quality-score-fill"
+                        style={{
+                          width: `${Math.max(
+                            0,
+                            Math.min(100, sensorQualityScore),
+                          )}%`,
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  <div className="sensor-quality-detail-grid">
+                    <div className="sensor-quality-detail-card">
+                      <span>MQ-2 Response</span>
+                      <strong>
+                        {formatQualityNumber(mq2QualityResponse)}
+                      </strong>
+                      <small>Sample − Baseline</small>
+                    </div>
+
+                    <div className="sensor-quality-detail-card">
+                      <span>MQ-2 Score</span>
+                      <strong>{formatQualityNumber(mq2QualityScore)}</strong>
+                      <small>/100</small>
+                    </div>
+
+                    <div className="sensor-quality-detail-card">
+                      <span>MQ-135 Response</span>
+                      <strong>
+                        {formatQualityNumber(mq135QualityResponse)}
+                      </strong>
+                      <small>Sample − Baseline</small>
+                    </div>
+
+                    <div className="sensor-quality-detail-card">
+                      <span>MQ-135 Score</span>
+                      <strong>{formatQualityNumber(mq135QualityScore)}</strong>
+                      <small>/100</small>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="sensor-quality-note">
+                  <span>i</span>
+
+                  <p>
+                    This is the Step 1 sensor assessment only. The final coffee
+                    bean grade is calculated later by combining the sensor score
+                    with the Physical AI score.
+                  </p>
+                </div>
               </div>
             </div>
           </>
@@ -2278,6 +2547,477 @@ function SensorScanWorkflow({
 
 
         /* ===================================================
+           SENSOR QUALITY ASSESSMENT
+        =================================================== */
+
+        .sensor-quality-assessment {
+          margin-top: 18px;
+
+          padding: 18px;
+
+          border-radius: 18px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.03
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              220,
+              175,
+              0.08
+            );
+        }
+
+
+        .sensor-quality-good {
+          background:
+            rgba(
+              55,
+              157,
+              69,
+              0.075
+            );
+
+          border-color:
+            rgba(
+              87,
+              189,
+              99,
+              0.16
+            );
+        }
+
+
+        .sensor-quality-review {
+          background:
+            rgba(
+              205,
+              127,
+              54,
+              0.07
+            );
+
+          border-color:
+            rgba(
+              221,
+              146,
+              72,
+              0.14
+            );
+        }
+
+
+        .sensor-quality-bad {
+          background:
+            rgba(
+              190,
+              65,
+              50,
+              0.075
+            );
+
+          border-color:
+            rgba(
+              225,
+              90,
+              75,
+              0.16
+            );
+        }
+
+
+        .sensor-quality-header {
+          display: flex;
+
+          align-items: flex-start;
+
+          justify-content:
+            space-between;
+
+          gap: 18px;
+
+          margin-bottom: 15px;
+        }
+
+
+        .sensor-quality-label {
+          display: block;
+
+          color: #d89958;
+
+          font-size: 9px;
+
+          font-weight: 900;
+
+          letter-spacing: 1px;
+        }
+
+
+        .sensor-quality-header h4 {
+          margin: 4px 0 0;
+
+          color: #ffe8c9;
+
+          font-size: 16px;
+        }
+
+
+        .sensor-quality-header p {
+          max-width: 680px;
+
+          margin: 6px 0 0;
+
+          color:
+            rgba(
+              255,
+              235,
+              210,
+              0.48
+            );
+
+          font-size: 10px;
+
+          line-height: 1.5;
+        }
+
+
+        .sensor-quality-status {
+          flex-shrink: 0;
+
+          padding: 8px 12px;
+
+          border-radius: 999px;
+
+          font-size: 10px;
+
+          font-weight: 950;
+
+          letter-spacing: 0.8px;
+        }
+
+
+        .sensor-quality-status-good {
+          color: #a3e8ac;
+
+          background:
+            rgba(
+              61,
+              165,
+              74,
+              0.12
+            );
+
+          border:
+            1px solid
+            rgba(
+              91,
+              194,
+              104,
+              0.17
+            );
+        }
+
+
+        .sensor-quality-status-review {
+          color: #ffd096;
+
+          background:
+            rgba(
+              210,
+              138,
+              59,
+              0.11
+            );
+
+          border:
+            1px solid
+            rgba(
+              222,
+              149,
+              77,
+              0.16
+            );
+        }
+
+
+        .sensor-quality-status-bad {
+          color: #ffaaa0;
+
+          background:
+            rgba(
+              200,
+              60,
+              50,
+              0.12
+            );
+
+          border:
+            1px solid
+            rgba(
+              225,
+              90,
+              75,
+              0.18
+            );
+        }
+
+
+        .sensor-quality-main-grid {
+          display: grid;
+
+          grid-template-columns:
+            minmax(180px, 0.8fr)
+            minmax(0, 2fr);
+
+          gap: 12px;
+        }
+
+
+        .sensor-quality-score-card,
+        .sensor-quality-detail-card {
+          padding: 14px;
+
+          border-radius: 15px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.035
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              220,
+              175,
+              0.07
+            );
+        }
+
+
+        .sensor-quality-score-card > span,
+        .sensor-quality-detail-card > span {
+          display: block;
+
+          color:
+            rgba(
+              255,
+              232,
+              204,
+              0.45
+            );
+
+          font-size: 9px;
+
+          font-weight: 800;
+
+          text-transform:
+            uppercase;
+
+          letter-spacing: 0.55px;
+        }
+
+
+        .sensor-quality-score-value {
+          display: flex;
+
+          align-items: flex-end;
+
+          gap: 5px;
+
+          margin-top: 8px;
+        }
+
+
+        .sensor-quality-score-value strong {
+          color: #fff0d5;
+
+          font-size: 31px;
+
+          line-height: 1;
+
+          font-weight: 950;
+        }
+
+
+        .sensor-quality-score-value small {
+          padding-bottom: 3px;
+
+          color:
+            rgba(
+              255,
+              233,
+              203,
+              0.45
+            );
+
+          font-size: 10px;
+
+          font-weight: 800;
+        }
+
+
+        .sensor-quality-score-track {
+          width: 100%;
+
+          height: 6px;
+
+          margin-top: 12px;
+
+          overflow: hidden;
+
+          border-radius: 999px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.07
+            );
+        }
+
+
+        .sensor-quality-score-fill {
+          height: 100%;
+
+          border-radius: inherit;
+
+          background:
+            linear-gradient(
+              90deg,
+              #a76134,
+              #ffd292
+            );
+
+          transition:
+            width
+            0.35s ease;
+        }
+
+
+        .sensor-quality-detail-grid {
+          display: grid;
+
+          grid-template-columns:
+            repeat(4, minmax(0, 1fr));
+
+          gap: 9px;
+        }
+
+
+        .sensor-quality-detail-card strong {
+          display: block;
+
+          margin-top: 7px;
+
+          color: #ffe5bd;
+
+          font-size: 19px;
+
+          font-weight: 900;
+        }
+
+
+        .sensor-quality-detail-card small {
+          display: block;
+
+          margin-top: 3px;
+
+          color:
+            rgba(
+              255,
+              232,
+              204,
+              0.38
+            );
+
+          font-size: 8px;
+
+          line-height: 1.35;
+        }
+
+
+        .sensor-quality-note {
+          display: flex;
+
+          align-items: flex-start;
+
+          gap: 8px;
+
+          margin-top: 12px;
+
+          padding: 10px 12px;
+
+          border-radius: 12px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.025
+            );
+        }
+
+
+        .sensor-quality-note > span {
+          width: 20px;
+
+          height: 20px;
+
+          display: grid;
+
+          place-items: center;
+
+          flex-shrink: 0;
+
+          border-radius: 50%;
+
+          color: #ffd49b;
+
+          background:
+            rgba(
+              211,
+              133,
+              58,
+              0.12
+            );
+
+          font-size: 10px;
+
+          font-weight: 900;
+        }
+
+
+        .sensor-quality-note p {
+          margin: 1px 0 0;
+
+          color:
+            rgba(
+              255,
+              232,
+              204,
+              0.43
+            );
+
+          font-size: 9px;
+
+          line-height: 1.5;
+        }
+
+
+        /* ===================================================
            RESULT TABLE
         =================================================== */
 
@@ -2509,6 +3249,27 @@ function SensorScanWorkflow({
           .capture-time-grid {
             grid-template-columns:
               1fr;
+          }
+
+
+          .sensor-quality-header {
+            flex-direction:
+              column;
+
+            align-items:
+              stretch;
+          }
+
+
+          .sensor-quality-main-grid {
+            grid-template-columns:
+              1fr;
+          }
+
+
+          .sensor-quality-detail-grid {
+            grid-template-columns:
+              repeat(2, minmax(0, 1fr));
           }
 
 

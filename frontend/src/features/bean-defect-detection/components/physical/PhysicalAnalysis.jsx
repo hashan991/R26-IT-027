@@ -13,7 +13,6 @@ import ImageUploader from "./ImageUploader";
 
 import DetectionSummary from "./DetectionSummary";
 import DetectionResultImage from "./DetectionResultImage";
-import DetectionTable from "./DetectionTable";
 
 import PhysicalWeightCard from "./PhysicalWeightCard";
 
@@ -638,6 +637,116 @@ function PhysicalAnalysis({
 
 
   // =========================================================
+  // PHYSICAL QUALITY SCORE
+  // =========================================================
+  //
+  // Keep this calculation aligned with the backend quality report:
+  //
+  // black               = 1.00 penalty
+  // black + broken      = 1.00 penalty
+  // broken              = 0.35 penalty
+  // unknown             = 0.50 penalty
+  //
+  // Physical Score = 100 * (1 - weightedDefects / totalBeans)
+  // =========================================================
+
+  const calculatePhysicalAssessment = (analysisResult) => {
+    if (!analysisResult) {
+      return {
+        score: 0,
+        status: "No Data",
+        weightedDefects: 0,
+        defectLoadPercent: 0,
+      };
+    }
+
+    const categoryCounts =
+      analysisResult.category_counts || {};
+
+    const totalBeans = Number(
+      analysisResult.total_beans ??
+        analysisResult.total_count ??
+        0,
+    );
+
+    const black = Number(
+      analysisResult.black_count ??
+        categoryCounts.black ??
+        0,
+    );
+
+    const blackAndBroken = Number(
+      analysisResult.black_and_broken_count ??
+        categoryCounts.black_and_broken ??
+        0,
+    );
+
+    const broken = Number(
+      analysisResult.broken_count ??
+        categoryCounts.broken ??
+        0,
+    );
+
+    const unknown = Number(
+      analysisResult.unknown_count ??
+        categoryCounts.unknown ??
+        0,
+    );
+
+    if (!totalBeans || totalBeans <= 0) {
+      return {
+        score: 0,
+        status: "No Data",
+        weightedDefects: 0,
+        defectLoadPercent: 0,
+      };
+    }
+
+    const weightedDefects =
+      black * 1.0 +
+      blackAndBroken * 1.0 +
+      broken * 0.35 +
+      unknown * 0.5;
+
+    const defectLoad =
+      weightedDefects / totalBeans;
+
+    const rawScore =
+      100 * (1 - defectLoad);
+
+    const score = Math.max(
+      0,
+      Math.min(100, rawScore),
+    );
+
+    let status = "Poor";
+
+    if (score >= 90) {
+      status = "Excellent";
+    } else if (score >= 75) {
+      status = "Good";
+    } else if (score >= 60) {
+      status = "Review";
+    }
+
+    return {
+      score: Number(score.toFixed(2)),
+      status,
+      weightedDefects: Number(
+        weightedDefects.toFixed(2),
+      ),
+      defectLoadPercent: Number(
+        (defectLoad * 100).toFixed(2),
+      ),
+    };
+  };
+
+
+  const physicalAssessment =
+    calculatePhysicalAssessment(result);
+
+
+  // =========================================================
   // CONTINUE TO FINAL REPORT
   // =========================================================
 
@@ -696,15 +805,15 @@ function PhysicalAnalysis({
 
 
         // -------------------------------------------------------
-        // TEMPORARY PHYSICAL SCORE
+        // PHYSICAL QUALITY SCORE
         // -------------------------------------------------------
 
         physicalScore:
-          80,
+          physicalAssessment.score,
 
 
         qualityStatus:
-          "Good",
+          physicalAssessment.status,
       };
 
 
@@ -712,14 +821,6 @@ function PhysicalAnalysis({
         physicalResult,
       );
     };
-
-
-  // =========================================================
-  // DETECTIONS
-  // =========================================================
-
-  const detections =
-    result?.detections || [];
 
 
   // =========================================================
@@ -1426,7 +1527,7 @@ function PhysicalAnalysis({
 
             <div className="physical-result-grid">
 
-              {/* ANNOTATED IMAGE */}
+              {/* ANNOTATED AI RESULT IMAGE */}
 
               <div className="physical-section-card">
 
@@ -1440,16 +1541,115 @@ function PhysicalAnalysis({
 
               </div>
 
+            </div>
 
-              {/* DETECTION TABLE */}
+          )}
 
-              <div className="physical-section-card">
 
-                <DetectionTable
-                  detections={
-                    detections
-                  }
-                />
+        {/* ===================================================
+            PHYSICAL QUALITY ASSESSMENT
+        =================================================== */}
+
+        {result &&
+          !loading && (
+
+            <div
+              className={`physical-quality-card physical-quality-${physicalAssessment.status
+                .toLowerCase()
+                .replace(/\s+/g, "-")}`}
+            >
+
+              <div className="physical-quality-heading">
+
+                <div>
+
+                  <span>
+                    PHYSICAL QUALITY ASSESSMENT
+                  </span>
+
+                  <h3>
+                    Batch-Level Physical Quality
+                  </h3>
+
+                  <p>
+                    Weighted physical defect severity calculated from the AI-detected bean categories.
+                  </p>
+
+                </div>
+
+
+                <span className="physical-quality-status">
+                  {physicalAssessment.status}
+                </span>
+
+              </div>
+
+
+              <div className="physical-quality-grid">
+
+                <div className="physical-score-main">
+
+                  <span className="physical-score-label">
+                    Physical Quality Score
+                  </span>
+
+                  <div className="physical-score-value">
+
+                    <strong>
+                      {physicalAssessment.score.toFixed(
+                        2,
+                      )}
+                    </strong>
+
+                    <span>
+                      / 100
+                    </span>
+
+                  </div>
+
+                </div>
+
+
+                <div className="physical-score-detail">
+
+                  <span>
+                    Quality Status
+                  </span>
+
+                  <strong>
+                    {physicalAssessment.status}
+                  </strong>
+
+                </div>
+
+
+                <div className="physical-score-detail">
+
+                  <span>
+                    Weighted Defect Load
+                  </span>
+
+                  <strong>
+                    {physicalAssessment.weightedDefects}
+                  </strong>
+
+                </div>
+
+
+                <div className="physical-score-detail">
+
+                  <span>
+                    Defect Load
+                  </span>
+
+                  <strong>
+                    {physicalAssessment.defectLoadPercent.toFixed(
+                      2,
+                    )}
+                    %
+                  </strong>
+
+                </div>
 
               </div>
 
@@ -1944,8 +2144,7 @@ function PhysicalAnalysis({
            GRID
         =================================================== */
 
-        .physical-top-grid,
-        .physical-result-grid {
+        .physical-top-grid {
           display: grid;
 
           grid-template-columns:
@@ -1956,6 +2155,13 @@ function PhysicalAnalysis({
 
 
         .physical-result-grid {
+          display: grid;
+
+          grid-template-columns:
+            1fr;
+
+          gap: 18px;
+
           margin-top: 18px;
         }
 
@@ -2789,6 +2995,302 @@ function PhysicalAnalysis({
 
 
         /* ===================================================
+           PHYSICAL QUALITY ASSESSMENT
+        =================================================== */
+
+        .physical-quality-card {
+          margin-top: 18px;
+
+          padding: 22px;
+
+          border-radius: 22px;
+
+          background:
+            rgba(
+              0,
+              0,
+              0,
+              0.14
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              220,
+              170,
+              0.09
+            );
+        }
+
+
+        .physical-quality-heading {
+          display: flex;
+
+          align-items:
+            flex-start;
+
+          justify-content:
+            space-between;
+
+          gap: 18px;
+
+          margin-bottom: 18px;
+        }
+
+
+        .physical-quality-heading > div > span {
+          display: block;
+
+          margin-bottom: 5px;
+
+          color: #dca05e;
+
+          font-size: 9px;
+
+          font-weight: 900;
+
+          letter-spacing: 1.3px;
+        }
+
+
+        .physical-quality-heading h3 {
+          margin: 0;
+
+          color: #fff1db;
+
+          font-size: 18px;
+        }
+
+
+        .physical-quality-heading p {
+          margin: 6px 0 0;
+
+          color:
+            rgba(
+              255,
+              238,
+              212,
+              0.46
+            );
+
+          font-size: 11px;
+
+          line-height: 1.55;
+        }
+
+
+        .physical-quality-status {
+          flex-shrink: 0;
+
+          padding: 8px 12px;
+
+          border-radius: 999px;
+
+          color: #ffd59a;
+
+          background:
+            rgba(
+              255,
+              213,
+              154,
+              0.08
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              213,
+              154,
+              0.14
+            );
+
+          font-size: 10px;
+
+          font-weight: 900;
+
+          text-transform: uppercase;
+        }
+
+
+        .physical-quality-excellent
+        .physical-quality-status,
+        .physical-quality-good
+        .physical-quality-status {
+          color: #9ee7a8;
+
+          background:
+            rgba(
+              62,
+              167,
+              76,
+              0.11
+            );
+
+          border-color:
+            rgba(
+              92,
+              199,
+              105,
+              0.18
+            );
+        }
+
+
+        .physical-quality-review
+        .physical-quality-status {
+          color: #ffd18c;
+
+          background:
+            rgba(
+              215,
+              145,
+              52,
+              0.1
+            );
+
+          border-color:
+            rgba(
+              229,
+              160,
+              69,
+              0.16
+            );
+        }
+
+
+        .physical-quality-poor
+        .physical-quality-status {
+          color: #ffad96;
+
+          background:
+            rgba(
+              196,
+              69,
+              47,
+              0.09
+            );
+
+          border-color:
+            rgba(
+              196,
+              69,
+              47,
+              0.15
+            );
+        }
+
+
+        .physical-quality-grid {
+          display: grid;
+
+          grid-template-columns:
+            1.25fr
+            1fr
+            1fr
+            1fr;
+
+          gap: 12px;
+        }
+
+
+        .physical-score-main,
+        .physical-score-detail {
+          padding: 16px;
+
+          border-radius: 16px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.035
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              220,
+              170,
+              0.08
+            );
+        }
+
+
+        .physical-score-label,
+        .physical-score-detail span {
+          display: block;
+
+          color:
+            rgba(
+              255,
+              235,
+              207,
+              0.44
+            );
+
+          font-size: 9px;
+
+          font-weight: 800;
+
+          letter-spacing: 0.5px;
+
+          text-transform: uppercase;
+        }
+
+
+        .physical-score-value {
+          display: flex;
+
+          align-items: flex-end;
+
+          gap: 6px;
+
+          margin-top: 10px;
+        }
+
+
+        .physical-score-value strong {
+          color: #fff2dd;
+
+          font-size: 30px;
+
+          line-height: 1;
+
+          font-weight: 950;
+        }
+
+
+        .physical-score-value span {
+          color:
+            rgba(
+              255,
+              235,
+              207,
+              0.45
+            );
+
+          font-size: 11px;
+
+          padding-bottom: 3px;
+        }
+
+
+        .physical-score-detail strong {
+          display: block;
+
+          margin-top: 10px;
+
+          color: #ffe1b7;
+
+          font-size: 16px;
+        }
+
+
+        /* ===================================================
            ACTIONS
         =================================================== */
 
@@ -2914,7 +3416,8 @@ function PhysicalAnalysis({
           max-width: 900px
         ) {
           .physical-top-grid,
-          .physical-result-grid {
+          .physical-result-grid,
+          .physical-quality-grid {
             grid-template-columns:
               1fr;
           }
