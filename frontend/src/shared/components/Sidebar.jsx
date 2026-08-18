@@ -24,6 +24,14 @@ function Sidebar() {
   };
 
   // =========================================================
+  // OPEN PROFILE
+  // =========================================================
+
+  const handleOpenProfile = () => {
+    navigate("/profile");
+  };
+
+  // =========================================================
   // ROLE LABEL
   // =========================================================
 
@@ -48,11 +56,19 @@ function Sidebar() {
   // =========================================================
 
   const getMenuItems = () => {
+    // ---------------------------------------------------------
+    // ADMIN
+    // ---------------------------------------------------------
+
     if (user.role === "ADMIN") {
       return [
         {
           label: "Home",
           path: "/dashboard",
+        },
+        {
+          label: "My Profile",
+          path: "/profile",
         },
         {
           label: "User Management",
@@ -65,11 +81,19 @@ function Sidebar() {
       ];
     }
 
+    // ---------------------------------------------------------
+    // BEAN QUALITY INSPECTOR
+    // ---------------------------------------------------------
+
     if (user.role === "BEAN_QUALITY_INSPECTOR") {
       return [
         {
           label: "Home",
           path: "/dashboard",
+        },
+        {
+          label: "My Profile",
+          path: "/profile",
         },
         {
           label: "Bean Quality",
@@ -78,29 +102,53 @@ function Sidebar() {
       ];
     }
 
+    // ---------------------------------------------------------
+    // POWDER QUALITY INSPECTOR
+    // ---------------------------------------------------------
+
     if (user.role === "POWDER_QUALITY_INSPECTOR") {
       return [
         {
           label: "Home",
-          path: "/",
+          path: "/dashboard",
+        },
+        {
+          label: "My Profile",
+          path: "/profile",
         },
       ];
     }
+
+    // ---------------------------------------------------------
+    // PACKAGING QUALITY INSPECTOR
+    // ---------------------------------------------------------
 
     if (user.role === "PACKAGING_QUALITY_INSPECTOR") {
       return [
         {
           label: "Home",
-          path: "/",
+          path: "/dashboard",
+        },
+        {
+          label: "My Profile",
+          path: "/profile",
         },
       ];
     }
+
+    // ---------------------------------------------------------
+    // SALES ANALYST
+    // ---------------------------------------------------------
 
     if (user.role === "SALES_ANALYST") {
       return [
         {
           label: "Home",
-          path: "/",
+          path: "/dashboard",
+        },
+        {
+          label: "My Profile",
+          path: "/profile",
         },
       ];
     }
@@ -131,6 +179,11 @@ function Sidebar() {
             top: 0;
           }
 
+
+          /* =================================================
+             LOGO
+          ================================================= */
+
           .sidebar-logo {
             padding: 5px 10px 25px;
 
@@ -138,6 +191,7 @@ function Sidebar() {
               1px solid
               rgba(255, 255, 255, 0.12);
           }
+
 
           .sidebar-logo h2 {
             margin: 0;
@@ -147,9 +201,11 @@ function Sidebar() {
             line-height: 1.3;
           }
 
+
           .sidebar-logo span {
             color: #a7d9b8;
           }
+
 
           .sidebar-logo p {
             margin: 7px 0 0;
@@ -160,6 +216,11 @@ function Sidebar() {
               rgba(255, 255, 255, 0.55);
           }
 
+
+          /* =================================================
+             USER CARD
+          ================================================= */
+
           .sidebar-user {
             margin-top: 22px;
 
@@ -169,12 +230,29 @@ function Sidebar() {
 
             background:
               rgba(255, 255, 255, 0.07);
+
+            cursor: pointer;
+
+            transition:
+              background 0.2s ease,
+              transform 0.2s ease;
           }
+
+
+          .sidebar-user:hover {
+            background:
+              rgba(255, 255, 255, 0.11);
+
+            transform: translateY(-1px);
+          }
+
 
           .sidebar-user-name {
             font-size: 14px;
+
             font-weight: 600;
           }
+
 
           .sidebar-user-role {
             margin-top: 5px;
@@ -183,6 +261,21 @@ function Sidebar() {
 
             color: #aad6b9;
           }
+
+
+          .sidebar-user-hint {
+            margin-top: 9px;
+
+            font-size: 9px;
+
+            color:
+              rgba(255, 255, 255, 0.35);
+          }
+
+
+          /* =================================================
+             MENU
+          ================================================= */
 
           .sidebar-menu {
             margin-top: 28px;
@@ -194,6 +287,7 @@ function Sidebar() {
 
             flex: 1;
           }
+
 
           .sidebar-menu-title {
             padding: 0 10px;
@@ -210,8 +304,10 @@ function Sidebar() {
               rgba(255, 255, 255, 0.45);
           }
 
+
           .sidebar-link {
             display: flex;
+
             align-items: center;
 
             padding: 12px 13px;
@@ -228,12 +324,14 @@ function Sidebar() {
             transition: 0.2s;
           }
 
+
           .sidebar-link:hover {
             background:
               rgba(255, 255, 255, 0.08);
 
             color: white;
           }
+
 
           .sidebar-link.active {
             background: #2a704b;
@@ -242,6 +340,11 @@ function Sidebar() {
 
             font-weight: 600;
           }
+
+
+          /* =================================================
+             COMING SOON
+          ================================================= */
 
           .coming-soon {
             margin-top: 18px;
@@ -261,6 +364,11 @@ function Sidebar() {
             line-height: 1.5;
           }
 
+
+          /* =================================================
+             FOOTER
+          ================================================= */
+
           .sidebar-footer {
             padding-top: 20px;
 
@@ -269,12 +377,14 @@ function Sidebar() {
               rgba(255, 255, 255, 0.12);
           }
 
+
           .sidebar-logout {
             width: 100%;
 
             height: 42px;
 
             border: none;
+
             border-radius: 8px;
 
             background:
@@ -283,6 +393,7 @@ function Sidebar() {
             color: white;
 
             font-size: 13px;
+
             font-weight: 600;
 
             cursor: pointer;
@@ -290,9 +401,15 @@ function Sidebar() {
             transition: 0.2s;
           }
 
+
           .sidebar-logout:hover {
             background: #9e3636;
           }
+
+
+          /* =================================================
+             RESPONSIVE
+          ================================================= */
 
           @media (max-width: 850px) {
             .sidebar {
@@ -303,7 +420,9 @@ function Sidebar() {
       </style>
 
       <aside className="sidebar">
-        {/* LOGO */}
+        {/* =================================================
+            LOGO
+        ================================================= */}
 
         <div className="sidebar-logo">
           <h2>
@@ -315,17 +434,27 @@ function Sidebar() {
           <p>Bean to Pack Quality Control</p>
         </div>
 
-        {/* USER */}
+        {/* =================================================
+            USER CARD
+        ================================================= */}
 
-        <div className="sidebar-user">
+        <div
+          className="sidebar-user"
+          onClick={handleOpenProfile}
+          title="Open My Profile"
+        >
           <div className="sidebar-user-name">
             {user.first_name} {user.last_name}
           </div>
 
           <div className="sidebar-user-role">{getRoleLabel(user.role)}</div>
+
+          <div className="sidebar-user-hint">View My Profile →</div>
         </div>
 
-        {/* NAVIGATION */}
+        {/* =================================================
+            NAVIGATION
+        ================================================= */}
 
         <nav className="sidebar-menu">
           <div className="sidebar-menu-title">Navigation</div>
@@ -342,6 +471,10 @@ function Sidebar() {
             </NavLink>
           ))}
 
+          {/* ===============================================
+              POWDER MODULE
+          =============================================== */}
+
           {user.role === "POWDER_QUALITY_INSPECTOR" && (
             <div className="coming-soon">
               Powder Quality Module
@@ -350,6 +483,10 @@ function Sidebar() {
             </div>
           )}
 
+          {/* ===============================================
+              PACKAGING MODULE
+          =============================================== */}
+
           {user.role === "PACKAGING_QUALITY_INSPECTOR" && (
             <div className="coming-soon">
               Packaging Quality Module
@@ -357,6 +494,10 @@ function Sidebar() {
               Coming Soon
             </div>
           )}
+
+          {/* ===============================================
+              SALES MODULE
+          =============================================== */}
 
           {user.role === "SALES_ANALYST" && (
             <div className="coming-soon">
@@ -367,10 +508,16 @@ function Sidebar() {
           )}
         </nav>
 
-        {/* LOGOUT */}
+        {/* =================================================
+            LOGOUT
+        ================================================= */}
 
         <div className="sidebar-footer">
-          <button className="sidebar-logout" onClick={handleLogout}>
+          <button
+            type="button"
+            className="sidebar-logout"
+            onClick={handleLogout}
+          >
             Logout
           </button>
         </div>

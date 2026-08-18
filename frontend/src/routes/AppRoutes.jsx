@@ -10,6 +10,8 @@ import BeanQualityPage from "../features/bean-defect-detection/pages/BeanQuality
 
 import UserManagementPage from "../features/admin/pages/UserManagementPage";
 
+import MyProfilePage from "../features/profile/pages/MyProfilePage";
+
 import RoleRoute from "../shared/components/RoleRoute";
 
 import DashboardLayout from "../layouts/DashboardLayout";
@@ -33,6 +35,7 @@ function AppRoutes() {
       ===================================================== */}
 
       <Route element={<DashboardLayout />}>
+        {/* DASHBOARD */}
 
         <Route
           path="/dashboard"
@@ -50,7 +53,31 @@ function AppRoutes() {
             </RoleRoute>
           }
         />
-        {/* ADMIN */}
+
+        {/* =====================================================
+            MY PROFILE
+        ===================================================== */}
+
+        <Route
+          path="/profile"
+          element={
+            <RoleRoute
+              allowedRoles={[
+                "ADMIN",
+                "BEAN_QUALITY_INSPECTOR",
+                "POWDER_QUALITY_INSPECTOR",
+                "PACKAGING_QUALITY_INSPECTOR",
+                "SALES_ANALYST",
+              ]}
+            >
+              <MyProfilePage />
+            </RoleRoute>
+          }
+        />
+
+        {/* =====================================================
+            ADMIN
+        ===================================================== */}
 
         <Route
           path="/admin"
@@ -61,7 +88,9 @@ function AppRoutes() {
           }
         />
 
-        {/* BEAN QUALITY */}
+        {/* =====================================================
+            BEAN QUALITY
+        ===================================================== */}
 
         <Route
           path="/bean"

@@ -3,20 +3,49 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 
 from .crud import (
+    count_active_approved_admins,
     create_user,
+    delete_user_by_id,
     get_user_by_email,
+    get_user_by_id,
+    update_user_password,
+    update_user_profile,
 )
 
 from .schema import (
-    RegisterRequest,
+    ChangePasswordRequest,
     LoginRequest,
+    RegisterRequest,
+    UpdateProfileRequest,
+    UserRole,
 )
 
 from .security import (
+    create_access_token,
     hash_password,
     verify_password,
-    create_access_token,
 )
+
+
+# =========================================================
+# SERIALIZE PROFILE
+# =========================================================
+
+
+def serialize_profile(user: dict) -> dict:
+    return {
+        "id": str(user["_id"]),
+        "first_name": user.get("first_name", ""),
+        "last_name": user.get("last_name", ""),
+        "email": user.get("email", ""),
+        "role": user.get("role"),
+        "is_active": user.get("is_active", False),
+        "is_approved": user.get("is_approved", False),
+        "requested_role": user.get("requested_role"),
+        "created_at": user.get("created_at"),
+        "updated_at": user.get("updated_at"),
+        "last_login": user.get("last_login"),
+    }
 
 
 # =========================================================
@@ -127,6 +156,16 @@ async def login_user(data: LoginRequest):
             detail="User role has not been assigned",
         )
 
+    # Last login update කරනවා
+    now = datetime.now(timezone.utc)
+
+    user = await update_user_profile(
+        str(user["_id"]),
+        {
+            "last_login": now,
+        },
+    )
+
     # JWT token create කරනවා
     access_token = create_access_token(
         user_id=str(user["_id"]),
@@ -145,4 +184,163 @@ async def login_user(data: LoginRequest):
             "is_active": user["is_active"],
             "is_approved": user["is_approved"],
         },
+    }
+
+
+# =========================================================
+# GET OWN PROFILE
+# =========================================================
+
+async def get_my_profile(
+    current_user: dict,
+):
+
+    return serialize_profile(
+        current_user
+    )
+
+
+# =========================================================
+# UPDATE OWN PROFILE
+# =========================================================
+#
+# Only first_name and last_name can be changed here.
+# Email and role are intentionally excluded.
+# =========================================================
+
+async def update_my_profile(
+    current_user: dict,
+    data: UpdateProfileRequest,
+):
+
+    user_id = str(
+        current_user["_id"]
+    )
+
+    updated_user = await update_user_profile(
+        user_id,
+        {
+            "first_name": data.first_name,
+            "last_name": data.last_name,
+            "updated_at": datetime.now(timezone.utc),
+        },
+    )
+
+    if not updated_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User account not found",
+        )
+
+    return serialize_profile(
+        updated_user
+    )
+
+
+# =========================================================
+# CHANGE OWN PASSWORD
+# =========================================================
+
+async def change_my_password(
+    current_user: dict,
+    data: ChangePasswordRequest,
+):
+
+    current_password_hash = current_user.get(
+        "password_hash"
+    )
+
+    if not current_password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Password information is unavailable",
+        )
+
+    # Current password එක verify කරනවා
+    if not verify_password(
+        data.current_password,
+        current_password_hash,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+
+    # New passwords දෙක match වෙනවද?
+    if data.new_password != data.confirm_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New passwords do not match",
+        )
+
+    # Old password එකම new password එක විදිහට දාන එක block කරනවා
+    if verify_password(
+        data.new_password,
+        current_password_hash,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "New password must be different "
+                "from the current password"
+            ),
+        )
+
+    new_password_hash = hash_password(
+        data.new_password
+    )
+
+    updated = await update_user_password(
+        user_id=str(current_user["_id"]),
+        password_hash=new_password_hash,
+        updated_at=datetime.now(timezone.utc),
+    )
+
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User account not found",
+        )
+
+    return {
+        "message": "Password changed successfully"
+    }
+
+
+# =========================================================
+# DELETE OWN ACCOUNT
+# =========================================================
+
+async def delete_my_account(
+    current_user: dict,
+):
+
+    # Last active approved admin account එක delete කරන්න දෙන්නේ නෑ.
+    if (
+        current_user.get("role")
+        == UserRole.ADMIN.value
+    ):
+        admin_count = await count_active_approved_admins()
+
+        if admin_count <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "The only active administrator "
+                    "account cannot be deleted"
+                ),
+            )
+
+    deleted = await delete_user_by_id(
+        str(current_user["_id"])
+    )
+
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User account not found",
+        )
+
+    return {
+        "message": "Account deleted successfully"
     }
