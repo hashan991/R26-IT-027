@@ -1,6 +1,10 @@
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 
+from .processing_intelligence.schema import (
+    ProcessingIntelligence,
+)
+
 from pydantic import (
     AliasChoices,
     BaseModel,
@@ -714,6 +718,11 @@ class QualityReportResponse(BaseModel):
         default_factory=list,
     )
 
+    # =====================================================
+    # ADVANCED PROCESSING INTELLIGENCE
+    # =====================================================
+
+    processing_intelligence: ProcessingIntelligence
 
     # -----------------------------------------------------
     # ORIGINAL ANALYSIS DATA

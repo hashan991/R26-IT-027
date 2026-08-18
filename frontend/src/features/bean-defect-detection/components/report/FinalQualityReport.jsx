@@ -7,6 +7,8 @@ import ReportActions from "./ReportActions";
 
 import { generateBeanQualityReport } from "../../services/qualityService";
 
+import ProcessingIntelligence from "./processing/ProcessingIntelligence";
+
 function FinalQualityReport({
   sensorResult,
   physicalResult,
@@ -763,6 +765,14 @@ function FinalQualityReport({
         <div className="report-section-block">
           <Recommendations recommendations={report.recommendations || []} />
         </div>
+
+        {/* =================================================
+            PROCESSING INTELLIGENCE
+       ================================================= */}
+
+        {report.processing_intelligence && (
+          <ProcessingIntelligence data={report.processing_intelligence} />
+        )}
 
         {/* =================================================
             METHODOLOGY

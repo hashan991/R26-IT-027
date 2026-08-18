@@ -2,6 +2,10 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import uuid4
 
+from .processing_intelligence.service import (
+    processing_intelligence_service,
+)
+
 from .schema import (
     GenerateQualityReportRequest,
     PhysicalDefectCounts,
@@ -1920,7 +1924,8 @@ class QualityReportService:
                     ),
 
                     description=(
-                        f"{counts.unknown} beans "
+                        f"{counts.unknown} "
+                        f"{'bean' if counts.unknown == 1 else 'beans'} "
                         f"could not be confidently "
                         f"assigned to the main "
                         f"quality categories."
@@ -2466,6 +2471,96 @@ class QualityReportService:
 
 
         # -------------------------------------------------
+        # ADVANCED PROCESSING INTELLIGENCE
+        # -------------------------------------------------
+        #
+        # The processing-intelligence engine receives the
+        # already-calculated quality assessment results.
+        #
+        # It generates:
+        #
+        # 1. Roasting recommendation
+        # 2. Pre-roast preparation plan
+        # 3. Roast quality risk
+        # 4. Batch usage recommendation
+        # 5. Estimated usable yield
+        # 6. Final production decision
+        #
+        # -------------------------------------------------
+
+        processing_counts = {
+
+            "total_beans": (
+                physical_assessment.total_beans
+            ),
+
+            "good": (
+                physical_assessment.counts.good
+            ),
+
+            "broken": (
+                physical_assessment.counts.broken
+            ),
+
+            "black": (
+                physical_assessment.counts.black
+            ),
+
+            "black_and_broken": (
+                physical_assessment
+                .counts
+                .black_and_broken
+            ),
+
+            "unknown": (
+                physical_assessment.counts.unknown
+            ),
+        }
+
+
+        processing_intelligence = (
+            processing_intelligence_service.generate(
+
+                sensor_status=(
+                    sensor_assessment.status
+                ),
+
+                physical_status=(
+                    physical_assessment.status
+                ),
+
+                final_score=(
+                    final_score
+                ),
+
+                grade=(
+                    grade
+                ),
+
+                quality_status=(
+                    quality_status
+                ),
+
+                counts=(
+                    processing_counts
+                ),
+
+                sample_weight=(
+                    request
+                    .physical_result
+                    .sample_weight
+                ),
+
+                weight_calibrated=(
+                    request
+                    .physical_result
+                    .weight_calibrated
+                ),
+            )
+        )
+
+
+        # -------------------------------------------------
         # REPORT
         # -------------------------------------------------
 
@@ -2519,6 +2614,10 @@ class QualityReportService:
 
             recommendations=(
                 recommendations
+            ),
+
+            processing_intelligence=(
+                processing_intelligence
             ),
 
             sensor_result=(
