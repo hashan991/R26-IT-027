@@ -82,6 +82,30 @@ function SensorAnalysis({ onComplete }) {
   const [lockedAt, setLockedAt] = useState(null);
 
   // =========================================================
+  // SENSOR SCAN WORKFLOW RESULT
+  // =========================================================
+  //
+  // SensorScanWorkflow component එකේ capture වෙන
+  // Baseline / Sample / Recovery data parent component එකේ
+  // save කරගෙන Final Quality Report එකට pass කරනවා.
+  //
+  // =========================================================
+
+  const [scanResult, setScanResult] = useState({
+    stage: "idle",
+
+    baseline: null,
+    sample: null,
+    recovery: null,
+
+    baselineCapturedAt: null,
+    sampleCapturedAt: null,
+    recoveryCapturedAt: null,
+
+    completed: false,
+  });
+
+  // =========================================================
   // REFS
   // =========================================================
 
@@ -588,87 +612,152 @@ function SensorAnalysis({ onComplete }) {
   // COMPLETE SENSOR STEP
   // =========================================================
 
+  // =========================================================
+  // COMPLETE SENSOR STEP
+  // =========================================================
+
   const handleComplete = () => {
-    // =========================================================
-    // TEMPORARY DEVELOPMENT MODE
-    // STEP 1 can be skipped
-    // =========================================================
+    setError("");
 
-    const step1CompletedNormally =
-      sensorData &&
-      !autoReading &&
-      !reading &&
-      lockedAt &&
-      stabilityStatus === "stable";
+    // Sensor data nathnam
+    if (!sensorData) {
+      setError(
+        "No sensor readings are available. Start the sensor test and collect sensor data first.",
+      );
+      return;
+    }
 
-    // =========================================================
-    // STEP 1 SKIPPED
-    // =========================================================
+    // Complete Baseline -> Sample -> Recovery workflow first
+    if (
+      !scanResult.completed ||
+      !scanResult.baseline ||
+      !scanResult.sample ||
+      !scanResult.recovery
+    ) {
+      setError(
+        "Complete the full Baseline → Sample → Recovery sensor workflow before continuing to Physical AI Analysis.",
+      );
+      return;
+    }
 
-    if (!step1CompletedNormally) {
-      const skippedResult = {
-        skipped: true,
+    // Monitoring thama run wenawanam
+    if (autoReading) {
+      setError(
+        "Sensor monitoring is still active. Wait until the recovery reading is captured and the task is complete.",
+      );
+      return;
+    }
 
-        readings: sensorData
-          ? {
-              ...sensorData,
-            }
-          : {},
+    // API reading ekak thama process wenawanam
+    if (reading) {
+      setError("Sensor reading is still in progress. Please wait.");
+      return;
+    }
 
-        device: deviceStatus
-          ? {
-              ...deviceStatus,
-            }
-          : {},
+    // Snapshot lock wela nathnam
+    if (!lockedAt) {
+      setError(
+        "The final recovery reading has not been locked yet. Please wait until the sensor task is complete.",
+      );
+      return;
+    }
 
-        stability: {
-          status: "skipped",
-
-          samples: readingHistory?.length || 0,
-
-          details: null,
-        },
-
-        lockedAt: null,
-
-        collectedAt: new Date().toISOString(),
-      };
-
-      onComplete(skippedResult);
-
+    // Sensors stable nathnam
+    if (stabilityStatus !== "stable") {
+      setError(
+        "The final recovery readings are not stable yet. Wait until all sensors become stable.",
+      );
       return;
     }
 
     // =========================================================
-    // NORMAL STEP 1 COMPLETION
+    // COMPLETE SENSOR RESULT
     // =========================================================
 
     const result = {
       skipped: false,
 
+      // -----------------------------------------------------
+      // Latest / final sensor snapshot
+      // -----------------------------------------------------
+
       readings: {
-        ...sensorData,
+        mq2: sensorData.mq2,
+        mq3: sensorData.mq3,
+        mq135: sensorData.mq135,
+        moisture: sensorData.moisture,
+        temperature: sensorData.temperature,
+        humidity: sensorData.humidity,
       },
+
+      // -----------------------------------------------------
+      // Complete experimental workflow
+      //
+      // Backend quality-report service can calculate:
+      // Sensor Response = Sample - Baseline
+      // -----------------------------------------------------
+
+      baseline: scanResult.baseline,
+
+      sample: scanResult.sample,
+
+      recovery: scanResult.recovery,
+
+      /*
+        comparison intentionally stays null here.
+
+        The backend already supports calculating the
+        relative sensor response using:
+
+        sample - baseline
+
+        when comparison is not supplied.
+      */
+      comparison: null,
+
+      // -----------------------------------------------------
+      // Device information
+      // -----------------------------------------------------
 
       device: {
         ...deviceStatus,
       },
 
+      // -----------------------------------------------------
+      // Final stability information
+      // -----------------------------------------------------
+
       stability: {
         status: stabilityStatus,
-
         samples: readingHistory.length,
 
-        details: stabilityDetails,
+        details: {
+          ...stabilityDetails,
+        },
       },
+
+      // -----------------------------------------------------
+      // Workflow capture times
+      // -----------------------------------------------------
+
+      baselineCapturedAt: scanResult.baselineCapturedAt,
+
+      sampleCapturedAt: scanResult.sampleCapturedAt,
+
+      recoveryCapturedAt: scanResult.recoveryCapturedAt,
 
       lockedAt: lockedAt.toISOString(),
 
       collectedAt: new Date().toISOString(),
     };
 
+    console.log("STEP 1 SENSOR RESULT:", result);
+
+    console.log("STEP 1 SENSOR RESULT JSON:", JSON.stringify(result, null, 2));
+
     onComplete(result);
   };
+
   // =========================================================
   // FORMAT TIME
   // =========================================================
@@ -723,6 +812,196 @@ function SensorAnalysis({ onComplete }) {
       humidity: false,
     });
   }, []);
+
+  // =========================================================
+  // SENSOR STABILITY CHART CONFIG
+  // =========================================================
+
+  const SENSOR_STABILITY_ITEMS = [
+    {
+      key: "mq2",
+      label: "MQ-2",
+      unit: "Raw",
+      description: "Gas response",
+      formatValue: (value) => Math.round(Number(value)).toString(),
+      metricType: "percent",
+      threshold: STABILITY_THRESHOLDS.mq2Percent,
+      thresholdLabel: `${STABILITY_THRESHOLDS.mq2Percent}%`,
+    },
+    {
+      key: "mq3",
+      label: "MQ-3",
+      unit: "Raw",
+      description: "VOC response",
+      formatValue: (value) => Math.round(Number(value)).toString(),
+      metricType: "percent",
+      threshold: STABILITY_THRESHOLDS.mq3Percent,
+      thresholdLabel: `${STABILITY_THRESHOLDS.mq3Percent}%`,
+    },
+    {
+      key: "mq135",
+      label: "MQ-135",
+      unit: "Raw",
+      description: "Air quality response",
+      formatValue: (value) => Math.round(Number(value)).toString(),
+      metricType: "percent",
+      threshold: STABILITY_THRESHOLDS.mq135Percent,
+      thresholdLabel: `${STABILITY_THRESHOLDS.mq135Percent}%`,
+    },
+    {
+      key: "moisture",
+      label: "Moisture",
+      unit: "Raw",
+      description: "Moisture reading",
+      formatValue: (value) => Math.round(Number(value)).toString(),
+      metricType: "percent",
+      threshold: STABILITY_THRESHOLDS.moisturePercent,
+      thresholdLabel: `${STABILITY_THRESHOLDS.moisturePercent}%`,
+    },
+    {
+      key: "temperature",
+      label: "Temp",
+      unit: "°C",
+      description: "Temperature",
+      formatValue: (value) => Number(value).toFixed(1),
+      metricType: "range",
+      threshold: STABILITY_THRESHOLDS.temperatureRange,
+      thresholdLabel: `${STABILITY_THRESHOLDS.temperatureRange} °C`,
+    },
+    {
+      key: "humidity",
+      label: "Humidity",
+      unit: "%",
+      description: "Relative humidity",
+      formatValue: (value) => Number(value).toFixed(1),
+      metricType: "range",
+      threshold: STABILITY_THRESHOLDS.humidityRange,
+      thresholdLabel: `${STABILITY_THRESHOLDS.humidityRange} %`,
+    },
+  ];
+
+  // =========================================================
+  // CHART HELPERS
+  // =========================================================
+
+  const getSensorSeries = (key) => {
+    return readingHistory
+      .map((item) => Number(item?.[key]))
+      .filter((value) => Number.isFinite(value));
+  };
+
+  const getSensorChartStatus = (key) => {
+    if (readingHistory.length < REQUIRED_STABILITY_READINGS) {
+      return {
+        state: "collecting",
+        label: `${readingHistory.length}/${REQUIRED_STABILITY_READINGS}`,
+      };
+    }
+
+    return stabilityDetails[key]
+      ? {
+          state: "stable",
+          label: "Stable",
+        }
+      : {
+          state: "stabilizing",
+          label: "Changing",
+        };
+  };
+
+  const getSensorMetricSummary = (sensor, values) => {
+    if (!values.length) {
+      return {
+        metricLabel: sensor.metricType === "percent" ? "Variation" : "Range",
+        metricValue: "--",
+        thresholdLabel: sensor.thresholdLabel,
+      };
+    }
+
+    if (sensor.metricType === "percent") {
+      return {
+        metricLabel: "Variation",
+        metricValue: `${calculatePercentVariation(values).toFixed(2)}%`,
+        thresholdLabel: sensor.thresholdLabel,
+      };
+    }
+
+    return {
+      metricLabel: "Range",
+      metricValue: `${calculateRange(values).toFixed(2)} ${sensor.unit}`,
+      thresholdLabel: sensor.thresholdLabel,
+    };
+  };
+
+  const getChartColors = (state) => {
+    if (state === "stable") {
+      return {
+        stroke: "#71dd84",
+        fill: "rgba(113, 221, 132, 0.16)",
+        point: "#9ef0aa",
+      };
+    }
+
+    if (state === "stabilizing") {
+      return {
+        stroke: "#ffb36c",
+        fill: "rgba(255, 179, 108, 0.14)",
+        point: "#ffd29a",
+      };
+    }
+
+    return {
+      stroke: "#e2b56f",
+      fill: "rgba(226, 181, 111, 0.12)",
+      point: "#ffe1a6",
+    };
+  };
+
+  const buildSparklineData = (
+    values,
+    width = 220,
+    height = 72,
+    padding = 8,
+  ) => {
+    if (!values.length) {
+      return null;
+    }
+
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const span = max - min || 1;
+
+    const points = values.map((value, index) => {
+      const x =
+        padding +
+        (index * (width - padding * 2)) / Math.max(values.length - 1, 1);
+
+      const normalized = (value - min) / span;
+
+      const y = height - padding - normalized * (height - padding * 2);
+
+      return {
+        x,
+        y,
+      };
+    });
+
+    const linePoints = points.map((point) => `${point.x},${point.y}`).join(" ");
+
+    const areaPoints = [
+      `${padding},${height - padding}`,
+      ...points.map((point) => `${point.x},${point.y}`),
+      `${width - padding},${height - padding}`,
+    ].join(" ");
+
+    const lastPoint = points[points.length - 1];
+
+    return {
+      linePoints,
+      areaPoints,
+      lastPoint,
+    };
+  };
 
   // =========================================================
   // UI
@@ -944,6 +1223,7 @@ function SensorAnalysis({ onComplete }) {
           reading={reading}
           handleToggleMonitoring={handleToggleMonitoring}
           resetStabilityTracking={resetStabilityTracking}
+          onWorkflowChange={setScanResult}
         />
 
         {/* ===================================================
@@ -998,60 +1278,132 @@ function SensorAnalysis({ onComplete }) {
         </div>
 
         {/* ===================================================
-            INDIVIDUAL SENSOR STABILITY
+            INDIVIDUAL SENSOR STABILITY CHARTS
         =================================================== */}
 
-        {readingHistory.length >= REQUIRED_STABILITY_READINGS && (
-          <div className="individual-stability">
-            <span
-              className={
-                stabilityDetails.mq2 ? "stable-sensor" : "unstable-sensor"
-              }
-            >
-              MQ-2 {stabilityDetails.mq2 ? "✓" : "…"}
-            </span>
+        {readingHistory.length > 0 && (
+          <div className="stability-chart-section">
+            <div className="stability-chart-header">
+              <div>
+                <strong>Individual Sensor Stability</strong>
 
-            <span
-              className={
-                stabilityDetails.mq3 ? "stable-sensor" : "unstable-sensor"
-              }
-            >
-              MQ-3 {stabilityDetails.mq3 ? "✓" : "…"}
-            </span>
+                <p>
+                  Visualize the last{" "}
+                  {Math.min(readingHistory.length, REQUIRED_STABILITY_READINGS)}{" "}
+                  readings of each sensor and identify whether each signal has
+                  stabilized.
+                </p>
+              </div>
+            </div>
 
-            <span
-              className={
-                stabilityDetails.mq135 ? "stable-sensor" : "unstable-sensor"
-              }
-            >
-              MQ-135 {stabilityDetails.mq135 ? "✓" : "…"}
-            </span>
+            <div className="stability-chart-grid">
+              {SENSOR_STABILITY_ITEMS.map((sensor) => {
+                const values = getSensorSeries(sensor.key);
 
-            <span
-              className={
-                stabilityDetails.moisture ? "stable-sensor" : "unstable-sensor"
-              }
-            >
-              Moisture {stabilityDetails.moisture ? "✓" : "…"}
-            </span>
+                const chartData = buildSparklineData(values);
 
-            <span
-              className={
-                stabilityDetails.temperature
-                  ? "stable-sensor"
-                  : "unstable-sensor"
-              }
-            >
-              Temp {stabilityDetails.temperature ? "✓" : "…"}
-            </span>
+                const status = getSensorChartStatus(sensor.key);
 
-            <span
-              className={
-                stabilityDetails.humidity ? "stable-sensor" : "unstable-sensor"
-              }
-            >
-              Humidity {stabilityDetails.humidity ? "✓" : "…"}
-            </span>
+                const summary = getSensorMetricSummary(sensor, values);
+
+                const colors = getChartColors(status.state);
+
+                const currentValue = values.length
+                  ? values[values.length - 1]
+                  : null;
+
+                return (
+                  <div
+                    key={sensor.key}
+                    className={`stability-chart-card stability-chart-card-${status.state}`}
+                  >
+                    <div className="chart-card-top">
+                      <div>
+                        <div className="chart-sensor-name">{sensor.label}</div>
+
+                        <div className="chart-sensor-description">
+                          {sensor.description}
+                        </div>
+                      </div>
+
+                      <span
+                        className={`chart-status-badge chart-status-${status.state}`}
+                      >
+                        <span className="chart-status-dot"></span>
+                        {status.label}
+                      </span>
+                    </div>
+
+                    <div className="chart-current-reading">
+                      <span className="chart-current-value">
+                        {currentValue !== null
+                          ? sensor.formatValue(currentValue)
+                          : "--"}
+                      </span>
+
+                      <span className="chart-current-unit">{sensor.unit}</span>
+                    </div>
+
+                    <div className="chart-box">
+                      {chartData ? (
+                        <svg
+                          className="sensor-mini-chart"
+                          viewBox="0 0 220 72"
+                          preserveAspectRatio="none"
+                        >
+                          <line
+                            x1="8"
+                            y1="64"
+                            x2="212"
+                            y2="64"
+                            className="chart-base-line"
+                          />
+
+                          <polygon
+                            points={chartData.areaPoints}
+                            fill={colors.fill}
+                          />
+
+                          <polyline
+                            points={chartData.linePoints}
+                            fill="none"
+                            stroke={colors.stroke}
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+
+                          <circle
+                            cx={chartData.lastPoint.x}
+                            cy={chartData.lastPoint.y}
+                            r="4.5"
+                            fill={colors.point}
+                            stroke={colors.stroke}
+                            strokeWidth="2"
+                          />
+                        </svg>
+                      ) : (
+                        <div className="chart-empty-state">
+                          Waiting for readings...
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="chart-meta-row">
+                      <div className="chart-meta-item">
+                        <span>{summary.metricLabel}</span>
+                        <strong>{summary.metricValue}</strong>
+                      </div>
+
+                      <div className="chart-meta-item">
+                        <span>Threshold</span>
+                        <strong>{summary.thresholdLabel}</strong>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -1119,28 +1471,34 @@ function SensorAnalysis({ onComplete }) {
 
         <div className="sensor-actions">
           <div className="sensor-helper">
-            {!sensorData
-              ? "Start monitoring to collect sensor readings."
-              : autoReading && stabilityStatus === "collecting"
-                ? `Collecting readings ${readingHistory.length}/${REQUIRED_STABILITY_READINGS}.`
-                : autoReading && stabilityStatus === "stabilizing"
-                  ? "Sensors are still stabilizing. Keep monitoring."
-                  : autoReading && stabilityStatus === "stable"
-                    ? "Sensors are stable. Stop monitoring to lock the current readings."
-                    : !autoReading && stabilityStatus === "stable" && lockedAt
-                      ? "Stable readings are locked. You can continue to Physical AI Analysis."
-                      : "Readings are not stable yet. Start monitoring again."}
+            {!scanResult.completed
+              ? "Complete the Baseline → Sample → Recovery sensor workflow first."
+              : !sensorData
+                ? "Sensor data is not available."
+                : autoReading
+                  ? "Sensor monitoring is still active. Wait until the recovery stage is complete."
+                  : reading
+                    ? "Sensor reading is still in progress."
+                    : !lockedAt
+                      ? "Waiting for the final recovery reading to be locked."
+                      : stabilityStatus !== "stable"
+                        ? "Final recovery readings are not stable yet."
+                        : "Sensor test complete. Baseline, sample, and recovery data are ready for the Final Quality Report."}
           </div>
 
           <button
             className="continue-button"
-          // disabled={
-              //!sensorData ||
-              //autoReading ||
-              //reading ||
-              //!lockedAt ||
-              //stabilityStatus !== "stable"
-           // }
+            disabled={
+              !scanResult.completed ||
+              !scanResult.baseline ||
+              !scanResult.sample ||
+              !scanResult.recovery ||
+              !sensorData ||
+              autoReading ||
+              reading ||
+              !lockedAt ||
+              stabilityStatus !== "stable"
+            }
             onClick={handleComplete}
           >
             Continue to Physical AI Analysis →
@@ -2020,76 +2378,263 @@ function SensorAnalysis({ onComplete }) {
             infinite;
         }
 
-
         /* ===================================================
-           INDIVIDUAL STABILITY
+           INDIVIDUAL STABILITY CHARTS
         =================================================== */
 
-        .individual-stability {
-          display: flex;
-
-          flex-wrap: wrap;
-
-          gap: 7px;
-
-          margin-top: 10px;
+        .stability-chart-section {
+          margin-top: 18px;
         }
 
+        .stability-chart-header {
+          margin-bottom: 12px;
+        }
 
-        .individual-stability span {
-          padding: 6px 9px;
+        .stability-chart-header strong {
+          display: block;
+
+          color: #ffe8c5;
+
+          font-size: 14px;
+        }
+
+        .stability-chart-header p {
+          margin: 6px 0 0;
+
+          color: rgba(255, 237, 211, 0.48);
+
+          font-size: 11px;
+
+          line-height: 1.5;
+        }
+
+        .stability-chart-grid {
+          display: grid;
+
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+
+          gap: 12px;
+        }
+
+        .stability-chart-card {
+          padding: 12px;
+
+          border-radius: 18px;
+
+          background: rgba(255, 255, 255, 0.035);
+
+          border: 1px solid rgba(255, 220, 170, 0.08);
+
+          min-width: 0;
+
+          transition: 0.25s ease;
+        }
+
+        .stability-chart-card-collecting {
+          background: rgba(214, 158, 78, 0.06);
+
+          border-color: rgba(226, 177, 96, 0.14);
+        }
+
+        .stability-chart-card-stabilizing {
+          background: rgba(214, 113, 55, 0.06);
+
+          border-color: rgba(230, 138, 79, 0.14);
+        }
+
+        .stability-chart-card-stable {
+          background: rgba(70, 171, 83, 0.07);
+
+          border-color: rgba(92, 198, 106, 0.15);
+        }
+
+        .chart-card-top {
+          display: flex;
+
+          align-items: flex-start;
+
+          justify-content: space-between;
+
+          gap: 10px;
+        }
+
+        .chart-sensor-name {
+          color: #fff1dd;
+
+          font-size: 12px;
+
+          font-weight: 850;
+        }
+
+        .chart-sensor-description {
+          margin-top: 3px;
+
+          color: rgba(255, 237, 211, 0.42);
+
+          font-size: 10px;
+
+          line-height: 1.4;
+        }
+
+        .chart-status-badge {
+          display: inline-flex;
+
+          align-items: center;
+
+          gap: 5px;
+
+          padding: 5px 8px;
 
           border-radius: 999px;
 
           font-size: 9px;
 
-          font-weight: 850;
+          font-weight: 900;
+
+          white-space: nowrap;
         }
 
+        .chart-status-dot {
+          width: 6px;
+          height: 6px;
 
-        .stable-sensor {
+          border-radius: 50%;
+        }
+
+        .chart-status-collecting {
+          color: #f1cc8c;
+
+          background: rgba(226, 177, 96, 0.1);
+        }
+
+        .chart-status-collecting .chart-status-dot {
+          background: #f1cc8c;
+        }
+
+        .chart-status-stabilizing {
+          color: #ffb878;
+
+          background: rgba(226, 125, 73, 0.11);
+        }
+
+        .chart-status-stabilizing .chart-status-dot {
+          background: #ffb878;
+        }
+
+        .chart-status-stable {
           color: #9fe5a8;
 
-          background:
-            rgba(
-              61,
-              166,
-              75,
-              0.09
-            );
-
-          border:
-            1px solid
-              rgba(
-                91,
-                195,
-                103,
-                0.14
-              );
+          background: rgba(92, 198, 106, 0.12);
         }
 
+        .chart-status-stable .chart-status-dot {
+          background: #78dd88;
 
-        .unstable-sensor {
-          color: #ffbb80;
-
-          background:
-            rgba(
-              205,
-              105,
-              43,
-              0.08
-            );
-
-          border:
-            1px solid
-              rgba(
-                220,
-                125,
-                61,
-                0.14
-              );
+          box-shadow: 0 0 10px rgba(120, 221, 136, 0.5);
         }
 
+        .chart-current-reading {
+          display: flex;
+
+          align-items: flex-end;
+
+          gap: 5px;
+
+          margin-top: 12px;
+        }
+
+        .chart-current-value {
+          color: #fff4e4;
+
+          font-size: 21px;
+
+          font-weight: 900;
+
+          line-height: 1;
+        }
+
+        .chart-current-unit {
+          color: rgba(255, 237, 211, 0.5);
+
+          font-size: 10px;
+
+          font-weight: 700;
+
+          padding-bottom: 2px;
+        }
+
+        .chart-box {
+          height: 82px;
+
+          margin-top: 10px;
+
+          border-radius: 14px;
+
+          overflow: hidden;
+
+          background: rgba(0, 0, 0, 0.12);
+
+          border: 1px solid rgba(255, 220, 170, 0.05);
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+        }
+
+        .sensor-mini-chart {
+          width: 100%;
+          height: 100%;
+          display: block;
+        }
+
+        .chart-base-line {
+          stroke: rgba(255, 255, 255, 0.08);
+          stroke-width: 1;
+        }
+
+        .chart-empty-state {
+          color: rgba(255, 237, 211, 0.4);
+
+          font-size: 11px;
+        }
+
+        .chart-meta-row {
+          display: grid;
+
+          grid-template-columns: 1fr 1fr;
+
+          gap: 8px;
+
+          margin-top: 10px;
+        }
+
+        .chart-meta-item {
+          padding: 8px;
+
+          border-radius: 12px;
+
+          background: rgba(255, 255, 255, 0.04);
+
+          border: 1px solid rgba(255, 220, 170, 0.05);
+        }
+
+        .chart-meta-item span {
+          display: block;
+
+          color: rgba(255, 237, 211, 0.42);
+
+          font-size: 9px;
+
+          margin-bottom: 4px;
+        }
+
+        .chart-meta-item strong {
+          color: #ffe7c5;
+
+          font-size: 11px;
+        }
 
         /* ===================================================
            SUCCESS / LOCKED

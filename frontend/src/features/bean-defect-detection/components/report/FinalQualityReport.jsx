@@ -38,35 +38,38 @@ function FinalQualityReport({
   // =========================================================
 
   useEffect(() => {
-    const generateReport = async () => {
-      try {
-        setLoading(true);
+const generateReport = async () => {
+  try {
+    setLoading(true);
+    setError("");
+    setReport(null);
 
-        setError("");
+    console.log("===== SENSOR RESULT RECEIVED BY FINAL REPORT =====");
+    console.log(sensorResult);
 
-        setReport(null);
+    console.log("===== PHYSICAL RESULT RECEIVED BY FINAL REPORT =====");
+    console.log(physicalResult);
 
-        const data = await generateBeanQualityReport(
-          sensorResult,
-          physicalResult,
-        );
+    const data = await generateBeanQualityReport(sensorResult, physicalResult);
 
-        setReport(data);
-      } catch (requestError) {
-        console.error("Final report generation failed:", requestError);
+    console.log("===== BACKEND FINAL REPORT RESPONSE =====");
+    console.log(data);
 
-        // 401 is handled globally by api.js
-        if (requestError.response?.status !== 401) {
-          const message =
-            requestError.response?.data?.detail ||
-            "Failed to generate the final coffee bean quality report.";
+    setReport(data);
+  } catch (requestError) {
+    console.error("Final report generation failed:", requestError);
 
-          setError(message);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (requestError.response?.status !== 401) {
+      const message =
+        requestError.response?.data?.detail ||
+        "Failed to generate the final coffee bean quality report.";
+
+      setError(message);
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
     generateReport();
   }, [sensorResult, physicalResult]);

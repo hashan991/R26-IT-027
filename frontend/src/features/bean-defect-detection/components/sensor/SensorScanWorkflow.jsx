@@ -15,6 +15,7 @@ function SensorScanWorkflow({
   reading,
   handleToggleMonitoring,
   resetStabilityTracking,
+  onWorkflowChange,
 }) {
   // =========================================================
   // WORKFLOW STAGES
@@ -63,6 +64,39 @@ function SensorScanWorkflow({
 
   const [exposureTimeLeft, setExposureTimeLeft] =
     useState(SAMPLE_EXPOSURE_TIME);
+
+  // =========================================================
+  // SEND WORKFLOW DATA TO PARENT SENSOR ANALYSIS
+  // =========================================================
+
+  useEffect(() => {
+    if (!onWorkflowChange) {
+      return;
+    }
+
+    onWorkflowChange({
+      stage,
+
+      baseline: baselineData,
+      sample: sampleData,
+      recovery: recoveryData,
+
+      baselineCapturedAt: baselineTime?.toISOString?.() || null,
+      sampleCapturedAt: sampleTime?.toISOString?.() || null,
+      recoveryCapturedAt: recoveryTime?.toISOString?.() || null,
+
+      completed: stage === "complete",
+    });
+  }, [
+    stage,
+    baselineData,
+    sampleData,
+    recoveryData,
+    baselineTime,
+    sampleTime,
+    recoveryTime,
+    onWorkflowChange,
+  ]);
 
   // =========================================================
   // REFS
