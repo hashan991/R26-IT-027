@@ -4,6 +4,9 @@ import QualityScore from "./QualityScore";
 import QualityFindings from "./QualityFindings";
 import Recommendations from "./Recommendations";
 import ReportActions from "./ReportActions";
+import SensorAssessmentCard from "./SensorAssessmentCard";
+import PhysicalAssessmentCard from "./PhysicalAssessmentCard";
+import BeanWeightAssessment from "./BeanWeightAssessment";
 
 import { generateBeanQualityReport } from "../../services/qualityService";
 
@@ -611,143 +614,24 @@ const generateReport = async () => {
         </div>
 
         {/* =================================================
-            ASSESSMENT SUMMARY
-        ================================================= */}
+         SAMPLE WEIGHT ANALYSIS
+          ================================================= */}
 
-        <div className="assessment-summary-grid">
-          {/* SENSOR */}
-
-          <div className="assessment-summary-card">
-            <span className="assessment-label">SENSOR ASSESSMENT</span>
-
-            <div className="assessment-score-row">
-              <strong>
-                {Number(sensorAssessment.sensor_score ?? 0).toFixed(2)}
-              </strong>
-
-              <small>/ 100</small>
-            </div>
-
-            <span
-              className={`assessment-status ${
-                sensorAssessment.status?.toLowerCase() || ""
-              }`}
-            >
-              {sensorAssessment.status || "-"}
-            </span>
-
-            <div className="assessment-details">
-              <div>
-                <span>MQ-2 Response</span>
-
-                <strong>{sensorAssessment.mq2_response ?? "-"}</strong>
-              </div>
-
-              <div>
-                <span>MQ-135 Response</span>
-
-                <strong>{sensorAssessment.mq135_response ?? "-"}</strong>
-              </div>
-
-              <div>
-                <span>MQ-2 Score</span>
-
-                <strong>{sensorAssessment.mq2_score ?? "-"}</strong>
-              </div>
-
-              <div>
-                <span>MQ-135 Score</span>
-
-                <strong>{sensorAssessment.mq135_score ?? "-"}</strong>
-              </div>
-            </div>
-          </div>
-
-          {/* PHYSICAL */}
-
-          <div className="assessment-summary-card">
-            <span className="assessment-label">PHYSICAL AI ASSESSMENT</span>
-
-            <div className="assessment-score-row">
-              <strong>
-                {Number(physicalAssessment.physical_score ?? 0).toFixed(2)}
-              </strong>
-
-              <small>/ 100</small>
-            </div>
-
-            <span
-              className={`assessment-status ${
-                physicalAssessment.status?.toLowerCase() || ""
-              }`}
-            >
-              {physicalAssessment.status || "-"}
-            </span>
-
-            <div className="assessment-details">
-              <div>
-                <span>Total Beans</span>
-
-                <strong>{physicalAssessment.total_beans ?? 0}</strong>
-              </div>
-
-              <div>
-                <span>Good</span>
-
-                <strong>{physicalAssessment.counts?.good ?? 0}</strong>
-              </div>
-
-              <div>
-                <span>Broken</span>
-
-                <strong>{physicalAssessment.counts?.broken ?? 0}</strong>
-              </div>
-
-              <div>
-                <span>Black</span>
-
-                <strong>{physicalAssessment.counts?.black ?? 0}</strong>
-              </div>
-
-              <div>
-                <span>Black + Broken</span>
-
-                <strong>
-                  {physicalAssessment.counts?.black_and_broken ?? 0}
-                </strong>
-              </div>
-
-              <div>
-                <span>Unknown</span>
-
-                <strong>{physicalAssessment.counts?.unknown ?? 0}</strong>
-              </div>
-            </div>
-          </div>
+        <div className="report-section-block">
+          <BeanWeightAssessment
+            physicalResult={physicalResult}
+            physicalAssessment={physicalAssessment}
+          />
         </div>
 
         {/* =================================================
-            FINAL DECISION
-        ================================================= */}
+          ASSESSMENT SUMMARY
+          ================================================= */}
 
-        <div className="final-decision-card">
-          <div>
-            <span>FINAL QUALITY DECISION</span>
+        <div className="assessment-summary-grid">
+          <SensorAssessmentCard sensorAssessment={sensorAssessment} />
 
-            <h3>Grade {grade}</h3>
-
-            <p>
-              {finalFinding?.description || `Final score: ${finalScore}/100.`}
-            </p>
-          </div>
-
-          <div className="final-decision-right">
-            <strong>{Number(finalScore).toFixed(2)}</strong>
-
-            <small>/ 100</small>
-
-            <span>{qualityStatus}</span>
-          </div>
+          <PhysicalAssessmentCard physicalAssessment={physicalAssessment} />
         </div>
 
         {/* =================================================
@@ -756,8 +640,15 @@ const generateReport = async () => {
 
         <div className="report-section-block">
           <QualityFindings
+            finalScore={finalScore}
+            grade={grade}
+            qualityStatus={qualityStatus}
             sensorFindings={sensorFindings}
             physicalFindings={physicalFindings}
+            sensorAssessment={sensorAssessment}
+            physicalAssessment={physicalAssessment}
+            sensorWeight={report.sensor_weight ?? 0.5}
+            physicalWeight={report.physical_weight ?? 0.5}
           />
         </div>
 
@@ -1085,15 +976,14 @@ const generateReport = async () => {
         ================================================= */
 
         .assessment-summary-grid {
-          margin-top: 17px;
+  margin-top: 17px;
 
-          display: grid;
+  display: grid;
 
-          grid-template-columns:
-            1fr 1fr;
+  grid-template-columns: 1fr;
 
-          gap: 17px;
-        }
+  gap: 17px;
+}
 
 
         .assessment-summary-card {
