@@ -11,3 +11,15 @@ export const getLatestSensorReading = async () => {
 
   return response.data;
 };
+
+// =========================================================
+// QUALITY INDICATOR
+// =========================================================
+
+export const sendSensorIndicatorCommand = async (command) => {
+  const response = await api.post(
+    `/api/beans/sensors/indicator/${command}`
+  );
+
+  return response.data;
+};

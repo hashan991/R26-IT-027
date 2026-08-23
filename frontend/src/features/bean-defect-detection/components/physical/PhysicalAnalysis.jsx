@@ -601,41 +601,23 @@ function PhysicalAnalysis({
   // RUN AI BASED ON CURRENT IMAGE SOURCE
   // =========================================================
 
-  const handlePredict =
-    async () => {
-      // =======================================================
-      // TEMPORARY WEIGHT BYPASS
-      //
-      // Arduino currently disconnected.
-      //
-      // Later enable:
-      //
-      // if (
-      //   capturedWeight === null ||
-      //   capturedWeight === undefined
-      // ) {
-      //   alert(
-      //     "Please capture the sample weight first."
-      //   );
-      //   return;
-      // }
-      // =======================================================
+const handlePredict = async () => {
+  if (capturedWeight === null || capturedWeight === undefined) {
+    alert(
+      "Please zero the scale, add the coffee bean sample, and capture the sample weight first.",
+    );
 
+    return;
+  }
 
-      if (
-        imageSource ===
-        "phone"
-      ) {
-        await handlePhoneCaptureAnalyze();
+  if (imageSource === "phone") {
+    await handlePhoneCaptureAnalyze();
 
-        return;
-      }
+    return;
+  }
 
-
-      await handleUploadPredict();
-    };
-
-
+  await handleUploadPredict();
+};
   // =========================================================
   // PHYSICAL QUALITY SCORE
   // =========================================================
@@ -801,7 +783,7 @@ function PhysicalAnalysis({
         // -------------------------------------------------------
 
         weightCalibrated:
-          false,
+          true,
 
 
         // -------------------------------------------------------

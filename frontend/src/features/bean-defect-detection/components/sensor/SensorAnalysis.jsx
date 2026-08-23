@@ -16,7 +16,7 @@ function SensorAnalysis({ onComplete }) {
   // =========================================================
 
   // Last readings 10 use karala stability check කරනවා
-  const REQUIRED_STABILITY_READINGS = 1;
+  const REQUIRED_STABILITY_READINGS = 10;
 
   /*
     IMPORTANT:

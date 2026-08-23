@@ -29,6 +29,16 @@ export const getPhysicalWeight = async () => {
 };
 
 // =========================================================
+// ZERO / TARE LOAD CELL
+// =========================================================
+
+export const zeroPhysicalWeight = async () => {
+  const response = await api.post("/api/beans/sensors/weight/zero");
+
+  return response.data;
+};
+
+// =========================================================
 // GET PHONE CAMERA / ADB STATUS
 // =========================================================
 

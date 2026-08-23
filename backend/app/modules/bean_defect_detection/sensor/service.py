@@ -37,9 +37,55 @@ class ArduinoSensorService:
 
         self.serial_connection = None
 
-        # Prevent multiple API requests from reading
+        # Prevent multiple requests from reading/writing
         # Arduino serial data at the same time.
         self.lock = threading.Lock()
+
+
+        # =================================================
+        # LOAD CELL CALIBRATION
+        # =================================================
+        #
+        # Experimental calibration value obtained
+        # using known weights.
+        #
+        # weight_grams =
+        # (current_raw - tray_raw) / raw_per_gram
+        #
+        # =================================================
+
+        self.raw_per_gram = float(
+            os.getenv(
+                "LOAD_CELL_RAW_PER_GRAM",
+                "205.4",
+            )
+        )
+
+
+        # =================================================
+        # SMALL ZERO NOISE FILTER
+        # =================================================
+
+        self.zero_noise_grams = float(
+            os.getenv(
+                "LOAD_CELL_ZERO_NOISE_GRAMS",
+                "1.2",
+            )
+        )
+
+
+        # =================================================
+        # EMPTY TRAY ZERO REFERENCE
+        # =================================================
+        #
+        # This is NOT hard-coded.
+        #
+        # When zero_tray() is called,
+        # current RAW value is stored here.
+        #
+        # =================================================
+
+        self.tray_raw = None
 
 
     # =====================================================
@@ -47,10 +93,6 @@ class ArduinoSensorService:
     # =====================================================
 
     def is_port_available(self):
-        """
-        Check whether the configured Arduino COM port
-        currently exists on the computer.
-        """
 
         available_ports = [
             port.device
@@ -66,10 +108,6 @@ class ArduinoSensorService:
 
     def connect(self):
 
-        # -------------------------------------------------
-        # Check whether Arduino physically exists
-        # -------------------------------------------------
-
         if not self.is_port_available():
 
             self.disconnect()
@@ -79,20 +117,15 @@ class ArduinoSensorService:
             )
 
 
-        # -------------------------------------------------
         # Already connected
-        # -------------------------------------------------
-
         if (
             self.serial_connection
-            and self.serial_connection.is_open
+            and
+            self.serial_connection.is_open
         ):
+
             return
 
-
-        # -------------------------------------------------
-        # Open serial connection
-        # -------------------------------------------------
 
         try:
 
@@ -133,16 +166,6 @@ class ArduinoSensorService:
     # =====================================================
 
     def is_connected(self):
-        """
-        Check both:
-
-        1. Physical COM port exists
-        2. Python serial connection is open
-        """
-
-        # -------------------------------------------------
-        # Arduino physically disconnected
-        # -------------------------------------------------
 
         if not self.is_port_available():
 
@@ -151,13 +174,10 @@ class ArduinoSensorService:
             return False
 
 
-        # -------------------------------------------------
-        # Serial connection exists and is open
-        # -------------------------------------------------
-
         if (
             self.serial_connection
-            and self.serial_connection.is_open
+            and
+            self.serial_connection.is_open
         ):
 
             return True
@@ -171,15 +191,6 @@ class ArduinoSensorService:
     # =====================================================
 
     def get_status(self):
-        """
-        Used by:
-
-        GET /api/beans/sensors/status
-        """
-
-        # -------------------------------------------------
-        # Arduino physically not connected
-        # -------------------------------------------------
 
         if not self.is_port_available():
 
@@ -190,14 +201,13 @@ class ArduinoSensorService:
                 "port": self.port,
                 "baud_rate": self.baud_rate,
                 "device": "Arduino Sensor Module",
+                "weight_zeroed": (
+                    self.tray_raw is not None
+                ),
             }
 
 
         try:
-
-            # -------------------------------------------------
-            # Try opening serial connection
-            # -------------------------------------------------
 
             self.connect()
 
@@ -206,6 +216,9 @@ class ArduinoSensorService:
                 "port": self.port,
                 "baud_rate": self.baud_rate,
                 "device": "Arduino Sensor Module",
+                "weight_zeroed": (
+                    self.tray_raw is not None
+                ),
             }
 
 
@@ -222,6 +235,9 @@ class ArduinoSensorService:
                 "port": self.port,
                 "baud_rate": self.baud_rate,
                 "device": "Arduino Sensor Module",
+                "weight_zeroed": (
+                    self.tray_raw is not None
+                ),
             }
 
 
@@ -231,27 +247,19 @@ class ArduinoSensorService:
 
     def read_json(self):
         """
-        Read one complete JSON object from Arduino.
-
-        Example Arduino JSON:
+        Expected Arduino JSON:
 
         {
-            "mq2": 230,
-            "mq135": 89,
-            "mq3": 85,
-            "moisture": 916,
-            "temperature": 31.4,
-            "humidity": 65.7,
-            "weight": 52.4
+            "mq2": 154,
+            "mq135": 60,
+            "mq3": 46,
+            "moisture": 923,
+            "temperature": 32.00,
+            "humidity": 64.60,
+            "weight_raw": 132970,
+            "load_cell_ready": true
         }
-
-        Weight may also be null if the load cell
-        does not currently provide a valid reading.
         """
-
-        # -------------------------------------------------
-        # Make sure device physically exists
-        # -------------------------------------------------
 
         if not self.is_port_available():
 
@@ -263,28 +271,14 @@ class ArduinoSensorService:
             )
 
 
-        # -------------------------------------------------
-        # Connect if required
-        # -------------------------------------------------
-
         self.connect()
 
-
-        # -------------------------------------------------
-        # Lock serial access
-        # -------------------------------------------------
 
         with self.lock:
 
             try:
 
-                # Try several lines because the first
-                # serial line can sometimes be incomplete.
                 for _ in range(10):
-
-                    # -------------------------------------
-                    # Check Arduino still exists
-                    # -------------------------------------
 
                     if not self.is_port_available():
 
@@ -294,10 +288,6 @@ class ArduinoSensorService:
                             "Arduino was disconnected."
                         )
 
-
-                    # -------------------------------------
-                    # Read serial line
-                    # -------------------------------------
 
                     raw_line = (
                         self.serial_connection
@@ -311,6 +301,7 @@ class ArduinoSensorService:
 
 
                     if not raw_line:
+
                         continue
 
 
@@ -319,10 +310,6 @@ class ArduinoSensorService:
                         raw_line,
                     )
 
-
-                    # -------------------------------------
-                    # Parse JSON
-                    # -------------------------------------
 
                     try:
 
@@ -341,15 +328,8 @@ class ArduinoSensorService:
                         continue
 
 
-                    # -------------------------------------
-                    # Required Step 1 sensor fields
-                    # -------------------------------------
-                    #
-                    # Weight is NOT included here because
-                    # Step 1 must still work even if weight
-                    # is null or temporarily unavailable.
-                    #
-
+                    # Step 1 sensors must be present.
+                    # Weight is optional here.
                     required_fields = [
                         "mq2",
                         "mq135",
@@ -399,17 +379,6 @@ class ArduinoSensorService:
     # =====================================================
 
     def get_sensor_reading(self):
-        """
-        Returns only sensors required for:
-
-        Step 1 - Sensor-Based Quality Analysis
-
-        Weight is intentionally excluded here.
-
-        Weight belongs to:
-
-        Step 2 - Physical AI Analysis
-        """
 
         data = self.read_json()
 
@@ -425,75 +394,328 @@ class ArduinoSensorService:
 
 
     # =====================================================
-    # STEP 2 - PHYSICAL ANALYSIS WEIGHT
+    # GET CURRENT LOAD CELL RAW VALUE
     # =====================================================
 
-    def get_weight_reading(self):
+    def get_current_weight_raw(self):
+
+        data = self.read_json()
+
+
+        load_cell_ready = data.get(
+            "load_cell_ready",
+            False,
+        )
+
+
+        if not load_cell_ready:
+
+            return None
+
+
+        weight_raw = data.get(
+            "weight_raw"
+        )
+
+
+        if weight_raw is None:
+
+            return None
+
+
+        try:
+
+            return int(
+                weight_raw
+            )
+
+
+        except (
+            TypeError,
+            ValueError,
+        ):
+
+            print(
+                "Invalid weight_raw value:",
+                weight_raw,
+            )
+
+            return None
+
+
+    # =====================================================
+    # ZERO / TARE EMPTY TRAY
+    # =====================================================
+
+    def zero_tray(self):
         """
-        Read current load-cell weight.
+        IMPORTANT:
 
-        Used by:
+        Call this only while the EMPTY TRAY
+        is on the load cell.
 
-        Step 2 - Physical AI Analysis
+        Arduino is NOT tared.
 
-        This value is NOT part of Step 1
-        Sensor-Based Quality Analysis.
+        Backend stores current RAW value
+        as the tray zero reference.
         """
-
-        # -------------------------------------------------
-        # Arduino physically unavailable
-        # -------------------------------------------------
 
         if not self.is_port_available():
 
             self.disconnect()
 
             return {
+                "success": False,
                 "connected": False,
-                "weight_grams": None,
-                "unit": "g",
+                "zeroed": False,
+                "tray_raw": None,
+                "message": (
+                    "Arduino is not connected."
+                ),
             }
 
 
         try:
 
-            # -------------------------------------------------
-            # Read latest Arduino JSON
-            # -------------------------------------------------
+            current_raw = (
+                self.get_current_weight_raw()
+            )
+
+
+            if current_raw is None:
+
+                return {
+                    "success": False,
+                    "connected": True,
+                    "zeroed": False,
+                    "tray_raw": None,
+                    "message": (
+                        "Load cell RAW reading "
+                        "is unavailable."
+                    ),
+                }
+
+
+            # Save current empty-tray RAW value
+            self.tray_raw = current_raw
+
+
+            print(
+                "========================================"
+            )
+
+            print(
+                "LOAD CELL ZERO SET"
+            )
+
+            print(
+                "Tray RAW:",
+                self.tray_raw,
+            )
+
+            print(
+                "RAW per gram:",
+                self.raw_per_gram,
+            )
+
+            print(
+                "========================================"
+            )
+
+
+            return {
+                "success": True,
+                "connected": True,
+                "zeroed": True,
+                "tray_raw": self.tray_raw,
+                "raw_per_gram": self.raw_per_gram,
+                "unit": "g",
+                "message": (
+                    "Empty tray saved as "
+                    "0.00 g reference."
+                ),
+            }
+
+
+        except Exception as error:
+
+            print(
+                f"Tray zero error: {error}"
+            )
+
+            return {
+                "success": False,
+                "connected": self.is_connected(),
+                "zeroed": False,
+                "tray_raw": None,
+                "message": str(error),
+            }
+
+
+    # =====================================================
+    # CLEAR ZERO
+    # =====================================================
+
+    def clear_tray_zero(self):
+
+        self.tray_raw = None
+
+
+        return {
+            "success": True,
+            "zeroed": False,
+            "tray_raw": None,
+            "message": (
+                "Tray zero reference cleared."
+            ),
+        }
+
+
+    # =====================================================
+    # RAW -> GRAMS
+    # =====================================================
+
+    def convert_raw_to_grams(
+        self,
+        current_raw,
+    ):
+
+        if self.tray_raw is None:
+
+            return None
+
+
+        raw_difference = (
+            current_raw
+            -
+            self.tray_raw
+        )
+
+
+        weight_grams = (
+            float(raw_difference)
+            /
+            self.raw_per_gram
+        )
+
+
+        # Small load-cell noise around zero
+        if abs(
+            weight_grams
+        ) < self.zero_noise_grams:
+
+            weight_grams = 0.0
+
+
+        return {
+            "raw_difference":
+                raw_difference,
+
+            "weight_grams":
+                round(
+                    weight_grams,
+                    2,
+                ),
+        }
+
+
+    # =====================================================
+    # STEP 2 - PHYSICAL ANALYSIS WEIGHT
+    # =====================================================
+
+    def get_weight_reading(self):
+
+        # Arduino unavailable
+        if not self.is_port_available():
+
+            self.disconnect()
+
+            return {
+                "connected": False,
+                "load_cell_ready": False,
+                "zeroed": (
+                    self.tray_raw is not None
+                ),
+                "current_raw": None,
+                "tray_raw": self.tray_raw,
+                "raw_difference": None,
+                "weight_grams": None,
+                "raw_per_gram": self.raw_per_gram,
+                "unit": "g",
+                "message": (
+                    "Arduino is not connected."
+                ),
+            }
+
+
+        try:
 
             data = self.read_json()
 
 
-            # -------------------------------------------------
-            # Get weight field
-            # -------------------------------------------------
+            # ---------------------------------------------
+            # LOAD CELL STATUS
+            # ---------------------------------------------
 
-            weight = data.get(
-                "weight"
+            load_cell_ready = data.get(
+                "load_cell_ready",
+                False,
             )
 
 
-            # -------------------------------------------------
-            # Weight unavailable / null
-            # -------------------------------------------------
+            # ---------------------------------------------
+            # RAW VALUE
+            # ---------------------------------------------
 
-            if weight is None:
+            current_raw = data.get(
+                "weight_raw"
+            )
+
+
+            if (
+                not load_cell_ready
+                or
+                current_raw is None
+            ):
 
                 return {
                     "connected": True,
+
+                    "load_cell_ready":
+                        bool(
+                            load_cell_ready
+                        ),
+
+                    "zeroed": (
+                        self.tray_raw
+                        is not None
+                    ),
+
+                    "current_raw": None,
+
+                    "tray_raw":
+                        self.tray_raw,
+
+                    "raw_difference": None,
+
                     "weight_grams": None,
+
+                    "raw_per_gram":
+                        self.raw_per_gram,
+
                     "unit": "g",
+
+                    "message": (
+                        "Load cell RAW reading "
+                        "is unavailable."
+                    ),
                 }
 
 
-            # -------------------------------------------------
-            # Convert weight to float
-            # -------------------------------------------------
-
             try:
 
-                weight_value = float(
-                    weight
+                current_raw = int(
+                    current_raw
                 )
 
 
@@ -502,29 +724,110 @@ class ArduinoSensorService:
                 ValueError,
             ):
 
-                print(
-                    "Invalid weight value:",
-                    weight,
-                )
-
                 return {
                     "connected": True,
+
+                    "load_cell_ready": True,
+
+                    "zeroed": (
+                        self.tray_raw
+                        is not None
+                    ),
+
+                    "current_raw": None,
+
+                    "tray_raw":
+                        self.tray_raw,
+
+                    "raw_difference": None,
+
                     "weight_grams": None,
+
+                    "raw_per_gram":
+                        self.raw_per_gram,
+
                     "unit": "g",
+
+                    "message": (
+                        "Invalid load cell RAW value."
+                    ),
                 }
 
 
-            # -------------------------------------------------
-            # Return valid weight
-            # -------------------------------------------------
+            # ---------------------------------------------
+            # NOT ZEROED YET
+            # ---------------------------------------------
+
+            if self.tray_raw is None:
+
+                return {
+                    "connected": True,
+
+                    "load_cell_ready": True,
+
+                    "zeroed": False,
+
+                    "current_raw":
+                        current_raw,
+
+                    "tray_raw": None,
+
+                    "raw_difference": None,
+
+                    "weight_grams": None,
+
+                    "raw_per_gram":
+                        self.raw_per_gram,
+
+                    "unit": "g",
+
+                    "message": (
+                        "Place empty tray on scale "
+                        "and zero it first."
+                    ),
+                }
+
+
+            # ---------------------------------------------
+            # CONVERT RAW -> GRAMS
+            # ---------------------------------------------
+
+            converted = (
+                self.convert_raw_to_grams(
+                    current_raw
+                )
+            )
+
 
             return {
                 "connected": True,
-                "weight_grams": round(
-                    weight_value,
-                    2,
-                ),
+
+                "load_cell_ready": True,
+
+                "zeroed": True,
+
+                "current_raw":
+                    current_raw,
+
+                "tray_raw":
+                    self.tray_raw,
+
+                "raw_difference":
+                    converted[
+                        "raw_difference"
+                    ],
+
+                "weight_grams":
+                    converted[
+                        "weight_grams"
+                    ],
+
+                "raw_per_gram":
+                    self.raw_per_gram,
+
                 "unit": "g",
+
+                "message": None,
             }
 
 
@@ -535,24 +838,213 @@ class ArduinoSensorService:
             )
 
 
-            # If Arduino disappeared during reading
             if not self.is_port_available():
 
                 self.disconnect()
 
                 return {
                     "connected": False,
+
+                    "load_cell_ready": False,
+
+                    "zeroed": (
+                        self.tray_raw
+                        is not None
+                    ),
+
+                    "current_raw": None,
+
+                    "tray_raw":
+                        self.tray_raw,
+
+                    "raw_difference": None,
+
                     "weight_grams": None,
+
+                    "raw_per_gram":
+                        self.raw_per_gram,
+
                     "unit": "g",
+
+                    "message":
+                        str(error),
                 }
 
 
-            # Arduino exists but reading failed
             return {
-                "connected": self.is_connected(),
+                "connected":
+                    self.is_connected(),
+
+                "load_cell_ready": None,
+
+                "zeroed": (
+                    self.tray_raw
+                    is not None
+                ),
+
+                "current_raw": None,
+
+                "tray_raw":
+                    self.tray_raw,
+
+                "raw_difference": None,
+
                 "weight_grams": None,
+
+                "raw_per_gram":
+                    self.raw_per_gram,
+
                 "unit": "g",
+
+                "message":
+                    str(error),
             }
+
+
+    # =====================================================
+    # SEND QUALITY INDICATOR COMMAND TO ARDUINO
+    # =====================================================
+    #
+    # Commands:
+    #
+    # PASS
+    #     Green LED blinks
+    #     Red LED OFF
+    #     Buzzer OFF
+    #
+    # FAIL
+    #     Green LED OFF
+    #     Red LED blinks
+    #     Buzzer beep-beep
+    #
+    # REVIEW
+    #     Everything OFF
+    #
+    # RESET
+    #     Everything OFF
+    #
+    # =====================================================
+
+    def send_quality_command(
+        self,
+        command: str,
+    ):
+
+        # ---------------------------------------------
+        # NORMALIZE COMMAND
+        # ---------------------------------------------
+
+        command = (
+            str(command)
+            .strip()
+            .upper()
+        )
+
+
+        # ---------------------------------------------
+        # ALLOWED COMMANDS
+        # ---------------------------------------------
+
+        allowed_commands = {
+            "PASS",
+            "FAIL",
+            "REVIEW",
+            "RESET",
+        }
+
+
+        if command not in allowed_commands:
+
+            raise ValueError(
+                f"Invalid quality command: "
+                f"{command}"
+            )
+
+
+        # ---------------------------------------------
+        # MAKE SURE ARDUINO EXISTS
+        # ---------------------------------------------
+
+        if not self.is_port_available():
+
+            self.disconnect()
+
+            raise RuntimeError(
+                f"Arduino not detected on "
+                f"{self.port}"
+            )
+
+
+        # ---------------------------------------------
+        # CONNECT IF REQUIRED
+        # ---------------------------------------------
+
+        self.connect()
+
+
+        # ---------------------------------------------
+        # LOCK SERIAL WRITE
+        # ---------------------------------------------
+
+        with self.lock:
+
+            try:
+
+                # Arduino expects command + newline
+                serial_command = (
+                    command + "\n"
+                ).encode(
+                    "utf-8"
+                )
+
+
+                self.serial_connection.write(
+                    serial_command
+                )
+
+                self.serial_connection.flush()
+
+
+                print(
+                    "========================================"
+                )
+
+                print(
+                    "ARDUINO QUALITY COMMAND"
+                )
+
+                print(
+                    "Command:",
+                    command,
+                )
+
+                print(
+                    "========================================"
+                )
+
+
+                return {
+                    "success": True,
+                    "connected": True,
+                    "command": command,
+                    "message": (
+                        f"Arduino quality indicator "
+                        f"set to {command}."
+                    ),
+                }
+
+
+            except (
+                serial.SerialException,
+                OSError,
+            ) as error:
+
+                self.disconnect()
+
+                raise RuntimeError(
+                    f"Unable to send Arduino "
+                    f"quality command: {error}"
+                )
 
 
     # =====================================================
@@ -565,7 +1057,9 @@ class ArduinoSensorService:
 
             try:
 
-                if self.serial_connection.is_open:
+                if (
+                    self.serial_connection.is_open
+                ):
 
                     self.serial_connection.close()
 

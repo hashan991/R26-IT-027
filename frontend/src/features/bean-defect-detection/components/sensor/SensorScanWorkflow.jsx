@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 
+import {
+  sendSensorIndicatorCommand,
+} from "../../services/sensorService";
+
 // =========================================================
 // CONFIGURATION
 // =========================================================
 
 // Coffee beans දාලා Scan Now click කරපු පස්සේ
 // stability checking start කරන්න කලින් wait කරන කාලය.
-const SAMPLE_EXPOSURE_TIME = 1;
+const SAMPLE_EXPOSURE_TIME = 120;
 
 // =========================================================
 // SENSOR QUALITY SCORING
@@ -129,6 +133,9 @@ function SensorScanWorkflow({
     වෙන එක prevent කරනවා.
   */
   const captureLockRef = useRef(false);
+
+  // Prevent sending the same hardware indicator command repeatedly.
+  const lastIndicatorCommandRef = useRef(null);
 
   // =========================================================
   // RESET CAPTURE LOCK
@@ -262,6 +269,16 @@ function SensorScanWorkflow({
   // =========================================================
 
   const handleStartTask = () => {
+    // Clear any previous PASS / FAIL indication before a new test.
+    lastIndicatorCommandRef.current = null;
+
+    sendSensorIndicatorCommand("RESET").catch((error) => {
+      console.error(
+        "Unable to reset Arduino indicator:",
+        error,
+      );
+    });
+
     /*
       New sample test එකක් start කරන නිසා
       old data clear කරනවා.
@@ -423,6 +440,16 @@ function SensorScanWorkflow({
   // =========================================================
 
   const handleNewTest = () => {
+    // Clear the hardware indication when the workflow is reset.
+    lastIndicatorCommandRef.current = null;
+
+    sendSensorIndicatorCommand("RESET").catch((error) => {
+      console.error(
+        "Unable to reset Arduino indicator:",
+        error,
+      );
+    });
+
     /*
       Monitoring තව active නම් stop කරනවා.
     */
@@ -687,6 +714,63 @@ function SensorScanWorkflow({
   };
 
   const sensorQualityStatus = getSensorQualityStatus();
+
+  // =========================================================
+  // AUTOMATIC HARDWARE QUALITY INDICATOR
+  // =========================================================
+  //
+  // GOOD   -> PASS  -> Green LED blinks
+  // BAD    -> FAIL  -> Red LED blinks + buzzer
+  // REVIEW -> RESET -> All indicators OFF
+  //
+  // The command is sent only after both baseline and sample
+  // readings are available. Duplicate commands are prevented.
+  // =========================================================
+
+  useEffect(() => {
+    if (!baselineData || !sampleData) {
+      return;
+    }
+
+    let command = "RESET";
+
+    if (sensorQualityStatus === "GOOD") {
+      command = "PASS";
+    } else if (sensorQualityStatus === "BAD") {
+      command = "FAIL";
+    }
+
+    if (lastIndicatorCommandRef.current === command) {
+      return;
+    }
+
+    lastIndicatorCommandRef.current = command;
+
+    const updateHardwareIndicator = async () => {
+      try {
+        const result = await sendSensorIndicatorCommand(command);
+
+        console.log(
+          "Arduino quality indicator:",
+          result,
+        );
+      } catch (error) {
+        // Allow a retry if the command failed.
+        lastIndicatorCommandRef.current = null;
+
+        console.error(
+          "Unable to update Arduino quality indicator:",
+          error,
+        );
+      }
+    };
+
+    updateHardwareIndicator();
+  }, [
+    sensorQualityStatus,
+    baselineData,
+    sampleData,
+  ]);
 
   const formatQualityNumber = (value, decimals = 2) => {
     if (value === null || value === undefined || !Number.isFinite(Number(value))) {
