@@ -1,334 +1,2723 @@
-import { useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
-import { predictBeanDefects } from "../../services/beanService";
+import {
+  predictBeanDefects,
+  getPhoneCameraStatus,
+  captureAndAnalyzePhonePhoto,
+} from "../../services/beanService";
 
 import ImageUploader from "./ImageUploader";
+
 import DetectionSummary from "./DetectionSummary";
 import DetectionResultImage from "./DetectionResultImage";
-import DetectionTable from "./DetectionTable";
 
-function PhysicalAnalysis({ onComplete, onBack }) {
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
+import PhysicalWeightCard from "./PhysicalWeightCard";
 
-  const API_URL = import.meta.env.VITE_API_URL || "";
 
-  const getPredictionImageUrl = (path) => {
-    if (!path) return "";
+function PhysicalAnalysis({
+  onComplete,
+  onBack,
+}) {
+  // =========================================================
+  // IMAGE SOURCE
+  // =========================================================
+  //
+  // phone  = Native phone camera through USB + ADB
+  // upload = Existing image upload
+  // =========================================================
 
-    if (path.startsWith("http")) {
+  const [
+    imageSource,
+    setImageSource,
+  ] = useState("phone");
+
+
+  // =========================================================
+  // UPLOAD IMAGE
+  // =========================================================
+
+  const [
+    selectedImage,
+    setSelectedImage,
+  ] = useState(null);
+
+
+  // =========================================================
+  // UPLOAD PREVIEW
+  // =========================================================
+
+  const [
+    preview,
+    setPreview,
+  ] = useState(null);
+
+
+  // =========================================================
+  // DRAG STATE
+  // =========================================================
+
+  const [
+    dragActive,
+    setDragActive,
+  ] = useState(false);
+
+
+  // =========================================================
+  // PHYSICAL AI RESULT
+  // =========================================================
+
+  const [
+    result,
+    setResult,
+  ] = useState(null);
+
+
+  // =========================================================
+  // AI LOADING
+  // =========================================================
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
+
+
+  // =========================================================
+  // LOAD CELL WEIGHT
+  // =========================================================
+
+  const [
+    capturedWeight,
+    setCapturedWeight,
+  ] = useState(null);
+
+
+  // =========================================================
+  // PHONE CAMERA STATES
+  // =========================================================
+
+  const [
+    phoneStatus,
+    setPhoneStatus,
+  ] = useState({
+    connected: false,
+    device_id: null,
+  });
+
+
+  const [
+    checkingPhone,
+    setCheckingPhone,
+  ] = useState(false);
+
+
+  const [
+    phoneError,
+    setPhoneError,
+  ] = useState("");
+
+
+  const [
+    phoneCapture,
+    setPhoneCapture,
+  ] = useState(null);
+
+
+  // =========================================================
+  // API URL
+  // =========================================================
+
+  const API_URL =
+    import.meta.env.VITE_API_URL || "";
+
+
+  // =========================================================
+  // PREDICTION IMAGE URL
+  // =========================================================
+
+  const getPredictionImageUrl = (
+    path,
+  ) => {
+    if (!path) {
+      return "";
+    }
+
+
+    if (
+      path.startsWith("http")
+    ) {
       return path;
     }
 
-    const base = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
 
-    const imagePath = path.startsWith("/") ? path : `/${path}`;
+    const base =
+      API_URL.endsWith("/")
+        ? API_URL.slice(
+            0,
+            -1,
+          )
+        : API_URL;
+
+
+    const imagePath =
+      path.startsWith("/")
+        ? path
+        : `/${path}`;
+
 
     return `${base}${imagePath}`;
   };
 
-  const handleFile = (file) => {
-    if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      alert("Please select a valid image file");
-      return;
-    }
+  // =========================================================
+  // CHECK PHONE CAMERA / ADB CONNECTION
+  // =========================================================
 
-    if (preview) {
-      URL.revokeObjectURL(preview);
-    }
+  const checkPhoneStatus =
+    async () => {
+      try {
+        setCheckingPhone(
+          true,
+        );
 
-    setSelectedImage(file);
-    setPreview(URL.createObjectURL(file));
+        setPhoneError("");
 
-    // old result එක reset කරනවා
-    setResult(null);
-  };
 
-  const handleImageChange = (event) => {
-    handleFile(event.target.files?.[0]);
-  };
+        const data =
+          await getPhoneCameraStatus();
 
-  const handleDragOver = (event) => {
-    event.preventDefault();
-    setDragActive(true);
-  };
 
-  const handleDragLeave = () => {
-    setDragActive(false);
-  };
+        setPhoneStatus(
+          data,
+        );
 
-  const handleDrop = (event) => {
-    event.preventDefault();
-    setDragActive(false);
 
-    handleFile(event.dataTransfer.files?.[0]);
-  };
+        if (
+          !data.connected
+        ) {
+          setPhoneError(
+            data.error ||
+              "Android phone is not connected through ADB.",
+          );
+        }
 
-  const handlePredict = async () => {
-    if (!selectedImage) {
-      alert("Please select a coffee bean image first.");
-      return;
-    }
+      } catch (error) {
+        console.error(
+          "Phone camera status failed:",
+          error,
+        );
 
-    try {
-      setLoading(true);
-      setResult(null);
 
-      const data = await predictBeanDefects(selectedImage);
+        setPhoneStatus({
+          connected: false,
+          device_id: null,
+        });
 
-      setResult(data.result);
-    } catch (error) {
-      console.error("Physical analysis failed:", error);
 
-      alert(
-        "Physical AI analysis failed. Please check the backend and try again.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+        if (
+          error.response?.status !==
+          401
+        ) {
+          setPhoneError(
+            "Unable to check the phone camera connection.",
+          );
+        }
 
-  const handleContinue = () => {
-    if (!result) return;
-
-    const physicalResult = {
-      ...result,
-
-      // temporary score
-      // future backend quality fusion එකෙන් replace කරනවා
-      physicalScore: 80,
-
-      qualityStatus: "Good",
+      } finally {
+        setCheckingPhone(
+          false,
+        );
+      }
     };
 
-    onComplete(physicalResult);
+
+  // =========================================================
+  // CHECK PHONE WHEN PHONE SOURCE IS SELECTED
+  // =========================================================
+
+  useEffect(() => {
+    if (
+      imageSource ===
+      "phone"
+    ) {
+      checkPhoneStatus();
+    }
+  }, [imageSource]);
+
+
+  // =========================================================
+  // CHANGE IMAGE SOURCE
+  // =========================================================
+
+  const handleSourceChange = (
+    source,
+  ) => {
+    if (
+      source ===
+      imageSource
+    ) {
+      return;
+    }
+
+
+    // ---------------------------------------------------------
+    // REMOVE OLD UPLOAD PREVIEW
+    // ---------------------------------------------------------
+
+    if (preview) {
+      URL.revokeObjectURL(
+        preview,
+      );
+    }
+
+
+    // ---------------------------------------------------------
+    // RESET CURRENT INPUT / AI RESULT
+    // ---------------------------------------------------------
+
+    setImageSource(
+      source,
+    );
+
+    setSelectedImage(
+      null,
+    );
+
+    setPreview(
+      null,
+    );
+
+    setDragActive(
+      false,
+    );
+
+    setResult(
+      null,
+    );
+
+    setPhoneCapture(
+      null,
+    );
+
+    setPhoneError("");
   };
 
-  const detections = result?.detections || [];
+
+  // =========================================================
+  // HANDLE UPLOADED IMAGE
+  // =========================================================
+
+  const handleFile = (
+    file,
+  ) => {
+    if (!file) {
+      return;
+    }
+
+
+    // ---------------------------------------------------------
+    // VALIDATE IMAGE
+    // ---------------------------------------------------------
+
+    if (
+      !file.type.startsWith(
+        "image/",
+      )
+    ) {
+      alert(
+        "Please select a valid image file.",
+      );
+
+      return;
+    }
+
+
+    // ---------------------------------------------------------
+    // REMOVE OLD PREVIEW
+    // ---------------------------------------------------------
+
+    if (preview) {
+      URL.revokeObjectURL(
+        preview,
+      );
+    }
+
+
+    // ---------------------------------------------------------
+    // SAVE IMAGE
+    // ---------------------------------------------------------
+
+    setSelectedImage(
+      file,
+    );
+
+
+    setPreview(
+      URL.createObjectURL(
+        file,
+      ),
+    );
+
+
+    // ---------------------------------------------------------
+    // RESET OLD RESULT
+    // ---------------------------------------------------------
+
+    setResult(
+      null,
+    );
+  };
+
+
+  // =========================================================
+  // IMAGE INPUT CHANGE
+  // =========================================================
+
+  const handleImageChange = (
+    event,
+  ) => {
+    handleFile(
+      event.target.files?.[0],
+    );
+  };
+
+
+  // =========================================================
+  // DRAG OVER
+  // =========================================================
+
+  const handleDragOver = (
+    event,
+  ) => {
+    event.preventDefault();
+
+    setDragActive(
+      true,
+    );
+  };
+
+
+  // =========================================================
+  // DRAG LEAVE
+  // =========================================================
+
+  const handleDragLeave =
+    () => {
+      setDragActive(
+        false,
+      );
+    };
+
+
+  // =========================================================
+  // DROP IMAGE
+  // =========================================================
+
+  const handleDrop = (
+    event,
+  ) => {
+    event.preventDefault();
+
+
+    setDragActive(
+      false,
+    );
+
+
+    handleFile(
+      event.dataTransfer
+        .files?.[0],
+    );
+  };
+
+
+  // =========================================================
+  // PHONE CAPTURE + AI ANALYSIS
+  // =========================================================
+
+  const handlePhoneCaptureAnalyze =
+    async () => {
+      if (
+        !phoneStatus.connected
+      ) {
+        alert(
+          "Please connect the Android phone through USB and enable ADB first.",
+        );
+
+        return;
+      }
+
+
+      try {
+        setLoading(
+          true,
+        );
+
+        setResult(
+          null,
+        );
+
+        setPhoneCapture(
+          null,
+        );
+
+        setPhoneError("");
+
+
+        // =====================================================
+        // BACKEND FLOW
+        //
+        // ADB
+        // ↓
+        // Native Samsung Camera
+        // ↓
+        // Capture JPG
+        // ↓
+        // Find latest photo
+        // ↓
+        // adb pull
+        // ↓
+        // Detector
+        // ↓
+        // Color classifier
+        // ↓
+        // Shape classifier
+        // =====================================================
+
+        const data =
+          await captureAndAnalyzePhonePhoto();
+
+
+        setPhoneCapture(
+          data.capture,
+        );
+
+
+        setResult(
+          data.result,
+        );
+
+      } catch (error) {
+        console.error(
+          "Phone capture + AI failed:",
+          error,
+        );
+
+
+        if (
+          error.response?.status !==
+          401
+        ) {
+          const message =
+            error.response
+              ?.data
+              ?.detail ||
+            "Phone camera capture or Physical AI analysis failed.";
+
+
+          setPhoneError(
+            message,
+          );
+
+
+          alert(
+            message,
+          );
+        }
+
+      } finally {
+        setLoading(
+          false,
+        );
+      }
+    };
+
+
+  // =========================================================
+  // UPLOADED IMAGE AI ANALYSIS
+  // =========================================================
+
+  const handleUploadPredict =
+    async () => {
+      if (
+        !selectedImage
+      ) {
+        alert(
+          "Please upload a coffee bean sample image first.",
+        );
+
+        return;
+      }
+
+
+      try {
+        setLoading(
+          true,
+        );
+
+        setResult(
+          null,
+        );
+
+
+        const data =
+          await predictBeanDefects(
+            selectedImage,
+          );
+
+
+        setResult(
+          data.result,
+        );
+
+      } catch (error) {
+        console.error(
+          "Physical analysis failed:",
+          error,
+        );
+
+
+        if (
+          error.response?.status !==
+          401
+        ) {
+          alert(
+            "Physical AI analysis failed. Please check the backend and try again.",
+          );
+        }
+
+      } finally {
+        setLoading(
+          false,
+        );
+      }
+    };
+
+
+  // =========================================================
+  // RUN AI BASED ON CURRENT IMAGE SOURCE
+  // =========================================================
+
+const handlePredict = async () => {
+  if (capturedWeight === null || capturedWeight === undefined) {
+    alert(
+      "Please zero the scale, add the coffee bean sample, and capture the sample weight first.",
+    );
+
+    return;
+  }
+
+  if (imageSource === "phone") {
+    await handlePhoneCaptureAnalyze();
+
+    return;
+  }
+
+  await handleUploadPredict();
+};
+  // =========================================================
+  // PHYSICAL QUALITY SCORE
+  // =========================================================
+  //
+  // Keep this calculation aligned with the backend quality report:
+  //
+  // black               = 1.00 penalty
+  // black + broken      = 1.00 penalty
+  // broken              = 0.35 penalty
+  // unknown             = 0.50 penalty
+  //
+  // Physical Score = 100 * (1 - weightedDefects / totalBeans)
+  // =========================================================
+
+  const calculatePhysicalAssessment = (analysisResult) => {
+    if (!analysisResult) {
+      return {
+        score: 0,
+        status: "No Data",
+        weightedDefects: 0,
+        defectLoadPercent: 0,
+      };
+    }
+
+    const categoryCounts =
+      analysisResult.category_counts || {};
+
+    const totalBeans = Number(
+      analysisResult.total_beans ??
+        analysisResult.total_count ??
+        0,
+    );
+
+    const black = Number(
+      analysisResult.black_count ??
+        categoryCounts.black ??
+        0,
+    );
+
+    const blackAndBroken = Number(
+      analysisResult.black_and_broken_count ??
+        categoryCounts.black_and_broken ??
+        0,
+    );
+
+    const broken = Number(
+      analysisResult.broken_count ??
+        categoryCounts.broken ??
+        0,
+    );
+
+    const unknown = Number(
+      analysisResult.unknown_count ??
+        categoryCounts.unknown ??
+        0,
+    );
+
+    if (!totalBeans || totalBeans <= 0) {
+      return {
+        score: 0,
+        status: "No Data",
+        weightedDefects: 0,
+        defectLoadPercent: 0,
+      };
+    }
+
+    const weightedDefects =
+      black * 1.0 +
+      blackAndBroken * 1.0 +
+      broken * 0.35 +
+      unknown * 0.5;
+
+    const defectLoad =
+      weightedDefects / totalBeans;
+
+    const rawScore =
+      100 * (1 - defectLoad);
+
+    const score = Math.max(
+      0,
+      Math.min(100, rawScore),
+    );
+
+    let status = "Poor";
+
+    if (score >= 90) {
+      status = "Excellent";
+    } else if (score >= 75) {
+      status = "Good";
+    } else if (score >= 60) {
+      status = "Review";
+    }
+
+    return {
+      score: Number(score.toFixed(2)),
+      status,
+      weightedDefects: Number(
+        weightedDefects.toFixed(2),
+      ),
+      defectLoadPercent: Number(
+        (defectLoad * 100).toFixed(2),
+      ),
+    };
+  };
+
+
+  const physicalAssessment =
+    calculatePhysicalAssessment(result);
+
+
+  // =========================================================
+  // CONTINUE TO FINAL REPORT
+  // =========================================================
+
+  const handleContinue =
+    () => {
+      if (!result) {
+        return;
+      }
+
+
+      const physicalResult = {
+        // -------------------------------------------------------
+        // COMPLETE AI RESULT
+        // -------------------------------------------------------
+
+        ...result,
+
+
+        // -------------------------------------------------------
+        // IMAGE SOURCE
+        // -------------------------------------------------------
+
+        imageSource:
+          imageSource,
+
+
+        // -------------------------------------------------------
+        // PHONE CAPTURE METADATA
+        // -------------------------------------------------------
+
+        phoneCapture:
+          imageSource ===
+          "phone"
+            ? phoneCapture
+            : null,
+
+
+        // -------------------------------------------------------
+        // LOAD CELL
+        // -------------------------------------------------------
+
+        sampleWeight:
+          capturedWeight,
+
+
+        weightUnit:
+          "g",
+
+
+        // -------------------------------------------------------
+        // LOAD CELL CURRENTLY NOT CALIBRATED
+        // -------------------------------------------------------
+
+        weightCalibrated:
+          true,
+
+
+        // -------------------------------------------------------
+        // PHYSICAL QUALITY SCORE
+        // -------------------------------------------------------
+
+        physicalScore:
+          physicalAssessment.score,
+
+
+        qualityStatus:
+          physicalAssessment.status,
+      };
+
+
+      onComplete(
+        physicalResult,
+      );
+    };
+
+
+  // =========================================================
+  // TEMPORARY WEIGHT BYPASS
+  // =========================================================
+
+  const inputDisabled =
+    false;
+
+
+  // =========================================================
+  // PHONE CAN RUN
+  // =========================================================
+
+  const phoneReady =
+    phoneStatus.connected &&
+    !checkingPhone;
+
+
+  // =========================================================
+  // UI
+  // =========================================================
 
   return (
     <section className="physical-analysis">
+
       <div className="physical-main-card">
-        {/* Heading */}
+
+        {/* ===================================================
+            HEADING
+        =================================================== */}
+
         <div className="physical-heading">
+
           <div>
+
             <span className="physical-step-label">
               STEP 02 — COMPUTER VISION
             </span>
 
-            <h2>Physical AI Analysis</h2>
+
+            <h2>
+              Physical AI Analysis
+            </h2>
+
 
             <p>
-              Upload a coffee bean sample image and analyze visible physical
-              defects using the trained AI models.
+              Capture the coffee bean sample
+              using the connected Android
+              phone camera or analyze an
+              existing uploaded image using
+              the trained AI models.
             </p>
+
           </div>
 
+
           <span className="physical-status-chip">
+
             {loading
               ? "AI Processing..."
               : result
                 ? "Analysis Completed"
-                : "Waiting"}
+                : imageSource ===
+                    "phone" &&
+                  phoneReady
+                  ? "Phone Ready"
+                  : "Waiting"}
+
           </span>
+
         </div>
 
-        {/* Upload + Summary */}
-        <div className="physical-top-grid">
-          <div className="physical-section-card">
-            <ImageUploader
-              selectedImage={selectedImage}
-              preview={preview}
-              dragActive={dragActive}
-              onImageChange={handleImageChange}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            />
+
+        {/* ===================================================
+            STEP 2.1 - SAMPLE WEIGHT
+        =================================================== */}
+
+        <PhysicalWeightCard
+          capturedWeight={
+            capturedWeight
+          }
+          onCaptureWeight={
+            setCapturedWeight
+          }
+        />
+
+
+        {/* ===================================================
+            STEP 2.2 - IMAGE SOURCE
+        =================================================== */}
+
+        <div className="image-source-card">
+
+          <div className="image-source-heading">
+
+            <div>
+
+              <span>
+                IMAGE INPUT
+              </span>
+
+
+              <h3>
+                Choose Image Source
+              </h3>
+
+            </div>
+
+
+            <span className="image-source-status">
+
+              {imageSource ===
+              "phone"
+                ? "Phone Camera"
+                : "Image Upload"}
+
+            </span>
+
+          </div>
+
+
+          <p className="image-source-description">
+            Capture an original
+            high-resolution image using the
+            phone's native camera through USB
+            and ADB, or select an existing
+            coffee bean sample image.
+          </p>
+
+
+          <div className="image-source-buttons">
+
+            {/* ===============================================
+                PHONE CAMERA
+            =============================================== */}
 
             <button
-              className="run-ai-button"
-              onClick={handlePredict}
-              disabled={!selectedImage || loading}
+              type="button"
+              className={`image-source-button ${
+                imageSource ===
+                "phone"
+                  ? "active"
+                  : ""
+              }`}
+              onClick={() =>
+                handleSourceChange(
+                  "phone",
+                )
+              }
             >
-              {loading ? (
-                <>
-                  <span className="physical-spinner"></span>
-                  AI is Analyzing...
-                </>
-              ) : (
-                <>⚡ Run Physical AI Analysis</>
-              )}
+
+              <span className="source-icon">
+                📱
+              </span>
+
+
+              <div>
+
+                <strong>
+                  Phone Camera
+                </strong>
+
+
+                <small>
+                  Native camera via USB + ADB
+                </small>
+
+              </div>
+
             </button>
+
+
+            {/* ===============================================
+                IMAGE UPLOAD
+            =============================================== */}
+
+            <button
+              type="button"
+              className={`image-source-button ${
+                imageSource ===
+                "upload"
+                  ? "active"
+                  : ""
+              }`}
+              onClick={() =>
+                handleSourceChange(
+                  "upload",
+                )
+              }
+            >
+
+              <span className="source-icon">
+                🖼
+              </span>
+
+
+              <div>
+
+                <strong>
+                  Upload Image
+                </strong>
+
+
+                <small>
+                  Select existing image
+                </small>
+
+              </div>
+
+            </button>
+
           </div>
 
-          <div className="physical-section-card">
-            {!result && !loading && (
-              <div className="physical-waiting-state">
-                <div className="physical-ai-icon">AI</div>
-
-                <h3>Waiting for Bean Sample</h3>
-
-                <p>
-                  Upload an image and start the physical analysis to view defect
-                  statistics.
-                </p>
-              </div>
-            )}
-
-            {loading && (
-              <div className="physical-loading-state">
-                <div className="physical-scanner">
-                  <div className="physical-scan-line"></div>
-                </div>
-
-                <h3>Analyzing Physical Quality</h3>
-
-                <p>The AI model is inspecting visible coffee bean defects.</p>
-              </div>
-            )}
-
-            {result && !loading && <DetectionSummary result={result} />}
-          </div>
         </div>
 
-        {/* Detailed Result */}
-        {result && !loading && (
-          <div className="physical-result-grid">
-            <div className="physical-section-card">
-              <DetectionResultImage
-                imageUrl={getPredictionImageUrl(result.predicted_image_url)}
-              />
-            </div>
 
-            <div className="physical-section-card">
-              <DetectionTable detections={detections} />
-            </div>
+        {/* ===================================================
+            STEP 2.3 - INPUT + AI SUMMARY
+        =================================================== */}
+
+        <div className="physical-top-grid">
+
+          {/* =================================================
+              INPUT CARD
+          ================================================= */}
+
+          <div className="physical-section-card">
+
+            {/* ===============================================
+                PHONE CAMERA
+            =============================================== */}
+
+            {imageSource ===
+              "phone" && (
+
+              <div className="phone-camera-panel">
+
+                {/* ===========================================
+                    PHONE HEADER
+                =========================================== */}
+
+                <div className="phone-camera-header">
+
+                  <div>
+
+                    <span>
+                      ANDROID CAMERA
+                    </span>
+
+
+                    <h3>
+                      Native Phone Camera
+                    </h3>
+
+                  </div>
+
+
+                  <span
+                    className={`phone-connection-chip ${
+                      phoneStatus.connected
+                        ? "connected"
+                        : "disconnected"
+                    }`}
+                  >
+
+                    <span className="phone-status-dot">
+                    </span>
+
+
+                    {checkingPhone
+                      ? "Checking..."
+                      : phoneStatus.connected
+                        ? "Connected"
+                        : "Disconnected"}
+
+                  </span>
+
+                </div>
+
+
+                {/* ===========================================
+                    DESCRIPTION
+                =========================================== */}
+
+                <p className="phone-camera-description">
+                  The system uses ADB to
+                  control the phone's native
+                  camera, capture the original
+                  high-resolution JPG, transfer
+                  it directly to the laptop,
+                  and run the Physical AI
+                  models.
+                </p>
+
+
+                {/* ===========================================
+                    PHONE DEVICE
+                =========================================== */}
+
+                <div className="phone-device-box">
+
+                  <div className="phone-device-icon">
+                    📱
+                  </div>
+
+
+                  <div className="phone-device-details">
+
+                    <span>
+                      CONNECTED DEVICE
+                    </span>
+
+
+                    <strong>
+                      {phoneStatus.connected
+                        ? phoneStatus.device_id
+                        : "No Android Phone"}
+                    </strong>
+
+
+                    <small>
+                      USB Debugging • Android
+                      Debug Bridge
+                    </small>
+
+                  </div>
+
+
+                  {phoneStatus.connected && (
+                    <div className="phone-device-check">
+                      ✓
+                    </div>
+                  )}
+
+                </div>
+
+
+                {/* ===========================================
+                    ERROR
+                =========================================== */}
+
+                {phoneError && (
+                  <div className="phone-camera-error">
+                    {phoneError}
+                  </div>
+                )}
+
+
+                {/* ===========================================
+                    REFRESH CONNECTION
+                =========================================== */}
+
+                <button
+                  type="button"
+                  className="refresh-phone-button"
+                  onClick={
+                    checkPhoneStatus
+                  }
+                  disabled={
+                    checkingPhone ||
+                    loading
+                  }
+                >
+
+                  {checkingPhone
+                    ? "Checking Phone..."
+                    : "↻ Refresh Phone Connection"}
+
+                </button>
+
+
+                {/* ===========================================
+                    CAPTURE INFO
+                =========================================== */}
+
+                {phoneCapture && (
+                  <div className="phone-capture-success">
+
+                    <div className="capture-success-heading">
+
+                      <span>
+                        ORIGINAL PHOTO CAPTURED
+                      </span>
+
+
+                      <strong>
+                        ✓ Success
+                      </strong>
+
+                    </div>
+
+
+                    <div className="capture-meta-row">
+
+                      <span>
+                        File
+                      </span>
+
+
+                      <strong>
+                        {
+                          phoneCapture.phone_filename
+                        }
+                      </strong>
+
+                    </div>
+
+
+                    <div className="capture-meta-row">
+
+                      <span>
+                        Size
+                      </span>
+
+
+                      <strong>
+                        {(
+                          phoneCapture.file_size_bytes /
+                          1024 /
+                          1024
+                        ).toFixed(
+                          2,
+                        )}{" "}
+                        MB
+                      </strong>
+
+                    </div>
+
+
+                    <div className="capture-meta-row">
+
+                      <span>
+                        Source
+                      </span>
+
+
+                      <strong>
+                        Native Phone JPG
+                      </strong>
+
+                    </div>
+
+                  </div>
+                )}
+
+
+                {/* ===========================================
+                    CAPTURE + ANALYZE BUTTON
+                =========================================== */}
+
+                <button
+                  type="button"
+                  className="phone-capture-button"
+                  onClick={
+                    handlePredict
+                  }
+                  disabled={
+                    !phoneReady ||
+                    inputDisabled ||
+                    loading
+                  }
+                >
+
+                  {loading ? (
+                    <>
+
+                      <span className="physical-spinner">
+                      </span>
+
+                      Capturing & Analyzing...
+
+                    </>
+
+                  ) : !phoneStatus.connected ? (
+                    <>
+                      📱 Connect Android Phone
+                    </>
+
+                  ) : (
+                    <>
+                      📸 Capture & Analyze
+                    </>
+                  )}
+
+                </button>
+
+
+                <div className="phone-process-flow">
+
+                  <span>
+                    Native Camera
+                  </span>
+
+                  <b>
+                    →
+                  </b>
+
+                  <span>
+                    Original JPG
+                  </span>
+
+                  <b>
+                    →
+                  </b>
+
+                  <span>
+                    ADB Pull
+                  </span>
+
+                  <b>
+                    →
+                  </b>
+
+                  <span>
+                    AI
+                  </span>
+
+                </div>
+
+              </div>
+
+            )}
+
+
+            {/* ===============================================
+                IMAGE UPLOAD
+            =============================================== */}
+
+            {imageSource ===
+              "upload" && (
+
+              <>
+
+                <ImageUploader
+                  selectedImage={
+                    selectedImage
+                  }
+                  preview={
+                    preview
+                  }
+                  dragActive={
+                    dragActive
+                  }
+                  onImageChange={
+                    handleImageChange
+                  }
+                  onDragOver={
+                    handleDragOver
+                  }
+                  onDragLeave={
+                    handleDragLeave
+                  }
+                  onDrop={
+                    handleDrop
+                  }
+                />
+
+
+                <button
+                  type="button"
+                  className="run-ai-button"
+                  onClick={
+                    handlePredict
+                  }
+                  disabled={
+                    !selectedImage ||
+                    inputDisabled ||
+                    loading
+                  }
+                >
+
+                  {loading ? (
+                    <>
+
+                      <span className="physical-spinner">
+                      </span>
+
+                      AI is Analyzing...
+
+                    </>
+
+                  ) : !selectedImage ? (
+                    <>
+                      🖼 Upload Bean Image
+                    </>
+
+                  ) : (
+                    <>
+                      ⚡ Run Physical AI Analysis
+                    </>
+                  )}
+
+                </button>
+
+              </>
+
+            )}
+
           </div>
-        )}
 
-        {/* Actions */}
+
+          {/* =================================================
+              AI SUMMARY
+          ================================================= */}
+
+          <div className="physical-section-card">
+
+            {/* WAITING */}
+
+            {!result &&
+              !loading && (
+
+                <div className="physical-waiting-state">
+
+                  <div className="physical-ai-icon">
+                    AI
+                  </div>
+
+
+                  <h3>
+                    Waiting for Bean Sample
+                  </h3>
+
+
+                  <p>
+
+                    {imageSource ===
+                    "phone"
+                      ? phoneStatus.connected
+                        ? "Phone is connected. Position the coffee bean sample and click Capture & Analyze."
+                        : "Connect the Android phone using USB and enable USB debugging."
+                      : "Upload a coffee bean sample image and run the physical AI analysis."}
+
+                  </p>
+
+                </div>
+
+              )}
+
+
+            {/* LOADING */}
+
+            {loading && (
+
+              <div className="physical-loading-state">
+
+                <div className="physical-scanner">
+
+                  <div className="physical-scan-line">
+                  </div>
+
+                </div>
+
+
+                <h3>
+
+                  {imageSource ===
+                  "phone"
+                    ? "Capturing & Analyzing"
+                    : "Analyzing Physical Quality"}
+
+                </h3>
+
+
+                <p>
+
+                  {imageSource ===
+                  "phone"
+                    ? "The phone camera is capturing the original image and the AI pipeline is analyzing bean color and shape."
+                    : "The AI pipeline is detecting coffee beans and analyzing their color and shape."}
+
+                </p>
+
+              </div>
+
+            )}
+
+
+            {/* RESULT */}
+
+            {result &&
+              !loading && (
+
+                <DetectionSummary
+                  result={
+                    result
+                  }
+                />
+
+              )}
+
+          </div>
+
+        </div>
+
+
+        {/* ===================================================
+            STEP 2.4 - DETAILED RESULT
+        =================================================== */}
+
+        {result &&
+          !loading && (
+
+            <div className="physical-result-grid">
+
+              {/* ANNOTATED AI RESULT IMAGE */}
+
+              <div className="physical-section-card">
+
+                <DetectionResultImage
+                  imageUrl={
+                    getPredictionImageUrl(
+                      result.predicted_image_url,
+                    )
+                  }
+                />
+
+              </div>
+
+            </div>
+
+          )}
+
+
+        {/* ===================================================
+            PHYSICAL QUALITY ASSESSMENT
+        =================================================== */}
+
+        {result &&
+          !loading && (
+
+            <div
+              className={`physical-quality-card physical-quality-${physicalAssessment.status
+                .toLowerCase()
+                .replace(/\s+/g, "-")}`}
+            >
+
+              <div className="physical-quality-heading">
+
+                <div>
+
+                  <span>
+                    PHYSICAL QUALITY ASSESSMENT
+                  </span>
+
+                  <h3>
+                    Batch-Level Physical Quality
+                  </h3>
+
+                  <p>
+                    Weighted physical defect severity calculated from the AI-detected bean categories.
+                  </p>
+
+                </div>
+
+
+                <span className="physical-quality-status">
+                  {physicalAssessment.status}
+                </span>
+
+              </div>
+
+
+              <div className="physical-quality-grid">
+
+                <div className="physical-score-main">
+
+                  <span className="physical-score-label">
+                    Physical Quality Score
+                  </span>
+
+                  <div className="physical-score-value">
+
+                    <strong>
+                      {physicalAssessment.score.toFixed(
+                        2,
+                      )}
+                    </strong>
+
+                    <span>
+                      / 100
+                    </span>
+
+                  </div>
+
+                </div>
+
+
+                <div className="physical-score-detail">
+
+                  <span>
+                    Quality Status
+                  </span>
+
+                  <strong>
+                    {physicalAssessment.status}
+                  </strong>
+
+                </div>
+
+
+                <div className="physical-score-detail">
+
+                  <span>
+                    Weighted Defect Load
+                  </span>
+
+                  <strong>
+                    {physicalAssessment.weightedDefects}
+                  </strong>
+
+                </div>
+
+
+                <div className="physical-score-detail">
+
+                  <span>
+                    Defect Load
+                  </span>
+
+                  <strong>
+                    {physicalAssessment.defectLoadPercent.toFixed(
+                      2,
+                    )}
+                    %
+                  </strong>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          )}
+
+
+        {/* ===================================================
+            ACTIONS
+        =================================================== */}
+
         <div className="physical-actions">
-          <button className="physical-back-button" onClick={onBack}>
+
+          <button
+            type="button"
+            className="physical-back-button"
+            onClick={
+              onBack
+            }
+          >
             ← Back to Sensor Analysis
           </button>
 
+
           <button
+            type="button"
             className="physical-continue-button"
-            disabled={!result || loading}
-            onClick={handleContinue}
+            disabled={
+              !result ||
+              loading
+            }
+            onClick={
+              handleContinue
+            }
           >
             Generate Final Quality Report →
           </button>
+
         </div>
+
       </div>
 
+
+      {/* =====================================================
+          STYLES
+      ===================================================== */}
+
       <style>{`
+
         .physical-analysis {
           margin-top: 30px;
         }
 
+
         .physical-main-card {
           padding: 28px;
+
           border-radius: 28px;
 
           border:
-            1px solid rgba(255,222,178,0.15);
+            1px solid
+            rgba(
+              255,
+              222,
+              178,
+              0.15
+            );
 
           background:
             linear-gradient(
               145deg,
-              rgba(255,255,255,0.095),
-              rgba(255,255,255,0.035)
+              rgba(
+                255,
+                255,
+                255,
+                0.095
+              ),
+              rgba(
+                255,
+                255,
+                255,
+                0.035
+              )
             ),
-            rgba(39,22,13,0.78);
+            rgba(
+              39,
+              22,
+              13,
+              0.78
+            );
 
-          backdrop-filter: blur(20px);
+          backdrop-filter:
+            blur(20px);
 
           box-shadow:
-            0 25px 70px rgba(0,0,0,0.3),
-            inset 0 1px 0 rgba(255,255,255,0.08);
+            0 25px 70px
+            rgba(
+              0,
+              0,
+              0,
+              0.3
+            ),
+            inset
+            0 1px 0
+            rgba(
+              255,
+              255,
+              255,
+              0.08
+            );
         }
+
+
+        /* ===================================================
+           HEADING
+        =================================================== */
 
         .physical-heading {
           display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
+
+          align-items:
+            flex-start;
+
+          justify-content:
+            space-between;
+
           gap: 25px;
+
           margin-bottom: 25px;
         }
 
+
         .physical-step-label {
           display: block;
+
           margin-bottom: 7px;
 
           color: #dfa15d;
 
           font-size: 11px;
+
           font-weight: 900;
-          letter-spacing: 1.7px;
+
+          letter-spacing:
+            1.7px;
         }
+
 
         .physical-heading h2 {
           margin: 0;
 
           color: #fff3e1;
+
           font-size: 28px;
-          letter-spacing: -0.5px;
+
+          letter-spacing:
+            -0.5px;
         }
+
 
         .physical-heading p {
           max-width: 680px;
-          margin: 9px 0 0;
 
-          color: rgba(255,239,215,0.58);
+          margin:
+            9px 0 0;
+
+          color:
+            rgba(
+              255,
+              239,
+              215,
+              0.58
+            );
+
           font-size: 14px;
+
           line-height: 1.6;
         }
+
 
         .physical-status-chip {
           flex-shrink: 0;
 
-          padding: 8px 12px;
+          padding:
+            8px 12px;
 
-          border-radius: 999px;
+          border-radius:
+            999px;
 
           color: #ffd59a;
-          background: rgba(255,213,154,0.08);
+
+          background:
+            rgba(
+              255,
+              213,
+              154,
+              0.08
+            );
 
           border:
-            1px solid rgba(255,213,154,0.14);
+            1px solid
+            rgba(
+              255,
+              213,
+              154,
+              0.14
+            );
 
           font-size: 11px;
+
           font-weight: 800;
         }
 
-        .physical-top-grid,
-        .physical-result-grid {
+
+        /* ===================================================
+           IMAGE SOURCE
+        =================================================== */
+
+        .image-source-card {
+          margin-bottom: 18px;
+
+          padding: 20px;
+
+          border-radius: 22px;
+
+          background:
+            rgba(
+              0,
+              0,
+              0,
+              0.14
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              220,
+              170,
+              0.09
+            );
+        }
+
+
+        .image-source-heading {
+          display: flex;
+
+          justify-content:
+            space-between;
+
+          align-items:
+            flex-start;
+
+          gap: 15px;
+        }
+
+
+        .image-source-heading > div > span {
+          display: block;
+
+          margin-bottom: 5px;
+
+          color: #dca05e;
+
+          font-size: 9px;
+
+          font-weight: 900;
+
+          letter-spacing:
+            1.3px;
+        }
+
+
+        .image-source-heading h3 {
+          margin: 0;
+
+          color: #fff1db;
+
+          font-size: 18px;
+        }
+
+
+        .image-source-status {
+          padding:
+            6px 10px;
+
+          border-radius:
+            999px;
+
+          color: #ffd396;
+
+          background:
+            rgba(
+              255,
+              211,
+              150,
+              0.07
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              211,
+              150,
+              0.12
+            );
+
+          font-size: 9px;
+
+          font-weight: 800;
+        }
+
+
+        .image-source-description {
+          margin:
+            7px 0 15px;
+
+          max-width: 700px;
+
+          color:
+            rgba(
+              255,
+              238,
+              212,
+              0.46
+            );
+
+          font-size: 11px;
+
+          line-height: 1.6;
+        }
+
+
+        .image-source-buttons {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+
+          grid-template-columns:
+            1fr 1fr;
+
+          gap: 12px;
+        }
+
+
+        .image-source-button {
+          display: flex;
+
+          align-items:
+            center;
+
+          gap: 12px;
+
+          padding: 15px;
+
+          text-align: left;
+
+          border-radius:
+            15px;
+
+          color:
+            rgba(
+              255,
+              236,
+              207,
+              0.66
+            );
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.035
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              220,
+              170,
+              0.09
+            );
+
+          cursor: pointer;
+
+          transition:
+            0.2s ease;
+        }
+
+
+        .image-source-button:hover {
+          transform:
+            translateY(-1px);
+
+          border-color:
+            rgba(
+              255,
+              206,
+              138,
+              0.25
+            );
+        }
+
+
+        .image-source-button.active {
+          color: #2b170c;
+
+          background:
+            linear-gradient(
+              135deg,
+              #ffe0a3,
+              #d38a46,
+              #a35a30
+            );
+
+          border-color:
+            transparent;
+
+          box-shadow:
+            0 12px 30px
+            rgba(
+              199,
+              118,
+              57,
+              0.15
+            );
+        }
+
+
+        .source-icon {
+          width: 38px;
+
+          height: 38px;
+
+          flex-shrink: 0;
+
+          display: grid;
+
+          place-items:
+            center;
+
+          border-radius:
+            11px;
+
+          font-size: 18px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.08
+            );
+        }
+
+
+        .image-source-button.active
+        .source-icon {
+          background:
+            rgba(
+              43,
+              23,
+              12,
+              0.12
+            );
+        }
+
+
+        .image-source-button strong {
+          display: block;
+
+          margin-bottom: 3px;
+
+          font-size: 12px;
+
+          font-weight: 900;
+        }
+
+
+        .image-source-button small {
+          display: block;
+
+          opacity: 0.65;
+
+          font-size: 9px;
+        }
+
+
+        /* ===================================================
+           GRID
+        =================================================== */
+
+        .physical-top-grid {
+          display: grid;
+
+          grid-template-columns:
+            1fr 1fr;
+
           gap: 18px;
         }
 
+
         .physical-result-grid {
+          display: grid;
+
+          grid-template-columns:
+            1fr;
+
+          gap: 18px;
+
           margin-top: 18px;
         }
+
 
         .physical-section-card {
           padding: 20px;
 
           border-radius: 22px;
 
-          background: rgba(0,0,0,0.14);
+          background:
+            rgba(
+              0,
+              0,
+              0,
+              0.14
+            );
 
           border:
-            1px solid rgba(255,220,170,0.09);
+            1px solid
+            rgba(
+              255,
+              220,
+              170,
+              0.09
+            );
         }
+
+
+        /* ===================================================
+           PHONE CAMERA
+        =================================================== */
+
+        .phone-camera-panel {
+          width: 100%;
+        }
+
+
+        .phone-camera-header {
+          display: flex;
+
+          justify-content:
+            space-between;
+
+          align-items:
+            flex-start;
+
+          gap: 15px;
+
+          margin-bottom: 7px;
+        }
+
+
+        .phone-camera-header > div > span {
+          display: block;
+
+          margin-bottom: 4px;
+
+          color: #dca05e;
+
+          font-size: 9px;
+
+          font-weight: 900;
+
+          letter-spacing:
+            1.3px;
+        }
+
+
+        .phone-camera-header h3 {
+          margin: 0;
+
+          color: #fff0da;
+
+          font-size: 19px;
+        }
+
+
+        .phone-camera-description {
+          margin:
+            0 0 16px;
+
+          color:
+            rgba(
+              255,
+              238,
+              212,
+              0.46
+            );
+
+          font-size: 11px;
+
+          line-height: 1.6;
+        }
+
+
+        .phone-connection-chip {
+          display: inline-flex;
+
+          align-items:
+            center;
+
+          gap: 6px;
+
+          padding:
+            7px 10px;
+
+          border-radius:
+            999px;
+
+          font-size: 9px;
+
+          font-weight: 850;
+        }
+
+
+        .phone-connection-chip.connected {
+          color: #a4e9ac;
+
+          background:
+            rgba(
+              76,
+              167,
+              90,
+              0.09
+            );
+
+          border:
+            1px solid
+            rgba(
+              76,
+              167,
+              90,
+              0.15
+            );
+        }
+
+
+        .phone-connection-chip.disconnected {
+          color: #ffad96;
+
+          background:
+            rgba(
+              196,
+              69,
+              47,
+              0.08
+            );
+
+          border:
+            1px solid
+            rgba(
+              196,
+              69,
+              47,
+              0.13
+            );
+        }
+
+
+        .phone-status-dot {
+          width: 7px;
+
+          height: 7px;
+
+          border-radius: 50%;
+
+          background:
+            currentColor;
+
+          box-shadow:
+            0 0 8px
+            currentColor;
+        }
+
+
+        .phone-device-box {
+          display: flex;
+
+          align-items:
+            center;
+
+          gap: 13px;
+
+          padding: 15px;
+
+          border-radius:
+            16px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.035
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              220,
+              170,
+              0.09
+            );
+        }
+
+
+        .phone-device-icon {
+          width: 48px;
+
+          height: 48px;
+
+          flex-shrink: 0;
+
+          display: grid;
+
+          place-items:
+            center;
+
+          border-radius:
+            14px;
+
+          background:
+            rgba(
+              255,
+              210,
+              147,
+              0.1
+            );
+
+          font-size: 23px;
+        }
+
+
+        .phone-device-details {
+          min-width: 0;
+
+          flex: 1;
+        }
+
+
+        .phone-device-details span {
+          display: block;
+
+          margin-bottom: 3px;
+
+          color:
+            rgba(
+              255,
+              232,
+              198,
+              0.4
+            );
+
+          font-size: 8px;
+
+          font-weight: 900;
+
+          letter-spacing:
+            1px;
+        }
+
+
+        .phone-device-details strong {
+          display: block;
+
+          color: #ffe6c1;
+
+          font-size: 13px;
+
+          word-break:
+            break-word;
+        }
+
+
+        .phone-device-details small {
+          display: block;
+
+          margin-top: 4px;
+
+          color:
+            rgba(
+              255,
+              238,
+              212,
+              0.35
+            );
+
+          font-size: 8px;
+        }
+
+
+        .phone-device-check {
+          width: 29px;
+
+          height: 29px;
+
+          flex-shrink: 0;
+
+          display: grid;
+
+          place-items:
+            center;
+
+          border-radius: 50%;
+
+          color: #203021;
+
+          background:
+            #9ce0a6;
+
+          font-size: 13px;
+
+          font-weight: 950;
+        }
+
+
+        .phone-camera-error {
+          margin-top: 12px;
+
+          padding: 10px 12px;
+
+          border-radius:
+            12px;
+
+          color: #ffad96;
+
+          background:
+            rgba(
+              196,
+              69,
+              47,
+              0.08
+            );
+
+          border:
+            1px solid
+            rgba(
+              196,
+              69,
+              47,
+              0.13
+            );
+
+          font-size: 10px;
+
+          line-height: 1.5;
+        }
+
+
+        .refresh-phone-button {
+          width: 100%;
+
+          margin-top: 12px;
+
+          padding:
+            10px 12px;
+
+          border-radius:
+            12px;
+
+          color: #ffdeb0;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.045
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              220,
+              170,
+              0.1
+            );
+
+          font-size: 10px;
+
+          font-weight: 850;
+
+          cursor: pointer;
+        }
+
+
+        .refresh-phone-button:disabled {
+          opacity: 0.45;
+
+          cursor:
+            not-allowed;
+        }
+
+
+        .phone-capture-button {
+          width: 100%;
+
+          margin-top: 14px;
+
+          display: flex;
+
+          align-items:
+            center;
+
+          justify-content:
+            center;
+
+          gap: 8px;
+
+          padding:
+            14px 16px;
+
+          border: none;
+
+          border-radius:
+            14px;
+
+          color: #2b170c;
+
+          background:
+            linear-gradient(
+              135deg,
+              #ffe0a3,
+              #d38a46,
+              #9e572f
+            );
+
+          font-size: 12px;
+
+          font-weight: 900;
+
+          cursor: pointer;
+        }
+
+
+        .phone-capture-button:disabled {
+          opacity: 0.4;
+
+          cursor:
+            not-allowed;
+        }
+
+
+        .phone-capture-success {
+          margin-top: 13px;
+
+          padding: 13px;
+
+          border-radius:
+            14px;
+
+          background:
+            rgba(
+              80,
+              170,
+              92,
+              0.07
+            );
+
+          border:
+            1px solid
+            rgba(
+              80,
+              170,
+              92,
+              0.13
+            );
+        }
+
+
+        .capture-success-heading {
+          display: flex;
+
+          justify-content:
+            space-between;
+
+          align-items:
+            center;
+
+          gap: 10px;
+
+          margin-bottom: 10px;
+        }
+
+
+        .capture-success-heading span {
+          color: #95da9e;
+
+          font-size: 8px;
+
+          font-weight: 900;
+
+          letter-spacing:
+            1px;
+        }
+
+
+        .capture-success-heading strong {
+          color: #a5e7ac;
+
+          font-size: 9px;
+        }
+
+
+        .capture-meta-row {
+          display: flex;
+
+          justify-content:
+            space-between;
+
+          gap: 15px;
+
+          padding:
+            5px 0;
+
+          color:
+            rgba(
+              255,
+              238,
+              212,
+              0.42
+            );
+
+          font-size: 9px;
+        }
+
+
+        .capture-meta-row strong {
+          color: #e9d6b8;
+
+          text-align: right;
+
+          word-break:
+            break-all;
+        }
+
+
+        .phone-process-flow {
+          margin-top: 12px;
+
+          display: flex;
+
+          justify-content:
+            center;
+
+          align-items:
+            center;
+
+          flex-wrap: wrap;
+
+          gap: 6px;
+
+          color:
+            rgba(
+              255,
+              235,
+              204,
+              0.34
+            );
+
+          font-size: 8px;
+        }
+
+
+        .phone-process-flow b {
+          color: #d99b5b;
+        }
+
+
+        /* ===================================================
+           RUN AI
+        =================================================== */
 
         .run-ai-button {
           width: 100%;
@@ -336,14 +2725,22 @@ function PhysicalAnalysis({ onComplete, onBack }) {
           margin-top: 17px;
 
           display: flex;
-          justify-content: center;
-          align-items: center;
+
+          justify-content:
+            center;
+
+          align-items:
+            center;
+
           gap: 9px;
 
-          padding: 14px 18px;
+          padding:
+            14px 18px;
 
           border: none;
-          border-radius: 15px;
+
+          border-radius:
+            15px;
 
           color: #2b170c;
 
@@ -356,54 +2753,97 @@ function PhysicalAnalysis({ onComplete, onBack }) {
             );
 
           font-size: 13px;
+
           font-weight: 900;
 
           cursor: pointer;
 
           box-shadow:
-            0 13px 30px rgba(199,118,57,0.18);
+            0 13px 30px
+            rgba(
+              199,
+              118,
+              57,
+              0.18
+            );
         }
+
 
         .run-ai-button:disabled {
           opacity: 0.4;
-          cursor: not-allowed;
+
+          cursor:
+            not-allowed;
         }
+
+
+        /* ===================================================
+           SPINNER
+        =================================================== */
 
         .physical-spinner {
           width: 15px;
+
           height: 15px;
 
           border-radius: 50%;
 
           border:
-            2px solid rgba(42,22,11,0.25);
+            2px solid
+            rgba(
+              42,
+              22,
+              11,
+              0.25
+            );
 
-          border-top-color: #2a160b;
+          border-top-color:
+            #2a160b;
 
           animation:
-            physicalSpin 0.7s linear infinite;
+            physicalSpin
+            0.7s
+            linear
+            infinite;
         }
+
+
+        /* ===================================================
+           WAITING / LOADING
+        =================================================== */
 
         .physical-waiting-state,
         .physical-loading-state {
           min-height: 390px;
 
           display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
 
-          text-align: center;
+          flex-direction:
+            column;
+
+          align-items:
+            center;
+
+          justify-content:
+            center;
+
+          text-align:
+            center;
         }
+
 
         .physical-ai-icon {
           width: 78px;
+
           height: 78px;
 
           display: grid;
-          place-items: center;
 
-          border-radius: 24px;
+          place-items:
+            center;
+
+          border-radius:
+            24px;
 
           color: #2b170c;
 
@@ -417,53 +2857,101 @@ function PhysicalAnalysis({ onComplete, onBack }) {
           font-weight: 950;
 
           box-shadow:
-            0 16px 35px rgba(204,122,59,0.22);
+            0 16px 35px
+            rgba(
+              204,
+              122,
+              59,
+              0.22
+            );
         }
+
 
         .physical-waiting-state h3,
         .physical-loading-state h3 {
-          margin: 18px 0 7px;
+          margin:
+            18px 0 7px;
 
           color: #fff1db;
         }
 
+
         .physical-waiting-state p,
         .physical-loading-state p {
           max-width: 350px;
+
           margin: 0;
 
-          color: rgba(255,238,212,0.46);
+          color:
+            rgba(
+              255,
+              238,
+              212,
+              0.46
+            );
 
           font-size: 13px;
+
           line-height: 1.6;
         }
 
+
+        /* ===================================================
+           AI SCANNER
+        =================================================== */
+
         .physical-scanner {
           width: 170px;
+
           height: 110px;
 
           position: relative;
+
           overflow: hidden;
 
-          border-radius: 18px;
+          border-radius:
+            18px;
 
           border:
-            1px solid rgba(255,213,154,0.16);
+            1px solid
+            rgba(
+              255,
+              213,
+              154,
+              0.16
+            );
 
           background:
             repeating-linear-gradient(
               0deg,
-              rgba(255,255,255,0.035) 0px,
-              rgba(255,255,255,0.035) 1px,
-              transparent 1px,
-              transparent 18px
+              rgba(
+                255,
+                255,
+                255,
+                0.035
+              )
+              0px,
+              rgba(
+                255,
+                255,
+                255,
+                0.035
+              )
+              1px,
+              transparent
+              1px,
+              transparent
+              18px
             );
         }
 
+
         .physical-scan-line {
-          position: absolute;
+          position:
+            absolute;
 
           left: 0;
+
           right: 0;
 
           height: 3px;
@@ -477,45 +2965,377 @@ function PhysicalAnalysis({ onComplete, onBack }) {
             );
 
           box-shadow:
-            0 0 18px #ffd18a;
+            0 0 18px
+            #ffd18a;
 
           animation:
-            physicalScan 1.4s ease-in-out infinite;
+            physicalScan
+            1.4s
+            ease-in-out
+            infinite;
         }
+
+
+        /* ===================================================
+           PHYSICAL QUALITY ASSESSMENT
+        =================================================== */
+
+        .physical-quality-card {
+          margin-top: 18px;
+
+          padding: 22px;
+
+          border-radius: 22px;
+
+          background:
+            rgba(
+              0,
+              0,
+              0,
+              0.14
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              220,
+              170,
+              0.09
+            );
+        }
+
+
+        .physical-quality-heading {
+          display: flex;
+
+          align-items:
+            flex-start;
+
+          justify-content:
+            space-between;
+
+          gap: 18px;
+
+          margin-bottom: 18px;
+        }
+
+
+        .physical-quality-heading > div > span {
+          display: block;
+
+          margin-bottom: 5px;
+
+          color: #dca05e;
+
+          font-size: 9px;
+
+          font-weight: 900;
+
+          letter-spacing: 1.3px;
+        }
+
+
+        .physical-quality-heading h3 {
+          margin: 0;
+
+          color: #fff1db;
+
+          font-size: 18px;
+        }
+
+
+        .physical-quality-heading p {
+          margin: 6px 0 0;
+
+          color:
+            rgba(
+              255,
+              238,
+              212,
+              0.46
+            );
+
+          font-size: 11px;
+
+          line-height: 1.55;
+        }
+
+
+        .physical-quality-status {
+          flex-shrink: 0;
+
+          padding: 8px 12px;
+
+          border-radius: 999px;
+
+          color: #ffd59a;
+
+          background:
+            rgba(
+              255,
+              213,
+              154,
+              0.08
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              213,
+              154,
+              0.14
+            );
+
+          font-size: 10px;
+
+          font-weight: 900;
+
+          text-transform: uppercase;
+        }
+
+
+        .physical-quality-excellent
+        .physical-quality-status,
+        .physical-quality-good
+        .physical-quality-status {
+          color: #9ee7a8;
+
+          background:
+            rgba(
+              62,
+              167,
+              76,
+              0.11
+            );
+
+          border-color:
+            rgba(
+              92,
+              199,
+              105,
+              0.18
+            );
+        }
+
+
+        .physical-quality-review
+        .physical-quality-status {
+          color: #ffd18c;
+
+          background:
+            rgba(
+              215,
+              145,
+              52,
+              0.1
+            );
+
+          border-color:
+            rgba(
+              229,
+              160,
+              69,
+              0.16
+            );
+        }
+
+
+        .physical-quality-poor
+        .physical-quality-status {
+          color: #ffad96;
+
+          background:
+            rgba(
+              196,
+              69,
+              47,
+              0.09
+            );
+
+          border-color:
+            rgba(
+              196,
+              69,
+              47,
+              0.15
+            );
+        }
+
+
+        .physical-quality-grid {
+          display: grid;
+
+          grid-template-columns:
+            1.25fr
+            1fr
+            1fr
+            1fr;
+
+          gap: 12px;
+        }
+
+
+        .physical-score-main,
+        .physical-score-detail {
+          padding: 16px;
+
+          border-radius: 16px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.035
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              220,
+              170,
+              0.08
+            );
+        }
+
+
+        .physical-score-label,
+        .physical-score-detail span {
+          display: block;
+
+          color:
+            rgba(
+              255,
+              235,
+              207,
+              0.44
+            );
+
+          font-size: 9px;
+
+          font-weight: 800;
+
+          letter-spacing: 0.5px;
+
+          text-transform: uppercase;
+        }
+
+
+        .physical-score-value {
+          display: flex;
+
+          align-items: flex-end;
+
+          gap: 6px;
+
+          margin-top: 10px;
+        }
+
+
+        .physical-score-value strong {
+          color: #fff2dd;
+
+          font-size: 30px;
+
+          line-height: 1;
+
+          font-weight: 950;
+        }
+
+
+        .physical-score-value span {
+          color:
+            rgba(
+              255,
+              235,
+              207,
+              0.45
+            );
+
+          font-size: 11px;
+
+          padding-bottom: 3px;
+        }
+
+
+        .physical-score-detail strong {
+          display: block;
+
+          margin-top: 10px;
+
+          color: #ffe1b7;
+
+          font-size: 16px;
+        }
+
+
+        /* ===================================================
+           ACTIONS
+        =================================================== */
 
         .physical-actions {
           margin-top: 25px;
+
           padding-top: 22px;
 
           display: flex;
-          justify-content: space-between;
+
+          justify-content:
+            space-between;
+
           gap: 15px;
 
           border-top:
-            1px solid rgba(255,221,177,0.09);
+            1px solid
+            rgba(
+              255,
+              221,
+              177,
+              0.09
+            );
         }
+
 
         .physical-back-button,
         .physical-continue-button {
-          padding: 13px 18px;
+          padding:
+            13px 18px;
 
-          border-radius: 14px;
+          border-radius:
+            14px;
 
           font-size: 12px;
+
           font-weight: 850;
 
           cursor: pointer;
         }
 
+
         .physical-back-button {
           color: #ffe0b5;
 
           background:
-            rgba(255,255,255,0.05);
+            rgba(
+              255,
+              255,
+              255,
+              0.05
+            );
 
           border:
-            1px solid rgba(255,220,170,0.11);
+            1px solid
+            rgba(
+              255,
+              220,
+              170,
+              0.11
+            );
         }
+
 
         .physical-continue-button {
           border: none;
@@ -531,16 +3351,26 @@ function PhysicalAnalysis({ onComplete, onBack }) {
             );
         }
 
+
         .physical-continue-button:disabled {
           opacity: 0.4;
-          cursor: not-allowed;
+
+          cursor:
+            not-allowed;
         }
+
+
+        /* ===================================================
+           ANIMATIONS
+        =================================================== */
 
         @keyframes physicalSpin {
           to {
-            transform: rotate(360deg);
+            transform:
+              rotate(360deg);
           }
         }
+
 
         @keyframes physicalScan {
           0% {
@@ -548,7 +3378,10 @@ function PhysicalAnalysis({ onComplete, onBack }) {
           }
 
           50% {
-            top: calc(100% - 3px);
+            top:
+              calc(
+                100% - 3px
+              );
           }
 
           100% {
@@ -556,31 +3389,57 @@ function PhysicalAnalysis({ onComplete, onBack }) {
           }
         }
 
-        @media (max-width: 900px) {
+
+        /* ===================================================
+           RESPONSIVE
+        =================================================== */
+
+        @media (
+          max-width: 900px
+        ) {
           .physical-top-grid,
-          .physical-result-grid {
-            grid-template-columns: 1fr;
+          .physical-result-grid,
+          .physical-quality-grid {
+            grid-template-columns:
+              1fr;
           }
         }
 
-        @media (max-width: 620px) {
+
+        @media (
+          max-width: 620px
+        ) {
           .physical-main-card {
             padding: 18px;
           }
 
+
           .physical-heading,
-          .physical-actions {
-            flex-direction: column;
+          .physical-actions,
+          .image-source-heading,
+          .phone-camera-header {
+            flex-direction:
+              column;
           }
+
+
+          .image-source-buttons {
+            grid-template-columns:
+              1fr;
+          }
+
 
           .physical-back-button,
           .physical-continue-button {
             width: 100%;
           }
         }
+
       `}</style>
+
     </section>
   );
 }
+
 
 export default PhysicalAnalysis;

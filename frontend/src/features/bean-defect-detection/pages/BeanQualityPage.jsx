@@ -25,68 +25,73 @@ function BeanQualityPage() {
   };
 
   return (
-    <div className="bean-quality-page">
-      <div className="background-glow glow-left"></div>
-      <div className="background-glow glow-right"></div>
+    
 
-      <main className="quality-container">
-        {/* Header */}
-        <section className="quality-header">
-          <span className="page-badge">AI QUALITY CONTROL</span>
+      <div className="bean-quality-page">
+        <div className="background-glow glow-left"></div>
+        <div className="background-glow glow-right"></div>
 
-          <h1>Beans Quality Checking</h1>
+        <main className="quality-container">
+          {/* Header */}
+          <section className="quality-header">
+            <span className="page-badge">AI QUALITY CONTROL</span>
 
-          <p>
-            Analyze coffee bean quality using sensor-based inspection and
-            computer vision AI to generate a complete quality report.
-          </p>
-        </section>
+            <h1>Beans Quality Checking</h1>
 
-        {/* Stepper */}
-        <BeanQualityStepper currentStep={currentStep} onStepChange={goToStep} />
+            <p>
+              Analyze coffee bean quality using sensor-based inspection and
+              computer vision AI to generate a complete quality report.
+            </p>
+          </section>
 
-        {/* STEP 1 */}
-        {currentStep === 1 && (
-          <SensorAnalysis
-            onComplete={(data) => {
-              setSensorResult(data);
-              goToStep(2);
-            }}
+          {/* Stepper */}
+          <BeanQualityStepper
+            currentStep={currentStep}
+            onStepChange={goToStep}
           />
-        )}
 
-        {/* STEP 2 */}
-        {currentStep === 2 && (
-          <PhysicalAnalysis
-            onBack={() => goToStep(1)}
-            onComplete={(data) => {
-              setPhysicalResult(data);
+          {/* STEP 1 */}
+          {currentStep === 1 && (
+            <SensorAnalysis
+              onComplete={(data) => {
+                setSensorResult(data);
+                goToStep(2);
+              }}
+            />
+          )}
 
-              // දැනට Step 3ට යනවා.
-              // පස්සේ මෙතන quality fusion API call එක දානවා.
-              goToStep(3);
-            }}
-          />
-        )}
+          {/* STEP 2 */}
+          {currentStep === 2 && (
+            <PhysicalAnalysis
+              onBack={() => goToStep(1)}
+              onComplete={(data) => {
+                setPhysicalResult(data);
 
-        {/* STEP 3 */}
-        {currentStep === 3 && (
-          <FinalQualityReport
-            sensorResult={sensorResult}
-            physicalResult={physicalResult}
-            onBack={() => goToStep(2)}
-            onNewAnalysis={() => {
-              setSensorResult(null);
-              setPhysicalResult(null);
-              setFinalResult(null);
+                // දැනට Step 3ට යනවා.
+                // පස්සේ මෙතන quality fusion API call එක දානවා.
+                goToStep(3);
+              }}
+            />
+          )}
 
-              goToStep(1);
-            }}
-          />
-        )}
-      </main>
+          {/* STEP 3 */}
+          {currentStep === 3 && (
+            <FinalQualityReport
+              sensorResult={sensorResult}
+              physicalResult={physicalResult}
+              onBack={() => goToStep(2)}
+              onNewAnalysis={() => {
+                setSensorResult(null);
+                setPhysicalResult(null);
+                setFinalResult(null);
 
-      <style>{`
+                goToStep(1);
+              }}
+            />
+          )}
+        </main>
+
+        <style>{`
         * {
           box-sizing: border-box;
         }
@@ -322,7 +327,8 @@ function BeanQualityPage() {
           }
         }
       `}</style>
-    </div>
+      </div>
+  
   );
 }
 
