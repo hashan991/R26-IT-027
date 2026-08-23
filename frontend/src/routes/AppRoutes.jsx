@@ -17,6 +17,8 @@ import RoleRoute from "../shared/components/RoleRoute";
 import DashboardLayout from "../layouts/DashboardLayout";
 import DashboardHomePage from "../pages/DashboardHomePage";
 
+import SealUploadPage from "../features/packet-seal-detection/pages/SealUploadPage";
+
 function AppRoutes() {
   return (
     <Routes>
@@ -116,6 +118,9 @@ function AppRoutes() {
       ===================================================== */}
 
       <Route path="*" element={<h1>404 - Page Not Found</h1>} />
+
+      <Route path="/seals" element={<SealUploadPage />} />
+      
     </Routes>
   );
 }
