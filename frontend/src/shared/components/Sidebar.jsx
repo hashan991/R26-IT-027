@@ -78,6 +78,11 @@ function Sidebar() {
           label: "Bean Quality",
           path: "/beans",
         },
+
+        {
+          label: "Packaging Quality",
+          path: "/seals",
+        },
       ];
     }
 
@@ -132,6 +137,11 @@ function Sidebar() {
         {
           label: "My Profile",
           path: "/profile",
+        },
+
+        {
+          label: "Packaging Quality",
+          path: "/seals",
         },
       ];
     }

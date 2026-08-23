@@ -111,6 +111,16 @@ function AppRoutes() {
             </RoleRoute>
           }
         />
+
+        {/* PACKAGING / SEAL */}
+        <Route
+          path="/seals"
+          element={
+            <RoleRoute allowedRoles={["ADMIN", "PACKAGING_QUALITY_INSPECTOR"]}>
+              <SealUploadPage />
+            </RoleRoute>
+          }
+        />
       </Route>
 
       {/* =====================================================
@@ -118,9 +128,6 @@ function AppRoutes() {
       ===================================================== */}
 
       <Route path="*" element={<h1>404 - Page Not Found</h1>} />
-
-      <Route path="/seals" element={<SealUploadPage />} />
-      
     </Routes>
   );
 }

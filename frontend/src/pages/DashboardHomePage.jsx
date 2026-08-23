@@ -59,9 +59,9 @@ function DashboardHomePage() {
         title: "Packaging Quality Inspection",
         description:
           "Detect packet seal and packaging defects using real-time AI inspection.",
-        path: "/packaging",
+        path: "/seals",
         icon: "▣",
-        status: "Coming Soon",
+        status: "Available",
       });
     }
 
