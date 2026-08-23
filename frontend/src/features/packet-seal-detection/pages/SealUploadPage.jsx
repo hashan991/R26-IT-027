@@ -2661,7 +2661,7 @@ const handleGenerateReport = async () => {
       console.error(error);
       setDeviceStatus({ connected: false });
       setDeviceError(
-        "Leak detection device is not connected. Check the Arduino USB connection and backend."
+        "Leak detection device is not connected. Check the Arduino USB connection and backend.."
       );
     }
   };
