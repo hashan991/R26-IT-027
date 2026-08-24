@@ -6,6 +6,9 @@ import LoginPage from "../auth/pages/LoginPage";
 import RegisterPage from "../auth/pages/RegisterPage";
 
 import BeanUploadPage from "../features/bean-defect-detection/pages/BeanUploadPage";
+
+import SalesPredictionPage from "../features/sales-prediction/pages/SalesPredictionPage";
+
 import BeanQualityPage from "../features/bean-defect-detection/pages/BeanQualityPage";
 
 import UserManagementPage from "../features/admin/pages/UserManagementPage";
@@ -19,9 +22,17 @@ import DashboardHomePage from "../pages/DashboardHomePage";
 
 import SealUploadPage from "../features/packet-seal-detection/pages/SealUploadPage";
 
+
 function AppRoutes() {
   return (
     <Routes>
+
+  
+
+
+      <Route path="/sales" element={<SalesPredictionPage />} />
+      
+
       {/* =====================================================
           PUBLIC ROUTES
       ===================================================== */}
@@ -126,6 +137,7 @@ function AppRoutes() {
       {/* =====================================================
           404
       ===================================================== */}
+
 
       <Route path="*" element={<h1>404 - Page Not Found</h1>} />
     </Routes>
