@@ -83,6 +83,10 @@ function Sidebar() {
           label: "Packaging Quality",
           path: "/seals",
         },
+        {
+          label: "SALES Prediction",
+          path: "/sales",
+        },
       ];
     }
 
@@ -159,6 +163,10 @@ function Sidebar() {
         {
           label: "My Profile",
           path: "/profile",
+        },
+        {
+          label: "SALES Prediction",
+          path: "/sales",
         },
       ];
     }

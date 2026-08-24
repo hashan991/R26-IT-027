@@ -72,7 +72,7 @@ function DashboardHomePage() {
           "Analyze product quality and market-related information for decision support.",
         path: "/sales",
         icon: "↗",
-        status: "Coming Soon",
+        status: "Available",
       });
     }
 

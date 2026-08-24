@@ -26,12 +26,7 @@ import SealUploadPage from "../features/packet-seal-detection/pages/SealUploadPa
 function AppRoutes() {
   return (
     <Routes>
-
-  
-
-
-      <Route path="/sales" element={<SalesPredictionPage />} />
-      
+    
 
       {/* =====================================================
           PUBLIC ROUTES
@@ -132,12 +127,21 @@ function AppRoutes() {
             </RoleRoute>
           }
         />
+        <Route
+          path="/sales"
+          element={
+            <RoleRoute allowedRoles={["ADMIN", "SALES_ANALYST"]}>
+              <SalesPredictionPage />
+            </RoleRoute>
+          }
+        />
+
+
       </Route>
 
       {/* =====================================================
           404
       ===================================================== */}
-
 
       <Route path="*" element={<h1>404 - Page Not Found</h1>} />
     </Routes>
