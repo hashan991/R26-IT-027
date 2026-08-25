@@ -154,54 +154,54 @@ function AppRoutes() {
             </RoleRoute>
           }
         />
-      </Route>
 
-      {/* =====================================================
+        {/* =====================================================
           POWDER QUALITY MODULE
       ===================================================== */}
 
-      <Route
-        path="/powder"
-        element={
-          <RoleRoute allowedRoles={["ADMIN", "POWDER_QUALITY_INSPECTOR"]}>
-            <RefreshProvider>
-              <PowderDashboardLayout />
-            </RefreshProvider>
-          </RoleRoute>
-        }
-      >
-        {/* Powder Dashboard */}
-
-        <Route index element={<PowderDashboard />} />
-
-        <Route path="dashboard" element={<PowderDashboard />} />
-
-        {/* Batch Intelligence */}
-
-        <Route path="batch-intelligence" element={<BatchIntelligence />} />
-
-        {/* Production Intelligence */}
-
         <Route
-          path="production-intelligence"
-          element={<ProductionIntelligence />}
-        />
-      </Route>
+          path="/powder"
+          element={
+            <RoleRoute allowedRoles={["ADMIN", "POWDER_QUALITY_INSPECTOR"]}>
+              <RefreshProvider>
+                <PowderDashboardLayout />
+              </RefreshProvider>
+            </RoleRoute>
+          }
+        >
+          {/* Powder Dashboard */}
 
-      {/* =====================================================
+          <Route index element={<PowderDashboard />} />
+
+          <Route path="dashboard" element={<PowderDashboard />} />
+
+          {/* Batch Intelligence */}
+
+          <Route path="batch-intelligence" element={<BatchIntelligence />} />
+
+          {/* Production Intelligence */}
+
+          <Route
+            path="production-intelligence"
+            element={<ProductionIntelligence />}
+          />
+        </Route>
+
+        {/* =====================================================
           POWDER QUALITY REPORT
       ===================================================== */}
 
-      <Route
-        path="/powder/report/:batchId"
-        element={
-          <RoleRoute allowedRoles={["ADMIN", "POWDER_QUALITY_INSPECTOR"]}>
-            <RefreshProvider>
-              <CoffeeInspectionReport />
-            </RefreshProvider>
-          </RoleRoute>
-        }
-      />
+        <Route
+          path="/powder/report/:batchId"
+          element={
+            <RoleRoute allowedRoles={["ADMIN", "POWDER_QUALITY_INSPECTOR"]}>
+              <RefreshProvider>
+                <CoffeeInspectionReport />
+              </RefreshProvider>
+            </RoleRoute>
+          }
+        />
+      </Route>
 
       {/* =====================================================
           404

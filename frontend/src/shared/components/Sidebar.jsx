@@ -87,6 +87,10 @@ function Sidebar() {
           label: "SALES Prediction",
           path: "/sales",
         },
+        {
+          label: "POWDER QUALITY",
+          path: "/powder",
+        },
       ];
     }
 
@@ -124,6 +128,11 @@ function Sidebar() {
         {
           label: "My Profile",
           path: "/profile",
+        },
+
+        {
+          label: "POWDER QUALITY",
+          path: "/powder",
         },
       ];
     }

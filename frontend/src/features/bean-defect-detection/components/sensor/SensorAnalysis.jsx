@@ -26,8 +26,8 @@ function SensorAnalysis({ onComplete }) {
     Repeated experiments වලින් පස්සේ tune කරන්න.
   */
   const STABILITY_THRESHOLDS = {
-    mq2Percent: 3,
-    mq3Percent: 3,
+    mq2Percent: 6,
+    mq3Percent: 6,
     mq135Percent: 3,
     moisturePercent: 1,
 

@@ -50,7 +50,7 @@ function DashboardHomePage() {
           "Evaluate coffee powder quality using moisture, color and granulation analysis.",
         path: "/powder",
         icon: "◉",
-        status: "Coming Soon",
+        status: "Available",
       });
     }
 
