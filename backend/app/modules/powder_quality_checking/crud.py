@@ -285,6 +285,14 @@ async def get_sensor_history(
 async def get_batch_history(
     limit: int = 100,
 ):
+    """
+    Return production batch history together with
+    the latest AI inspection result for each batch.
+
+    The response fields are kept compatible with
+    the CoffeeSense frontend BatchHistoryTable.
+    """
+
     batches = []
 
     cursor = (
@@ -298,15 +306,154 @@ async def get_batch_history(
     )
 
     async for document in cursor:
-        batches.append(
-            serialize_document(
-                document
+
+        batch = serialize_document(
+            document
+        )
+
+        batch_id = batch.get(
+            "batch_id"
+        )
+
+        # ----------------------------------------------------
+        # GET LATEST SENSOR / AI RESULT FOR THIS BATCH
+        # ----------------------------------------------------
+
+        latest_reading = (
+            await powder_readings_collection.find_one(
+                {
+                    "batch_id": batch_id
+                },
+                sort=[
+                    (
+                        "created_at",
+                        -1,
+                    )
+                ],
             )
         )
 
+        # ----------------------------------------------------
+        # MERGE LATEST RESULT INTO BATCH HISTORY RESPONSE
+        # ----------------------------------------------------
+
+        if latest_reading:
+
+            latest_reading = serialize_document(
+                latest_reading
+            )
+
+            analysis = latest_reading.get(
+                "analysis",
+                {},
+            )
+
+            batch["timestamp"] = (
+                latest_reading.get(
+                    "created_at"
+                )
+            )
+
+            batch["decision"] = (
+                latest_reading.get(
+                    "decision"
+                )
+                or
+                latest_reading.get(
+                    "status"
+                )
+            )
+
+            batch["release_status"] = (
+                latest_reading.get(
+                    "release_status"
+                )
+                or
+                analysis.get(
+                    "release_status"
+                )
+            )
+
+            batch["quality_score"] = (
+                latest_reading.get(
+                    "quality_score"
+                )
+            )
+
+            batch["condition_score"] = (
+                latest_reading.get(
+                    "quality_score"
+                )
+            )
+
+            batch["confidence"] = (
+                latest_reading.get(
+                    "confidence"
+                )
+            )
+
+            batch["risk_level"] = (
+                latest_reading.get(
+                    "risk_level"
+                )
+            )
+
+            batch["root_cause"] = (
+                analysis.get(
+                    "root_cause"
+                )
+                or
+                analysis.get(
+                    "root_causes"
+                )
+                or
+                []
+            )
+
+            batch["recommended_actions"] = (
+                analysis.get(
+                    "recommended_actions"
+                )
+                or
+                analysis.get(
+                    "recovery_actions"
+                )
+                or
+                []
+            )
+
+        else:
+
+            # Batch exists but does not yet have
+            # an inspection reading.
+
+            batch["timestamp"] = (
+                batch.get(
+                    "created_at"
+                )
+            )
+
+            batch["decision"] = None
+
+            batch["release_status"] = None
+
+            batch["quality_score"] = 0
+
+            batch["condition_score"] = 0
+
+            batch["confidence"] = 0
+
+            batch["risk_level"] = None
+
+            batch["root_cause"] = []
+
+            batch["recommended_actions"] = []
+
+        batches.append(
+            batch
+        )
+
     return batches
-
-
 # ============================================================
 # GET COMPLETE BATCH DETAILS
 # ============================================================

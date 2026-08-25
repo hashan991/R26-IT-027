@@ -700,8 +700,26 @@ def disconnect_device():
 # READ ONE LIVE SENSOR SAMPLE
 # ============================================================
 
+# ============================================================
+# READ ONE LIVE SENSOR SAMPLE
+#
+# Arduino
+#     ↓
+# Read sensor values
+#     ↓
+# AI quality analysis
+#     ↓
+# Save to MongoDB
+#     ↓
+# Frontend /sensor/latest can display it
+# ============================================================
+
 @router.get("/device/read")
-def read_device():
+async def read_device():
+
+    # --------------------------------------------------------
+    # READ LIVE DATA FROM ARDUINO
+    # --------------------------------------------------------
 
     sensor_data = (
         powder_serial_service.read_sensor_data()
@@ -716,7 +734,163 @@ def read_device():
             ),
         )
 
+
+    # --------------------------------------------------------
+    # DETERMINE CURRENT BATCH
+    # --------------------------------------------------------
+
+    batch_id = sensor_data.get(
+        "batch_id"
+    )
+
+
+    # Arduino CSV does not currently send a batch_id.
+    # Use the most recently created production batch.
+    if not batch_id:
+
+        batches = await get_batch_history_records(
+            limit=1
+        )
+
+        if batches:
+
+            batch_id = batches[0].get(
+                "batch_id"
+            )
+
+        else:
+
+            batch_id = "LIVE-ARDUINO"
+
+
+    # --------------------------------------------------------
+    # MAKE SURE BATCH EXISTS
+    # --------------------------------------------------------
+
+    await create_batch_record(
+        batch_id
+    )
+
+
+    # --------------------------------------------------------
+    # RUN AI QUALITY ANALYSIS
+    # --------------------------------------------------------
+
+    analysis = analyze_powder_quality(
+
+        moisture=sensor_data.get(
+            "moisture",
+            0,
+        ),
+
+        red=sensor_data.get(
+            "red",
+            0,
+        ),
+
+        green=sensor_data.get(
+            "green",
+            0,
+        ),
+
+        blue=sensor_data.get(
+            "blue",
+            0,
+        ),
+
+        temperature=sensor_data.get(
+            "temperature",
+            0,
+        ),
+
+        humidity=sensor_data.get(
+            "humidity",
+            0,
+        ),
+
+        arduino_status=sensor_data.get(
+            "status"
+        ),
+    )
+
+
+    # --------------------------------------------------------
+    # PREPARE SENSOR DATA FOR MONGODB
+    # --------------------------------------------------------
+
+    database_sensor_data = {
+
+        "moisture": sensor_data.get(
+            "moisture"
+        ),
+
+        "red": sensor_data.get(
+            "red"
+        ),
+
+        "green": sensor_data.get(
+            "green"
+        ),
+
+        "blue": sensor_data.get(
+            "blue"
+        ),
+
+        "temperature": sensor_data.get(
+            "temperature"
+        ),
+
+        "humidity": sensor_data.get(
+            "humidity"
+        ),
+
+        "arduino_status": sensor_data.get(
+            "status"
+        ),
+
+        "device_decision": sensor_data.get(
+            "device_decision"
+        ),
+    }
+
+
+    # --------------------------------------------------------
+    # SAVE LIVE READING + AI RESULT TO MONGODB
+    # --------------------------------------------------------
+
+    saved_record = await save_sensor_reading_record(
+
+        batch_id=batch_id,
+
+        sensor_data=database_sensor_data,
+
+        analysis_result=analysis,
+    )
+
+
+    # --------------------------------------------------------
+    # RETURN LIVE RESULT
+    # --------------------------------------------------------
+
     return {
-        "message": "Sensor reading received",
-        "data": sensor_data,
+
+        "message": (
+            "Live sensor reading analyzed "
+            "and saved successfully"
+        ),
+
+        "saved": True,
+
+        "record_id": saved_record.get(
+            "_id"
+        ),
+
+        "batch_id": batch_id,
+
+        "data": {
+            **sensor_data,
+            "batch_id": batch_id,
+        },
+
+        "ai_decision": analysis,
     }
