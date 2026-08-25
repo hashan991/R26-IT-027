@@ -125,6 +125,10 @@ function Sidebar() {
           label: "My Profile",
           path: "/profile",
         },
+        {
+          label: "POWDER QUALITY",
+          path: "/powder",
+        },
       ];
     }
 

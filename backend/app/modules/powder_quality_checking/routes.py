@@ -7,6 +7,9 @@ from .schema import (
 
 from .service import analyze_powder_quality
 from .serial_service import powder_serial_service
+from .report.report_service import generate_powder_pdf
+from fastapi.responses import FileResponse
+import os
 
 from .crud import (
     create_batch as create_batch_record,
@@ -894,3 +897,85 @@ async def read_device():
 
         "ai_decision": analysis,
     }
+    
+    
+    
+# ============================================================
+# GENERATE POWDER QUALITY PDF REPORT
+# ============================================================
+
+@router.get("/report/pdf/{batch_id}")
+async def generate_report_pdf(
+    batch_id: str,
+):
+
+    batch_data = await get_batch_details(
+        batch_id
+    )
+
+
+    if not batch_data:
+        raise HTTPException(
+            status_code=404,
+            detail="Batch not found",
+        )
+
+
+    file_path = generate_powder_pdf(
+        batch_data
+    )
+
+
+    return FileResponse(
+        path=file_path,
+        filename=os.path.basename(file_path),
+        media_type="application/pdf"
+    )
+    
+    
+
+
+# ============================================================
+# DOWNLOAD POWDER QUALITY PDF REPORT
+# ============================================================
+
+@router.get("/report/pdf/{batch_id}")
+async def download_powder_report(
+    batch_id: str,
+):
+
+    batch_data = await get_batch_details(
+        batch_id
+    )
+
+
+    if not batch_data:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Batch not found",
+        )
+
+
+    try:
+
+        file_path = generate_powder_pdf(
+            batch_data
+        )
+
+
+        return {
+            "message": "PDF generated successfully",
+            "file_path": file_path,
+        }
+
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e),
+        )
+        
+
+
