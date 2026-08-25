@@ -2,59 +2,136 @@
 # Smart Coffee Manufacturing
 # Coffee Powder Quality Evaluation Engine
 #
-# Latest CoffeeSense AI logic adapted for the main project.
-# Analyzes:
+# CoffeeSense AI logic aligned with Arduino UNO.
+#
+# Primary decision factors:
 # - Moisture
-# - Coffee powder color
 # - Temperature
 # - Humidity
+#
+# Supporting indicator:
+# - Coffee powder color
+#
+# IMPORTANT:
+# Color is analyzed and reported,
+# but does NOT block the final production decision.
 # ============================================================
 
 
 # ============================================================
-# REFERENCE COFFEE COLOR PROFILE
+# COFFEE COLOR REFERENCE PROFILES
 # ============================================================
 
-REFERENCE_R = 324
-REFERENCE_G = 392
-REFERENCE_B = 329
+# Arduino Profile A
+REFERENCE_A_R = 488
+REFERENCE_A_G = 601
+REFERENCE_A_B = 482
+
+# Arduino Profile B
+REFERENCE_B_R = 580
+REFERENCE_B_G = 786
+REFERENCE_B_B = 700
 
 
 # ============================================================
 # THRESHOLDS
+#
+# Must stay aligned with Arduino C++ calibration.
 # ============================================================
 
-MOISTURE_PASS_LIMIT = 430
+# Moisture
+MOISTURE_PASS_LIMIT = 450
 MOISTURE_WARN_LIMIT = 350
 
-COLOR_PASS_DISTANCE = 145
-COLOR_WARN_DISTANCE = 190
+# Color
+# Supporting indicator only.
+COLOR_PASS_DISTANCE = 200
+COLOR_WARN_DISTANCE = 400
 
-TEMPERATURE_WARN_LIMIT = 35
-TEMPERATURE_HOLD_LIMIT = 40
+# Temperature
+TEMPERATURE_WARN_LIMIT = 40
+TEMPERATURE_HOLD_LIMIT = 45
 
-HUMIDITY_WARN_LIMIT = 60
-HUMIDITY_HOLD_LIMIT = 70
+# Humidity
+HUMIDITY_WARN_LIMIT = 70
+HUMIDITY_HOLD_LIMIT = 80
 
 
 # ============================================================
 # COLOR DISTANCE
 # ============================================================
 
-def calculate_color_distance(red, green, blue):
+def _euclidean_color_distance(
+    red,
+    green,
+    blue,
+    reference_red,
+    reference_green,
+    reference_blue,
+):
     return (
-        (red - REFERENCE_R) ** 2
-        + (green - REFERENCE_G) ** 2
-        + (blue - REFERENCE_B) ** 2
+        (red - reference_red) ** 2
+        + (green - reference_green) ** 2
+        + (blue - reference_blue) ** 2
     ) ** 0.5
+
+
+def calculate_color_distance(
+    red,
+    green,
+    blue,
+):
+    """
+    Calculate color distance against both
+    calibrated coffee color profiles.
+
+    The closest profile is used.
+    """
+
+    red = float(red)
+    green = float(green)
+    blue = float(blue)
+
+    distance_a = _euclidean_color_distance(
+        red,
+        green,
+        blue,
+        REFERENCE_A_R,
+        REFERENCE_A_G,
+        REFERENCE_A_B,
+    )
+
+    distance_b = _euclidean_color_distance(
+        red,
+        green,
+        blue,
+        REFERENCE_B_R,
+        REFERENCE_B_G,
+        REFERENCE_B_B,
+    )
+
+    return min(
+        distance_a,
+        distance_b,
+    )
 
 
 # ============================================================
 # MOISTURE ANALYSIS
+#
+# Arduino:
+#
+# >= 450  -> PASS
+# >= 350  -> WARN
+# < 350   -> HOLD
 # ============================================================
 
-def analyze_moisture(moisture):
-    moisture = float(moisture)
+def analyze_moisture(
+    moisture,
+):
+    moisture = float(
+        moisture
+    )
 
     if moisture >= MOISTURE_PASS_LIMIT:
         return "PASS"
@@ -67,13 +144,19 @@ def analyze_moisture(moisture):
 
 # ============================================================
 # COLOR ANALYSIS
+#
+# Supporting indicator only.
 # ============================================================
 
-def analyze_color(red, green, blue):
+def analyze_color(
+    red,
+    green,
+    blue,
+):
     distance = calculate_color_distance(
-        float(red),
-        float(green),
-        float(blue),
+        red,
+        green,
+        blue,
     )
 
     if distance <= COLOR_PASS_DISTANCE:
@@ -87,24 +170,52 @@ def analyze_color(red, green, blue):
 
 # ============================================================
 # ENVIRONMENT ANALYSIS
+#
+# Temperature:
+#
+# < 40    -> PASS
+# 40-44.9 -> WARN
+# >= 45   -> HOLD
+#
+# Humidity:
+#
+# < 70    -> PASS
+# 70-79.9 -> WARN
+# >= 80   -> HOLD
 # ============================================================
 
-def analyze_environment(temperature, humidity):
-    temperature = float(temperature)
-    humidity = float(humidity)
+def analyze_environment(
+    temperature,
+    humidity,
+):
+    temperature = float(
+        temperature
+    )
+
+    humidity = float(
+        humidity
+    )
 
     temperature_status = "PASS"
     humidity_status = "PASS"
 
-    # Temperature
+    # --------------------------------------------------------
+    # TEMPERATURE
+    # --------------------------------------------------------
+
     if temperature >= TEMPERATURE_HOLD_LIMIT:
         temperature_status = "HOLD"
+
     elif temperature >= TEMPERATURE_WARN_LIMIT:
         temperature_status = "WARN"
 
-    # Humidity
+    # --------------------------------------------------------
+    # HUMIDITY
+    # --------------------------------------------------------
+
     if humidity >= HUMIDITY_HOLD_LIMIT:
         humidity_status = "HOLD"
+
     elif humidity >= HUMIDITY_WARN_LIMIT:
         humidity_status = "WARN"
 
@@ -116,20 +227,70 @@ def analyze_environment(temperature, humidity):
 
 # ============================================================
 # FINAL STATUS
+#
+# EXACT ARDUINO PRIORITY:
+#
+# 1. Moisture HOLD -> HOLD
+# 2. Moisture WARN -> WARN
+# 3. Humidity HOLD -> HOLD
+# 4. Humidity WARN -> WARN
+# 5. Temperature HOLD -> HOLD
+# 6. Temperature WARN -> WARN
+# 7. Otherwise PASS
+#
+# Color does NOT block PASS.
 # ============================================================
 
-def determine_final_status(statuses):
-    if "HOLD" in statuses:
+def determine_final_status(
+    moisture_status,
+    temperature_status,
+    humidity_status,
+):
+
+    # --------------------------------------------------------
+    # MOISTURE
+    # --------------------------------------------------------
+
+    if moisture_status == "HOLD":
         return "HOLD"
 
-    if "WARN" in statuses:
+    if moisture_status == "WARN":
         return "WARN"
+
+    # --------------------------------------------------------
+    # HUMIDITY
+    # --------------------------------------------------------
+
+    if humidity_status == "HOLD":
+        return "HOLD"
+
+    if humidity_status == "WARN":
+        return "WARN"
+
+    # --------------------------------------------------------
+    # TEMPERATURE
+    # --------------------------------------------------------
+
+    if temperature_status == "HOLD":
+        return "HOLD"
+
+    if temperature_status == "WARN":
+        return "WARN"
+
+    # --------------------------------------------------------
+    # COLOR IS SUPPORTING ONLY
+    # --------------------------------------------------------
 
     return "PASS"
 
 
 # ============================================================
 # QUALITY SCORE
+#
+# Only primary production decision parameters affect
+# the quality score.
+#
+# Color remains diagnostic/supporting information.
 # ============================================================
 
 def calculate_score(
@@ -145,24 +306,37 @@ def calculate_score(
         "HOLD": 35,
     }
 
-    statuses = [
+    # --------------------------------------------------------
+    # PRIMARY PARAMETERS ONLY
+    # --------------------------------------------------------
+
+    primary_statuses = [
         moisture_status,
-        color_status,
         temperature_status,
         humidity_status,
     ]
 
-    for status in statuses:
-        score -= penalties.get(status, 0)
+    for status in primary_statuses:
 
-    return max(score, 0)
+        score -= penalties.get(
+            status,
+            0,
+        )
+
+    return max(
+        score,
+        0,
+    )
 
 
 # ============================================================
 # CONFIDENCE
 # ============================================================
 
-def calculate_confidence(final_status):
+def calculate_confidence(
+    final_status,
+):
+
     if final_status == "PASS":
         return 95
 
@@ -185,21 +359,26 @@ def identify_issues(
     issues = []
 
     if moisture_status != "PASS":
+
         issues.append(
             "Moisture instability detected"
         )
 
+    # Color is still reported as supporting evidence.
     if color_status != "PASS":
+
         issues.append(
             "Coffee colour deviation detected"
         )
 
     if temperature_status != "PASS":
+
         issues.append(
             "Temperature risk detected"
         )
 
     if humidity_status != "PASS":
+
         issues.append(
             "Humidity storage risk detected"
         )
@@ -219,39 +398,64 @@ def identify_root_causes(
 ):
     causes = []
 
+    # --------------------------------------------------------
+    # MOISTURE
+    # --------------------------------------------------------
+
     if moisture_status != "PASS":
+
         causes.extend([
             "Moisture level deviation detected",
             "Possible insufficient drying process",
         ])
 
+    # --------------------------------------------------------
+    # COLOR
+    #
+    # Supporting diagnostic information only.
+    # --------------------------------------------------------
+
     if color_status != "PASS":
+
         causes.extend([
             "Coffee colour inconsistency detected",
             "Possible roasting parameter variation",
         ])
 
+    # --------------------------------------------------------
+    # HUMIDITY
+    # --------------------------------------------------------
+
     if humidity_status == "WARN":
+
         causes.append(
             "Storage humidity slightly above optimal range"
         )
 
     if humidity_status == "HOLD":
+
         causes.append(
             "High storage humidity condition"
         )
 
+    # --------------------------------------------------------
+    # TEMPERATURE
+    # --------------------------------------------------------
+
     if temperature_status == "WARN":
+
         causes.append(
             "Temperature exposure increasing quality risk"
         )
 
     if temperature_status == "HOLD":
+
         causes.append(
             "High temperature exposure detected"
         )
 
     if not causes:
+
         causes.append(
             "No abnormal production condition detected"
         )
@@ -271,26 +475,58 @@ def run_quality_analysis(
     temperature,
     humidity,
 ):
-    moisture = float(moisture)
-    red = float(red)
-    green = float(green)
-    blue = float(blue)
-    temperature = float(temperature)
-    humidity = float(humidity)
 
-    # Moisture
+    moisture = float(
+        moisture
+    )
+
+    red = float(
+        red
+    )
+
+    green = float(
+        green
+    )
+
+    blue = float(
+        blue
+    )
+
+    temperature = float(
+        temperature
+    )
+
+    humidity = float(
+        humidity
+    )
+
+
+    # ========================================================
+    # MOISTURE
+    # ========================================================
+
     moisture_status = analyze_moisture(
         moisture
     )
 
-    # Color
+
+    # ========================================================
+    # COLOR
+    #
+    # Supporting indicator only.
+    # ========================================================
+
     color_status = analyze_color(
         red,
         green,
         blue,
     )
 
-    # Environment
+
+    # ========================================================
+    # ENVIRONMENT
+    # ========================================================
+
     environment = analyze_environment(
         temperature,
         humidity,
@@ -304,19 +540,24 @@ def run_quality_analysis(
         "humidity_status"
     ]
 
-    # Final status
-    statuses = [
-        moisture_status,
-        color_status,
-        temperature_status,
-        humidity_status,
-    ]
+
+    # ========================================================
+    # FINAL STATUS
+    #
+    # Color intentionally excluded from final decision.
+    # ========================================================
 
     final_status = determine_final_status(
-        statuses
+        moisture_status,
+        temperature_status,
+        humidity_status,
     )
 
-    # Quality score
+
+    # ========================================================
+    # QUALITY SCORE
+    # ========================================================
+
     quality_score = calculate_score(
         moisture_status,
         color_status,
@@ -324,19 +565,31 @@ def run_quality_analysis(
         humidity_status,
     )
 
-    # Confidence
+
+    # ========================================================
+    # CONFIDENCE
+    # ========================================================
+
     confidence = calculate_confidence(
         final_status
     )
 
-    # Color distance
+
+    # ========================================================
+    # COLOR DISTANCE
+    # ========================================================
+
     color_distance = calculate_color_distance(
         red,
         green,
         blue,
     )
 
-    # Issues
+
+    # ========================================================
+    # ISSUES
+    # ========================================================
+
     issues = identify_issues(
         moisture_status,
         color_status,
@@ -344,7 +597,11 @@ def run_quality_analysis(
         humidity_status,
     )
 
-    # Root causes
+
+    # ========================================================
+    # ROOT CAUSES
+    # ========================================================
+
     root_causes = identify_root_causes(
         moisture_status,
         color_status,
@@ -352,30 +609,53 @@ def run_quality_analysis(
         humidity_status,
     )
 
+
+    # ========================================================
+    # RESULT
+    # ========================================================
+
     return {
+
         "status": final_status,
+
         "quality_score": quality_score,
+
         "confidence": confidence,
 
+
         "moisture_status": moisture_status,
+
         "color_status": color_status,
+
         "temperature_status": temperature_status,
+
         "humidity_status": humidity_status,
 
+
         "sensor_values": {
+
             "moisture": moisture,
+
             "red": red,
+
             "green": green,
+
             "blue": blue,
+
             "temperature": temperature,
+
             "humidity": humidity,
         },
+
 
         "color_distance": round(
             color_distance,
             2,
         ),
 
+
         "issues": issues,
+
+
         "root_causes": root_causes,
     }
