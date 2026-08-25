@@ -1,6 +1,417 @@
 # ============================================================
 # Smart Coffee Manufacturing
-# Coffee Powder Quality Recommendation Engine
+# Dynamic AI Recommendation Engine
+#
+# Explainable AI Decision Support Layer
+#
+# Generates recommendations based on:
+# - Moisture condition
+# - Temperature condition
+# - Humidity condition
+# - Coffee colour evidence
+#
+# Not fixed recommendations.
+# Actions are generated from detected quality factors.
+# ============================================================
+
+
+def analyze_quality_conditions(
+    moisture,
+    humidity,
+    temperature,
+    moisture_status,
+    humidity_status,
+    temperature_status,
+    color_status
+):
+
+
+    findings = []
+
+
+    # -------------------------------
+    # Moisture Intelligence
+    # -------------------------------
+
+    if moisture_status in ["WARN", "HOLD"]:
+
+
+        findings.append({
+
+            "parameter": "moisture",
+
+            "severity": moisture_status,
+
+            "value": moisture,
+
+            "issue":
+            (
+                "Moisture level variation detected"
+            ),
+
+            "cause":
+            (
+                "Possible drying process variation "
+                "or insufficient moisture control"
+            ),
+
+            "action":
+            (
+                "Review drying condition and "
+                "perform moisture validation"
+            )
+
+        })
+
+
+
+    # -------------------------------
+    # Humidity Intelligence
+    # -------------------------------
+
+    if humidity_status in ["WARN", "HOLD"]:
+
+
+        findings.append({
+
+            "parameter": "humidity",
+
+            "severity": humidity_status,
+
+            "value": humidity,
+
+            "issue":
+            (
+                "Storage humidity condition detected"
+            ),
+
+            "cause":
+            (
+                "Possible environmental storage "
+                "condition variation"
+            ),
+
+            "action":
+            (
+                "Inspect storage environment and "
+                "control humidity condition"
+            )
+
+        })
+
+
+
+    # -------------------------------
+    # Temperature Intelligence
+    # -------------------------------
+
+    if temperature_status in ["WARN", "HOLD"]:
+
+
+        findings.append({
+
+            "parameter": "temperature",
+
+            "severity": temperature_status,
+
+            "value": temperature,
+
+            "issue":
+            (
+                "Temperature variation detected"
+            ),
+
+            "cause":
+            (
+                "Possible roasting or thermal "
+                "process instability"
+            ),
+
+            "action":
+            (
+                "Review roasting temperature "
+                "profile and processing condition"
+            )
+
+        })
+
+
+
+    # -------------------------------
+    # Colour Intelligence
+    # Supporting Evidence Only
+    # -------------------------------
+
+    # -------------------------------
+    # Colour Intelligence
+    # Supporting Evidence Only
+    # Only show when batch is not PASS
+    # -------------------------------
+
+    if color_status in ["WARN", "HOLD"]:
+
+
+        findings.append({
+
+            "parameter": "color",
+
+            "severity": color_status,
+
+            "value": None,
+
+            "issue":
+            (
+                "Coffee colour inconsistency detected"
+            ),
+
+            "cause":
+            (
+                "Possible roasting parameter variation"
+            ),
+
+            "action":
+            (
+                "Review roasting consistency "
+                "using RGB evidence"
+            )
+
+        })
+
+
+
+    return findings
+
+
+
+
+
+# ============================================================
+# Dynamic Root Cause Generator
+# ============================================================
+
+
+def generate_root_causes(findings):
+
+
+    causes = []
+
+
+    for item in findings:
+
+
+        causes.append(
+            item["cause"]
+        )
+
+
+
+    if not causes:
+
+
+        causes.append(
+            "No abnormal production condition detected"
+        )
+
+
+
+    return causes
+
+
+
+
+
+# ============================================================
+# Dynamic Action Generator
+# ============================================================
+
+
+def generate_actions(
+    findings,
+    status
+):
+
+
+    actions = []
+
+
+    step = 1
+
+
+
+    if status == "HOLD":
+
+
+        actions.append({
+
+            "step": step,
+
+            "action":
+            "Isolate batch before packaging",
+
+            "reason":
+            (
+                "Quality evidence indicates "
+                "batch requires correction "
+                "before release."
+            )
+
+        })
+
+        step += 1
+
+
+
+
+    for item in findings:
+
+
+        actions.append({
+
+            "step": step,
+
+            "action":
+            item["action"],
+
+            "reason":
+            (
+                f'{item["issue"]} '
+                f'identified from quality analysis.'
+            )
+
+        })
+
+
+        step += 1
+
+
+
+
+
+    if status in ["WARN", "HOLD"]:
+
+
+        actions.append({
+
+            "step": step,
+
+            "action":
+            "Perform AI quality validation again",
+
+            "reason":
+            (
+                "Confirm improvement before "
+                "final production decision."
+            )
+
+        })
+        
+        
+    
+    
+
+
+
+    if status == "PASS":
+
+
+        actions.append({
+
+            "step":1,
+
+            "action":
+            "Approve batch for packaging",
+
+            "reason":
+            (
+                "All monitored quality parameters "
+                "are within acceptable limits."
+            )
+
+        })
+
+
+
+    return actions
+
+
+
+
+
+# ============================================================
+# Dynamic Prevention Generator
+# ============================================================
+
+
+def generate_prevention(findings):
+
+
+    prevention = []
+
+
+
+    parameters = [
+
+        item["parameter"]
+
+        for item in findings
+
+    ]
+
+
+
+    if "moisture" in parameters:
+
+        prevention.append(
+            "Maintain moisture control limits during processing"
+        )
+
+
+
+    if "humidity" in parameters:
+
+        prevention.append(
+            "Maintain controlled storage humidity conditions"
+        )
+
+
+
+    if "temperature" in parameters:
+
+        prevention.append(
+            "Maintain consistent roasting temperature profile"
+        )
+
+
+
+    if "color" in parameters:
+
+        prevention.append(
+            "Monitor coffee colour variation using RGB analysis"
+        )
+
+
+
+    if not prevention:
+
+
+        prevention = [
+
+            "Continue regular quality monitoring",
+
+            "Maintain production consistency",
+
+            "Perform routine sensor verification"
+
+        ]
+
+
+
+    return prevention
+
+
+
+# ============================================================
+# MAIN AI RECOMMENDATION GENERATOR
 # ============================================================
 
 
@@ -18,431 +429,343 @@ def generate_recommendation(
     humidity_status="PASS",
     quality_score=0,
 ):
-    """
-    Generate corrective recommendations using the result
-    produced by the powder quality engine.
-    """
+
 
     moisture = float(moisture or 0)
+
     humidity = float(humidity or 0)
+
     temperature = float(temperature or 0)
 
-    status = str(status or "UNKNOWN").upper()
+
+    status = str(
+        status or "UNKNOWN"
+    ).upper()
+
+
 
     moisture_status = str(
         moisture_status or "PASS"
     ).upper()
 
-    color_status = str(
-        color_status or "PASS"
-    ).upper()
-
-    temperature_status = str(
-        temperature_status or "PASS"
-    ).upper()
 
     humidity_status = str(
         humidity_status or "PASS"
     ).upper()
 
-    recommendation = {
-        "quality_issue": {
-            "title": "Quality Parameters Accepted",
-            "severity": "LOW",
-            "description": (
-                "Batch parameters are within the "
-                "acceptable production limits."
-            ),
-        },
 
-        "root_causes": [],
+    temperature_status = str(
+        temperature_status or "PASS"
+    ).upper()
 
-        "immediate_actions": [],
 
-        "future_prevention": [],
+    color_status = str(
+        color_status or "PASS"
+    ).upper()
 
-        "expected_outcome": "",
 
-        "next_action": "",
-
-        "risk_level": "LOW",
-
-        "recovery_probability": 100,
-
-        "recovery_possible": False,
-    }
 
     # ========================================================
-    # 1. HUMIDITY HOLD
+    # Dynamic Quality Understanding
     # ========================================================
 
-    if humidity_status == "HOLD":
 
-        recommendation["quality_issue"] = {
-            "title": "High Storage Humidity Risk",
-            "severity": "HIGH",
-            "description": (
-                f"Humidity reached {humidity:.1f}%. "
-                "The batch is outside the acceptable "
-                "storage humidity range."
-            ),
-        }
+    findings = analyze_quality_conditions(
 
-        recommendation["root_causes"] = [
-            "High storage humidity condition",
-            "Possible moisture absorption by coffee powder",
-            "Environmental control instability",
-        ]
+        moisture,
 
-        recommendation["immediate_actions"] = [
-            {
-                "step": 1,
-                "action": "Hold the batch",
-                "reason": (
-                    "High humidity may reduce powder stability."
-                ),
-            },
-            {
-                "step": 2,
-                "action": "Reduce storage humidity",
-                "reason": (
-                    "Restore acceptable environmental conditions."
-                ),
-            },
-            {
-                "step": 3,
-                "action": "Retest the batch",
-                "reason": (
-                    "Confirm recovery before packaging."
-                ),
-            },
-        ]
+        humidity,
 
-        recommendation["future_prevention"] = [
-            "Enable humidity threshold alerts",
-            "Maintain controlled storage humidity",
-            "Monitor environmental trends continuously",
-        ]
+        temperature,
 
-        recommendation["expected_outcome"] = (
-            "Correct humidity control should improve "
-            "batch stability."
+        moisture_status,
+
+        humidity_status,
+
+        temperature_status,
+
+        color_status
+
+    )
+    
+    
+    # PASS batches should not show abnormal evidence
+    # because no corrective intelligence is required
+    if status == "PASS":
+        findings = []
+
+
+
+    root_causes = generate_root_causes(
+        findings
+    )
+    
+    
+    if status == "PASS":
+        findings = []
+
+
+    actions = generate_actions(
+        findings,
+        status
+    )
+
+
+    prevention = generate_prevention(
+        findings
+    )
+
+
+
+
+
+    # ========================================================
+    # Recovery Intelligence
+    # ========================================================
+
+
+    if status == "PASS":
+
+
+        risk_level = "LOW"
+
+        release_status = "APPROVED"
+
+        recovery_status = "NOT REQUIRED"
+
+        recovery_probability = 100
+
+        recovery_possible = False
+
+
+
+        title = (
+            "Production Ready - Packaging Approved"
         )
 
-        recommendation["next_action"] = (
-            "Correct humidity condition and retest batch"
+
+        description = (
+            "AI verification confirms that "
+            "the batch satisfies current "
+            "quality requirements."
         )
 
-        recommendation["risk_level"] = "HIGH"
-        recommendation["recovery_probability"] = 75
-        recommendation["recovery_possible"] = True
 
-    # ========================================================
-    # 2. MOISTURE HOLD
-    # ========================================================
-
-    elif moisture_status == "HOLD":
-
-        recommendation["quality_issue"] = {
-            "title": "Critical Moisture Deviation",
-            "severity": "HIGH",
-            "description": (
-                f"Moisture sensor reading {moisture:.0f} "
-                "is outside the acceptable calibrated range."
-            ),
-        }
-
-        recommendation["root_causes"] = [
-            "Moisture level deviation detected",
-            "Possible insufficient drying process",
-            "Possible storage condition issue",
-        ]
-
-        recommendation["immediate_actions"] = [
-            {
-                "step": 1,
-                "action": "Hold the batch from packaging",
-                "reason": (
-                    "Moisture quality requires correction."
-                ),
-            },
-            {
-                "step": 2,
-                "action": "Inspect the drying process",
-                "reason": (
-                    "Determine the cause of the moisture deviation."
-                ),
-            },
-            {
-                "step": 3,
-                "action": "Retest moisture",
-                "reason": (
-                    "Validate recovery before release."
-                ),
-            },
-        ]
-
-        recommendation["future_prevention"] = [
-            "Define drying completion thresholds",
-            "Record drying cycle parameters",
-            "Validate moisture before packaging",
-        ]
-
-        recommendation["expected_outcome"] = (
-            "Corrective processing may restore "
-            "acceptable moisture quality."
-        )
-
-        recommendation["next_action"] = (
-            "Correct moisture condition and retest"
-        )
-
-        recommendation["risk_level"] = "HIGH"
-        recommendation["recovery_probability"] = 70
-        recommendation["recovery_possible"] = True
-
-    # ========================================================
-    # 3. COLOR HOLD
-    # ========================================================
-
-    elif color_status == "HOLD":
-
-        recommendation["quality_issue"] = {
-            "title": "Coffee Powder Colour Inconsistency",
-            "severity": "HIGH",
-            "description": (
-                "Coffee powder colour is significantly "
-                "different from the calibrated reference."
-            ),
-        }
-
-        recommendation["root_causes"] = [
-            "Coffee colour inconsistency detected",
-            "Possible roasting parameter variation",
-            "Possible processing inconsistency",
-        ]
-
-        recommendation["immediate_actions"] = [
-            {
-                "step": 1,
-                "action": "Hold the batch for inspection",
-                "reason": (
-                    "Major colour deviation requires validation."
-                ),
-            },
-            {
-                "step": 2,
-                "action": "Review roasting parameters",
-                "reason": (
-                    "Roasting variation may cause colour deviation."
-                ),
-            },
-            {
-                "step": 3,
-                "action": "Perform another RGB measurement",
-                "reason": (
-                    "Confirm the detected colour deviation."
-                ),
-            },
-        ]
-
-        recommendation["future_prevention"] = [
-            "Maintain consistent roasting parameters",
-            "Calibrate RGB sensors regularly",
-            "Monitor colour variation for every batch",
-        ]
-
-        recommendation["expected_outcome"] = (
-            "Correct roasting control should improve "
-            "coffee powder colour consistency."
-        )
-
-        recommendation["next_action"] = (
-            "Inspect roasting process and retest batch"
-        )
-
-        recommendation["risk_level"] = "HIGH"
-        recommendation["recovery_probability"] = 70
-        recommendation["recovery_possible"] = True
-
-    # ========================================================
-    # 4. TEMPERATURE HOLD
-    # ========================================================
-
-    elif temperature_status == "HOLD":
-
-        recommendation["quality_issue"] = {
-            "title": "High Temperature Exposure",
-            "severity": "HIGH",
-            "description": (
-                f"Temperature reached {temperature:.1f}°C. "
-                "The batch is outside the acceptable range."
-            ),
-        }
-
-        recommendation["root_causes"] = [
-            "High temperature exposure detected",
-            "Possible storage environment problem",
-        ]
-
-        recommendation["immediate_actions"] = [
-            {
-                "step": 1,
-                "action": "Move batch to a controlled environment",
-                "reason": "Reduce thermal exposure.",
-            },
-            {
-                "step": 2,
-                "action": "Monitor temperature until stable",
-                "reason": (
-                    "Confirm environmental recovery."
-                ),
-            },
-            {
-                "step": 3,
-                "action": "Retest quality parameters",
-                "reason": (
-                    "Validate the batch before release."
-                ),
-            },
-        ]
-
-        recommendation["future_prevention"] = [
-            "Enable temperature alerts",
-            "Maintain controlled storage temperature",
-        ]
-
-        recommendation["expected_outcome"] = (
-            "Temperature stabilization should prevent "
-            "additional quality degradation."
-        )
-
-        recommendation["next_action"] = (
-            "Stabilize temperature and retest batch"
-        )
-
-        recommendation["risk_level"] = "HIGH"
-        recommendation["recovery_probability"] = 75
-        recommendation["recovery_possible"] = True
-
-    # ========================================================
-    # 5. WARN
-    # ========================================================
 
     elif status == "WARN":
 
-        warning_causes = []
 
-        if moisture_status == "WARN":
-            warning_causes.append(
-                "Moisture level requires attention"
-            )
+        risk_level = "MEDIUM"
 
-        if color_status == "WARN":
-            warning_causes.append(
-                "Minor coffee colour variation detected"
-            )
+        release_status = "PENDING REVIEW"
 
-        if temperature_status == "WARN":
-            warning_causes.append(
-                "Temperature slightly above optimal range"
-            )
+        recovery_status = "RECOVERY POSSIBLE"
 
-        if humidity_status == "WARN":
-            warning_causes.append(
-                "Humidity slightly above optimal range"
-            )
+        recovery_probability = 90
 
-        recommendation["quality_issue"] = {
-            "title": "Minor Quality Deviation",
-            "severity": "MEDIUM",
-            "description": (
-                "One or more quality parameters require "
-                "additional verification."
-            ),
-        }
+        recovery_possible = True
 
-        recommendation["root_causes"] = (
-            warning_causes
-            or ["Minor production variation detected"]
+
+
+        title = (
+            "Minor Quality Deviation Detected"
         )
 
-        recommendation["immediate_actions"] = [
-            {
-                "step": 1,
-                "action": "Continue monitoring the batch",
-                "reason": "Observe the quality trend.",
-            },
-            {
-                "step": 2,
-                "action": "Perform additional inspection",
-                "reason": (
-                    "Confirm packaging readiness."
-                ),
-            },
-        ]
 
-        recommendation["future_prevention"] = [
-            "Maintain stable production conditions",
-            "Monitor sensor trends continuously",
-        ]
-
-        recommendation["expected_outcome"] = (
-            "The batch may proceed after successful validation."
+        description = (
+            "AI identified quality variations "
+            "requiring verification before release."
         )
 
-        recommendation["next_action"] = (
-            "Review and validate before release"
-        )
 
-        recommendation["risk_level"] = "MEDIUM"
-        recommendation["recovery_probability"] = 90
-        recommendation["recovery_possible"] = True
-
-    # ========================================================
-    # 6. PASS
-    # ========================================================
 
     else:
 
-        recommendation["quality_issue"] = {
-            "title": "Quality Parameters Accepted",
-            "severity": "LOW",
-            "description": (
-                "The batch satisfies the current coffee "
-                "powder quality requirements."
-            ),
+
+        risk_level = "HIGH"
+
+        release_status = "BLOCKED"
+
+        recovery_status = "RECOVERY REQUIRED"
+
+        recovery_probability = max(
+            60,
+            100 - (len(findings) * 10)
+        )
+
+        recovery_possible = True
+
+
+
+        title = (
+            "Critical Quality Deviation Detected"
+        )
+
+
+        description = (
+            "AI detected production parameters "
+            "outside acceptable limits. "
+            "Corrective action is required."
+        )
+
+
+
+
+
+    # ========================================================
+    # Final AI Recommendation Object
+    # ========================================================
+
+
+    recommendation = {
+
+
+        "quality_issue": {
+
+
+            "title":
+            title,
+
+
+            "severity":
+            risk_level,
+
+
+            "description":
+            description
+
+
+        },
+
+
+
+        "root_causes":
+        root_causes,
+
+
+
+        "immediate_actions":
+        actions,
+
+
+
+        # Frontend compatibility
+
+        "recommended_actions":
+        actions,
+
+
+
+        "future_prevention":
+        prevention,
+
+
+
+        "expected_outcome":
+
+        (
+
+            "Batch approved for packaging."
+
+            if status == "PASS"
+
+            else
+
+            "Batch quality improvement required "
+            "before final release."
+
+        ),
+
+
+
+        "next_action":
+
+        (
+
+            "Proceed with packaging"
+
+            if status == "PASS"
+
+            else
+
+            "Complete corrective validation "
+            "before release decision."
+
+        ),
+
+
+
+        "risk_level":
+        risk_level,
+
+
+
+        "release_status":
+        release_status,
+
+
+
+        "recovery_status":
+        recovery_status,
+
+
+
+        "recovery_probability":
+        recovery_probability,
+
+
+
+        "recovery_possible":
+        recovery_possible,
+
+
+
+        "quality_score":
+        quality_score,
+
+
+
+        "analysis_evidence":{
+
+
+            "moisture":
+            moisture,
+
+
+            "humidity":
+            humidity,
+
+
+            "temperature":
+            temperature,
+
+
+            "rgb":{
+
+                "red":red,
+
+                "green":green,
+
+                "blue":blue
+
+            },
+
+
+            "detected_factors":
+
+            [
+
+                item["parameter"]
+
+                for item in findings
+
+            ]
+
         }
 
-        recommendation["root_causes"] = [
-            "No critical quality deviation detected"
-        ]
 
-        recommendation["immediate_actions"] = [
-            {
-                "step": 1,
-                "action": "Approve packaging process",
-                "reason": (
-                    "Current quality requirements are satisfied."
-                ),
-            }
-        ]
+    }
 
-        recommendation["future_prevention"] = [
-            "Continue standard quality monitoring",
-            "Maintain current production conditions",
-        ]
 
-        recommendation["expected_outcome"] = (
-            "The batch is ready for packaging."
-        )
-
-        recommendation["next_action"] = (
-            "Proceed with packaging"
-        )
-
-        recommendation["risk_level"] = "LOW"
-        recommendation["recovery_probability"] = 100
-        recommendation["recovery_possible"] = False
 
     return recommendation

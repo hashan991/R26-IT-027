@@ -356,7 +356,11 @@ def identify_issues(
     temperature_status,
     humidity_status,
 ):
+
     issues = []
+
+
+    # Primary production parameters only
 
     if moisture_status != "PASS":
 
@@ -364,12 +368,6 @@ def identify_issues(
             "Moisture instability detected"
         )
 
-    # Color is still reported as supporting evidence.
-    if color_status != "PASS":
-
-        issues.append(
-            "Coffee colour deviation detected"
-        )
 
     if temperature_status != "PASS":
 
@@ -377,11 +375,18 @@ def identify_issues(
             "Temperature risk detected"
         )
 
+
     if humidity_status != "PASS":
 
         issues.append(
             "Humidity storage risk detected"
         )
+
+
+    # RGB is supporting evidence only
+    # It should not appear as quality issue
+    # when batch is PASS
+
 
     return issues
 
@@ -415,12 +420,9 @@ def identify_root_causes(
     # Supporting diagnostic information only.
     # --------------------------------------------------------
 
-    if color_status != "PASS":
-
-        causes.extend([
-            "Coffee colour inconsistency detected",
-            "Possible roasting parameter variation",
-        ])
+    # RGB colour is diagnostic evidence only.
+    # Root cause should be generated only
+    # when production risk exists.
 
     # --------------------------------------------------------
     # HUMIDITY

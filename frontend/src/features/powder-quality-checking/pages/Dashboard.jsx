@@ -21,7 +21,7 @@ import {
 import apiClient from "../api/apiClient";
 
 
-import StatCard from "../components/StatCard";
+
 import SensorCard from "../components/SensorCard";
 import QualityStatusCard from "../components/QualityStatusCard";
 import RGBCard from "../components/RGBCard";
@@ -50,6 +50,8 @@ const [error,setError] = useState(false);
 const [refreshing,setRefreshing] = useState(false);
 
 const [lastRefresh,setLastRefresh] = useState(null);
+
+const [countdown,setCountdown] = useState(60);
 
 
 
@@ -116,32 +118,44 @@ const fetchSensorData = async () => {
 
 useEffect(()=>{
 
+fetchSensorData();
 
-// first load
+
+const timer = setInterval(()=>{
+
+
+setCountdown(prev=>{
+
+
+if(prev <= 1){
+
 
 fetchSensorData();
 
 
-
-const interval = setInterval(()=>{
-
-
-fetchSensorData();
+return 60;
 
 
+}
 
-},60000);
+
+return prev - 1;
+
+
+});
+
+
+},1000);
 
 
 
 return ()=>{
 
 
-clearInterval(interval);
+clearInterval(timer);
 
 
 };
-
 
 
 },[]);
@@ -160,113 +174,7 @@ const liveSensor = sensor || {};
 
 
 
-const stats = [
 
-
-{
-
-title:"Quality Score",
-
-value:
-
-liveSensor.ai_decision?.quality_score
-
-?
-
-`${liveSensor.ai_decision.quality_score}%`
-
-:
-
-"--",
-
-
-icon:<Gauge/>,
-
-color:"text-yellow-400"
-
-
-},
-
-
-
-{
-
-
-title:"Moisture Level",
-
-
-value:
-
-liveSensor.moisture ?? "--",
-
-
-icon:<Droplets/>,
-
-
-color:"text-blue-400"
-
-
-},
-
-
-
-
-{
-
-
-title:"Temperature",
-
-
-value:
-
-liveSensor.temperature
-
-?
-
-`${liveSensor.temperature} °C`
-
-:
-
-"--",
-
-
-icon:<Thermometer/>,
-
-
-color:"text-red-400"
-
-
-},
-
-
-
-
-
-{
-
-
-title:"System Status",
-
-
-value:
-
-liveSensor.ai_decision?.status
-
-||
-
-"OFFLINE",
-
-
-icon:<Activity/>,
-
-
-color:"text-green-400"
-
-
-}
-
-
-];
 
 
 
@@ -434,6 +342,36 @@ refreshing
 time={lastRefresh}
 
 />
+
+
+<div
+className="
+text-sm
+text-gray-400
+flex
+items-center
+gap-2
+"
+>
+
+<span>
+🔄 Next update:
+</span>
+
+
+<span
+className="
+text-yellow-400
+font-bold
+"
+>
+
+{countdown}s
+
+</span>
+
+
+</div>
 
 
 
@@ -862,65 +800,7 @@ batchId={liveSensor.batch_id}
 
 
 
-<div
 
-className="
-mt-10
-grid
-grid-cols-1
-md:grid-cols-2
-xl:grid-cols-4
-gap-6
-"
-
->
-
-
-
-
-
-{
-
-stats.map(
-
-(item,index)=>(
-
-
-<StatCard
-
-
-key={index}
-
-
-title={item.title}
-
-
-value={item.value}
-
-
-icon={item.icon}
-
-
-color={item.color}
-
-
-/>
-
-
-)
-
-
-)
-
-
-}
-
-
-
-
-
-
-</div>
 
 
 
