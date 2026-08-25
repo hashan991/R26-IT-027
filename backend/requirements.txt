@@ -64,5 +64,5 @@ urllib3==2.7.0
 uvicorn==0.46.0
 pandas
 joblib
-scikit-learn==1.6.1
+scikit-learn
 shap
