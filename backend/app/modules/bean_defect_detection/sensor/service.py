@@ -42,7 +42,7 @@ class ArduinoSensorService:
     def __init__(self):
 
         self.port = os.getenv(
-            "ARDUINO_PORT",
+            "BEAN_ARDUINO_PORT",
             "COM4",
         )
 
