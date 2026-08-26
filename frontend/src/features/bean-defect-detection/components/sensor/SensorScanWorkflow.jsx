@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import {
-  sendSensorIndicatorCommand,
-} from "../../services/sensorService";
+import { sendSensorIndicatorCommand } from "../../services/sensorService";
 
 // =========================================================
 // CONFIGURATION
@@ -54,9 +52,6 @@ function SensorScanWorkflow({
 
     sample-exposure
     sample-monitoring
-    sample-complete
-
-    recovery-monitoring
 
     complete
   */
@@ -71,8 +66,6 @@ function SensorScanWorkflow({
 
   const [sampleData, setSampleData] = useState(null);
 
-  const [recoveryData, setRecoveryData] = useState(null);
-
   // =========================================================
   // CAPTURE TIMES
   // =========================================================
@@ -80,8 +73,6 @@ function SensorScanWorkflow({
   const [baselineTime, setBaselineTime] = useState(null);
 
   const [sampleTime, setSampleTime] = useState(null);
-
-  const [recoveryTime, setRecoveryTime] = useState(null);
 
   // =========================================================
   // SAMPLE EXPOSURE TIMER
@@ -104,11 +95,9 @@ function SensorScanWorkflow({
 
       baseline: baselineData,
       sample: sampleData,
-      recovery: recoveryData,
 
       baselineCapturedAt: baselineTime?.toISOString?.() || null,
       sampleCapturedAt: sampleTime?.toISOString?.() || null,
-      recoveryCapturedAt: recoveryTime?.toISOString?.() || null,
 
       completed: stage === "complete",
     });
@@ -116,10 +105,8 @@ function SensorScanWorkflow({
     stage,
     baselineData,
     sampleData,
-    recoveryData,
     baselineTime,
     sampleTime,
-    recoveryTime,
     onWorkflowChange,
   ]);
 
@@ -185,11 +172,7 @@ function SensorScanWorkflow({
       ඇතුළත sensors stable වුණත්
       sample automatically capture වෙන්නේ නැහැ.
     */
-    const monitoringStages = [
-      "baseline-monitoring",
-      "sample-monitoring",
-      "recovery-monitoring",
-    ];
+    const monitoringStages = ["baseline-monitoring", "sample-monitoring"];
 
     if (!monitoringStages.includes(stage)) {
       return;
@@ -216,9 +199,10 @@ function SensorScanWorkflow({
 
       /*
         Baseline stable වුණා.
-        Live monitoring automatically stop කරනවා.
+        Baseline snapshot එක capture කරනවා.
+        Monitoring active තියාගන්නවා, sample exposure එකටත්
+        live values continue වෙන්න.
       */
-      
 
       setStage("baseline-complete");
 
@@ -236,31 +220,18 @@ function SensorScanWorkflow({
 
       /*
         Sample stable වුණා.
-        Monitoring stop කරනවා.
-      */
-      
-
-      setStage("sample-complete");
-
-      return;
-    }
-
-    // =====================================================
-    // 3. RECOVERY CAPTURE
-    // =====================================================
-
-    if (stage === "recovery-monitoring") {
-      setRecoveryData(capturedReading);
-
-      setRecoveryTime(capturedTime);
-
-      /*
-        Recovery stable වුණා.
-        Monitoring stop කරනවා.
+        Final sample reading capture කරලා
+        live monitoring stop කරනවා.
       */
       handleToggleMonitoring();
 
+      /*
+        Recovery stage එකක් නැහැ.
+        Sample capture වුණු ගමන් test complete.
+      */
       setStage("complete");
+
+      return;
     }
   }, [stabilityStatus, sensorData, autoReading, stage, handleToggleMonitoring]);
 
@@ -273,10 +244,7 @@ function SensorScanWorkflow({
     lastIndicatorCommandRef.current = null;
 
     sendSensorIndicatorCommand("RESET").catch((error) => {
-      console.error(
-        "Unable to reset Arduino indicator:",
-        error,
-      );
+      console.error("Unable to reset Arduino indicator:", error);
     });
 
     /*
@@ -288,13 +256,9 @@ function SensorScanWorkflow({
 
     setSampleData(null);
 
-    setRecoveryData(null);
-
     setBaselineTime(null);
 
     setSampleTime(null);
-
-    setRecoveryTime(null);
 
     setExposureTimeLeft(SAMPLE_EXPOSURE_TIME);
 
@@ -406,36 +370,6 @@ function SensorScanWorkflow({
   }, [stage, exposureTimeLeft, resetStabilityTracking]);
 
   // =========================================================
-  // END TASK
-  // =========================================================
-
-  const handleEndTask = () => {
-    if (stage !== "sample-complete") {
-      return;
-    }
-
-    captureLockRef.current = false;
-
-    /*
-      Recovery stage එකට කලින්
-      previous sample stability history
-      remove කරනවා.
-    */
-    if (resetStabilityTracking) {
-      resetStabilityTracking();
-    }
-
-    setStage("recovery-monitoring");
-
-    /*
-      Live monitoring START
-    */
-    if (!autoReading) {
-      handleToggleMonitoring();
-    }
-  };
-
-  // =========================================================
   // NEW TEST
   // =========================================================
 
@@ -444,10 +378,7 @@ function SensorScanWorkflow({
     lastIndicatorCommandRef.current = null;
 
     sendSensorIndicatorCommand("RESET").catch((error) => {
-      console.error(
-        "Unable to reset Arduino indicator:",
-        error,
-      );
+      console.error("Unable to reset Arduino indicator:", error);
     });
 
     /*
@@ -467,13 +398,9 @@ function SensorScanWorkflow({
 
     setSampleData(null);
 
-    setRecoveryData(null);
-
     setBaselineTime(null);
 
     setSampleTime(null);
-
-    setRecoveryTime(null);
 
     setExposureTimeLeft(SAMPLE_EXPOSURE_TIME);
 
@@ -501,39 +428,6 @@ function SensorScanWorkflow({
     }
 
     const difference = Number(sample) - Number(baseline);
-
-    if (decimals > 0) {
-      return difference >= 0
-        ? `+${difference.toFixed(decimals)}`
-        : difference.toFixed(decimals);
-    }
-
-    return difference >= 0
-      ? `+${Math.round(difference)}`
-      : `${Math.round(difference)}`;
-  };
-
-  // =========================================================
-  // RECOVERY DIFFERENCE
-  // =========================================================
-
-  /*
-    Recovery Error
-
-    Recovery - Baseline
-  */
-
-  const calculateRecoveryDifference = (recovery, baseline, decimals = 0) => {
-    if (
-      recovery === null ||
-      recovery === undefined ||
-      baseline === null ||
-      baseline === undefined
-    ) {
-      return "--";
-    }
-
-    const difference = Number(recovery) - Number(baseline);
 
     if (decimals > 0) {
       return difference >= 0
@@ -620,15 +514,13 @@ function SensorScanWorkflow({
     if (value < MQ2_BAD_THRESHOLD) {
       const score =
         100 -
-        (30 * (value - MQ2_GOOD_MAX)) /
-          (MQ2_BAD_THRESHOLD - MQ2_GOOD_MAX);
+        (30 * (value - MQ2_GOOD_MAX)) / (MQ2_BAD_THRESHOLD - MQ2_GOOD_MAX);
 
       return Number(clampScore(score).toFixed(2));
     }
 
     const score =
-      (70 * (MQ2_BAD_MAX - value)) /
-      (MQ2_BAD_MAX - MQ2_BAD_THRESHOLD);
+      (70 * (MQ2_BAD_MAX - value)) / (MQ2_BAD_MAX - MQ2_BAD_THRESHOLD);
 
     return Number(clampScore(score).toFixed(2));
   };
@@ -658,8 +550,7 @@ function SensorScanWorkflow({
     }
 
     const score =
-      (70 * (MQ135_BAD_MAX - value)) /
-      (MQ135_BAD_MAX - MQ135_BAD_THRESHOLD);
+      (70 * (MQ135_BAD_MAX - value)) / (MQ135_BAD_MAX - MQ135_BAD_THRESHOLD);
 
     return Number(clampScore(score).toFixed(2));
   };
@@ -750,30 +641,24 @@ function SensorScanWorkflow({
       try {
         const result = await sendSensorIndicatorCommand(command);
 
-        console.log(
-          "Arduino quality indicator:",
-          result,
-        );
+        console.log("Arduino quality indicator:", result);
       } catch (error) {
         // Allow a retry if the command failed.
         lastIndicatorCommandRef.current = null;
 
-        console.error(
-          "Unable to update Arduino quality indicator:",
-          error,
-        );
+        console.error("Unable to update Arduino quality indicator:", error);
       }
     };
 
     updateHardwareIndicator();
-  }, [
-    sensorQualityStatus,
-    baselineData,
-    sampleData,
-  ]);
+  }, [sensorQualityStatus, baselineData, sampleData]);
 
   const formatQualityNumber = (value, decimals = 2) => {
-    if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+    if (
+      value === null ||
+      value === undefined ||
+      !Number.isFinite(Number(value))
+    ) {
       return "--";
     }
 
@@ -803,7 +688,8 @@ function SensorScanWorkflow({
       return 2;
     }
 
-    return 3;
+    // complete stage එකේ cards දෙකම finished state එක පෙන්වන්න.
+    return 0;
   };
 
   const activeStage = getActiveStage();
@@ -838,8 +724,8 @@ function SensorScanWorkflow({
 
           <p>
             Capture the empty baseline, expose the sensors to the coffee bean
-            sample, scan the stable sample response, and verify sensor recovery
-            after removing the beans.
+            sample, scan the stable sample response, and calculate the final
+            sensor response relative to the baseline.
           </p>
         </div>
 
@@ -857,7 +743,7 @@ function SensorScanWorkflow({
       </div>
 
       {/* =====================================================
-          THREE STAGES
+          TWO STAGES
       ===================================================== */}
 
       <div className="scan-stage-grid">
@@ -902,28 +788,6 @@ function SensorScanWorkflow({
             <strong>Sample Scan</strong>
 
             <span>Coffee beans inside</span>
-          </div>
-        </div>
-
-        {/* ===================================================
-            STAGE 3 - RECOVERY
-        =================================================== */}
-
-        <div
-          className={`scan-stage-card ${
-            activeStage === 3
-              ? "scan-stage-active"
-              : recoveryData
-                ? "scan-stage-finished"
-                : ""
-          }`}
-        >
-          <div className="scan-stage-number">{recoveryData ? "✓" : "3"}</div>
-
-          <div>
-            <strong>Recovery</strong>
-
-            <span>Beans removed</span>
           </div>
         </div>
       </div>
@@ -1112,79 +976,6 @@ function SensorScanWorkflow({
         )}
 
         {/* ===================================================
-            SAMPLE COMPLETE
-        =================================================== */}
-
-        {stage === "sample-complete" && (
-          <>
-            <div className="scan-success-box">
-              <div className="scan-success-icon">✓</div>
-
-              <div>
-                <strong>Sample Scan Complete</strong>
-
-                <span>
-                  Stable coffee bean sample reading captured at{" "}
-                  {formatTime(sampleTime)}.
-                </span>
-              </div>
-            </div>
-
-            <div className="scan-instruction">
-              <div className="scan-instruction-icon">3</div>
-
-              <div className="scan-instruction-text">
-                <strong>Remove the coffee beans</strong>
-
-                <span>
-                  Remove the coffee bean sample from the chamber. Then click End
-                  Task to start the sensor recovery measurement.
-                </span>
-              </div>
-
-              <button
-                className="scan-primary-button"
-                onClick={handleEndTask}
-                disabled={reading}
-              >
-                End Task →
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* ===================================================
-            RECOVERY MONITORING
-        =================================================== */}
-
-        {stage === "recovery-monitoring" && (
-          <div className="scan-monitoring-box">
-            <div className="scan-monitoring-left">
-              <div className="scan-pulse">
-                <span></span>
-              </div>
-
-              <div>
-                <strong>Checking Sensor Recovery</strong>
-
-                <span>
-                  Waiting for sensor readings to stabilize after removing the
-                  coffee bean sample.
-                </span>
-              </div>
-            </div>
-
-            <div className={`scan-stability-state scan-${stabilityStatus}`}>
-              {stabilityStatus === "stable"
-                ? "✓ Stable"
-                : stabilityStatus === "stabilizing"
-                  ? "● Recovering..."
-                  : "● Collecting..."}
-            </div>
-          </div>
-        )}
-
-        {/* ===================================================
             TEST COMPLETE
         =================================================== */}
 
@@ -1197,7 +988,7 @@ function SensorScanWorkflow({
                 <strong>Coffee Bean Sensor Test Complete</strong>
 
                 <span>
-                  Baseline, sample, and recovery sensor readings were captured
+                  Baseline and stable coffee bean sample readings were captured
                   successfully.
                 </span>
               </div>
@@ -1218,12 +1009,6 @@ function SensorScanWorkflow({
                 <span>Sample</span>
 
                 <strong>{formatTime(sampleTime)}</strong>
-              </div>
-
-              <div>
-                <span>Recovery</span>
-
-                <strong>{formatTime(recoveryTime)}</strong>
               </div>
             </div>
 
@@ -1254,11 +1039,7 @@ function SensorScanWorkflow({
 
                       <th>Sample</th>
 
-                      <th>Recovery</th>
-
                       <th>Response</th>
-
-                      <th>Recovery Error</th>
                     </tr>
                   </thead>
 
@@ -1272,18 +1053,9 @@ function SensorScanWorkflow({
 
                       <td>{formatValue(sampleData?.mq2)}</td>
 
-                      <td>{formatValue(recoveryData?.mq2)}</td>
-
                       <td className="response-value">
                         {calculateDifference(
                           sampleData?.mq2,
-                          baselineData?.mq2,
-                        )}
-                      </td>
-
-                      <td className="recovery-value">
-                        {calculateRecoveryDifference(
-                          recoveryData?.mq2,
                           baselineData?.mq2,
                         )}
                       </td>
@@ -1298,18 +1070,9 @@ function SensorScanWorkflow({
 
                       <td>{formatValue(sampleData?.mq3)}</td>
 
-                      <td>{formatValue(recoveryData?.mq3)}</td>
-
                       <td className="response-value">
                         {calculateDifference(
                           sampleData?.mq3,
-                          baselineData?.mq3,
-                        )}
-                      </td>
-
-                      <td className="recovery-value">
-                        {calculateRecoveryDifference(
-                          recoveryData?.mq3,
                           baselineData?.mq3,
                         )}
                       </td>
@@ -1324,18 +1087,9 @@ function SensorScanWorkflow({
 
                       <td>{formatValue(sampleData?.mq135)}</td>
 
-                      <td>{formatValue(recoveryData?.mq135)}</td>
-
                       <td className="response-value">
                         {calculateDifference(
                           sampleData?.mq135,
-                          baselineData?.mq135,
-                        )}
-                      </td>
-
-                      <td className="recovery-value">
-                        {calculateRecoveryDifference(
-                          recoveryData?.mq135,
                           baselineData?.mq135,
                         )}
                       </td>
@@ -1350,18 +1104,9 @@ function SensorScanWorkflow({
 
                       <td>{formatValue(sampleData?.moisture)}</td>
 
-                      <td>{formatValue(recoveryData?.moisture)}</td>
-
                       <td className="response-value">
                         {calculateDifference(
                           sampleData?.moisture,
-                          baselineData?.moisture,
-                        )}
-                      </td>
-
-                      <td className="recovery-value">
-                        {calculateRecoveryDifference(
-                          recoveryData?.moisture,
                           baselineData?.moisture,
                         )}
                       </td>
@@ -1376,20 +1121,9 @@ function SensorScanWorkflow({
 
                       <td>{formatValue(sampleData?.temperature, 1)} °C</td>
 
-                      <td>{formatValue(recoveryData?.temperature, 1)} °C</td>
-
                       <td className="response-value">
                         {calculateDifference(
                           sampleData?.temperature,
-                          baselineData?.temperature,
-                          1,
-                        )}{" "}
-                        °C
-                      </td>
-
-                      <td className="recovery-value">
-                        {calculateRecoveryDifference(
-                          recoveryData?.temperature,
                           baselineData?.temperature,
                           1,
                         )}{" "}
@@ -1406,20 +1140,9 @@ function SensorScanWorkflow({
 
                       <td>{formatValue(sampleData?.humidity, 1)} %</td>
 
-                      <td>{formatValue(recoveryData?.humidity, 1)} %</td>
-
                       <td className="response-value">
                         {calculateDifference(
                           sampleData?.humidity,
-                          baselineData?.humidity,
-                          1,
-                        )}{" "}
-                        %
-                      </td>
-
-                      <td className="recovery-value">
-                        {calculateRecoveryDifference(
-                          recoveryData?.humidity,
                           baselineData?.humidity,
                           1,
                         )}{" "}
@@ -1484,9 +1207,7 @@ function SensorScanWorkflow({
                   <div className="sensor-quality-detail-grid">
                     <div className="sensor-quality-detail-card">
                       <span>MQ-2 Response</span>
-                      <strong>
-                        {formatQualityNumber(mq2QualityResponse)}
-                      </strong>
+                      <strong>{formatQualityNumber(mq2QualityResponse)}</strong>
                       <small>Sample − Baseline</small>
                     </div>
 
@@ -1683,7 +1404,7 @@ function SensorScanWorkflow({
           display: grid;
 
           grid-template-columns:
-            repeat(3, 1fr);
+            repeat(2, 1fr);
 
           gap: 10px;
 
@@ -2567,7 +2288,7 @@ function SensorScanWorkflow({
           display: grid;
 
           grid-template-columns:
-            repeat(3, 1fr);
+            repeat(2, 1fr);
 
           gap: 9px;
 
@@ -3271,12 +2992,6 @@ function SensorScanWorkflow({
           font-weight: 900;
         }
 
-
-        .recovery-value {
-          color: #ffd39d !important;
-
-          font-weight: 850;
-        }
 
 
         /* ===================================================
