@@ -6,6 +6,7 @@ import SensorMetricCard from "./SensorMetricCard";
 import {
   getSensorStatus,
   getLatestSensorReading,
+  sendSensorIndicatorCommand,
 } from "../../services/sensorService";
 
 import SensorScanWorkflow from "./SensorScanWorkflow";
@@ -614,7 +615,7 @@ function SensorAnalysis({ onComplete }) {
   // COMPLETE SENSOR STEP
   // =========================================================
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     setError("");
 
     // Sensor data nathnam
@@ -744,6 +745,29 @@ function SensorAnalysis({ onComplete }) {
 
     console.log("STEP 1 SENSOR RESULT JSON:", JSON.stringify(result, null, 2));
 
+    // =========================================================
+    // TURN OFF RESULT LED BEFORE PHYSICAL AI ANALYSIS
+    // =========================================================
+    //
+    // GOOD result  -> Green LED remains ON on the result screen.
+    // BAD result   -> Red LED remains ON on the result screen.
+    // When the user clicks Continue to Physical AI Analysis,
+    // RESET is sent to Arduino before moving to Step 2.
+    //
+    // =========================================================
+
+    try {
+      await sendSensorIndicatorCommand("RESET");
+
+      console.log("Arduino indicator reset before Physical AI Analysis");
+    } catch (error) {
+      console.error(
+        "Unable to reset Arduino indicator before Physical AI Analysis:",
+        error,
+      );
+    }
+
+    // Continue to Step 2 after the RESET attempt.
     onComplete(result);
   };
 
