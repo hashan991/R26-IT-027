@@ -8,6 +8,8 @@ import {
   getRealtimeSealResult,
   stopRealtimeSealInspection,
   getRealtimeVideoUrl,
+  getLeakTestHistory,
+  getSealInspectionHistory,
 
   // Final inspection report
   getInspectionReportStatus,
@@ -1034,6 +1036,27 @@ const styles = `
     overflow: hidden;
     box-shadow: 0 14px 34px rgba(90,49,24,0.08);
   }
+
+  .history-panel{
+
+    margin-top:20px;
+
+    width:100%;
+
+}
+
+
+.history-table-container{
+
+    max-height:450px;
+
+    overflow-y:auto;
+
+    overflow-x:auto;
+
+    border-radius:20px;
+
+}
 
   .status-card::before {
     content: "";
@@ -2479,6 +2502,100 @@ const styles = `
   }
 }
 
+.history-panel{
+
+    margin-top:20px;
+
+    width:100%;
+
+}
+
+
+.history-table-container{
+
+    max-height:450px;
+
+    overflow-y:auto;
+
+    overflow-x:auto;
+
+    border-radius:20px;
+
+}
+
+
+.history-table-container table{
+
+    width:100%;
+
+}
+
+
+.history-table-container thead{
+
+    position:sticky;
+
+    top:0;
+
+    z-index:2;
+
+}
+
+
+.history-image{
+
+    width:90px;
+
+    height:60px;
+
+    object-fit:cover;
+
+    border-radius:10px;
+
+}
+
+.history-header{
+
+display:flex;
+
+justify-content:space-between;
+
+align-items:center;
+
+margin-bottom:15px;
+
+}
+
+
+.history-header h3{
+
+font-family:'Syne',sans-serif;
+
+font-size:18px;
+
+font-weight:900;
+
+}
+
+
+.history-count{
+
+background:rgba(199,131,63,0.12);
+
+border:1px solid rgba(199,131,63,0.25);
+
+padding:6px 12px;
+
+border-radius:999px;
+
+font-size:12px;
+
+font-weight:800;
+
+color:#7c3f1d;
+
+}
+
 
 `;
 
@@ -2498,6 +2615,11 @@ function SealUploadPage() {
   const [deviceResult, setDeviceResult] = useState(null);
   const [deviceLoading, setDeviceLoading] = useState(false);
   const [deviceError, setDeviceError] = useState("");
+  const [leakHistory, setLeakHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  const [sealHistory, setSealHistory] = useState([]);
+  const [sealHistoryLoading, setSealHistoryLoading] = useState(false);
 
   // Real-time two-stage AI state
   const [realtimeRunning, setRealtimeRunning] = useState(false);
@@ -2555,15 +2677,30 @@ const handleGenerateReport = async () => {
     setReportLoading(false);
   }
 };
-    useEffect(() => {
-      if (activeTab === "device") {
-        checkLeakDeviceStatus();
-      }
+useEffect(() => {
 
-      if (activeTab === "report") {
-        checkReportStatus();
-      }
-    }, [activeTab]);
+  if (activeTab === "device") {
+
+    checkLeakDeviceStatus();
+
+    loadLeakHistory();
+
+  }
+
+
+  if (activeTab === "report") {
+
+    checkReportStatus();
+
+  }
+
+  if (activeTab === "realtime") {
+
+    loadSealHistory();
+
+  }
+
+}, [activeTab]);
 
   const fileInputRef = useRef(null);
 
@@ -2666,6 +2803,64 @@ const handleGenerateReport = async () => {
     }
   };
 
+  // ======================================
+// loadLeakHistory() function
+// ======================================
+
+const loadLeakHistory = async () => {
+
+  try {
+
+    setHistoryLoading(true);
+
+    const data = await getLeakTestHistory();
+
+    setLeakHistory(
+      data?.history || []
+    );
+
+
+  } catch(error){
+
+    console.error(error);
+
+  } finally {
+
+    setHistoryLoading(false);
+
+  }
+
+};
+
+// ======================================
+// LOAD SEAL INSPECTION HISTORY
+// ======================================
+
+const loadSealHistory = async () => {
+
+  try {
+
+    setSealHistoryLoading(true);
+
+    const data = await getSealInspectionHistory();
+
+    setSealHistory(
+      data?.history || []
+    );
+
+
+  } catch(error){
+
+    console.error(error);
+
+  } finally {
+
+    setSealHistoryLoading(false);
+
+  }
+
+};
+
   const handleLeakDeviceTest = async () => {
     if (!deviceStatus?.connected) {
       setDeviceError(
@@ -2680,7 +2875,12 @@ const handleGenerateReport = async () => {
       setDeviceResult(null);
 
       const data = await runLeakDeviceTest();
+
       setDeviceResult(data.result || null);
+
+
+      // refresh history after new test
+      await loadLeakHistory();
 
       if (data?.result?.error) {
         setDeviceError(`Device error: ${data.result.error}`);
@@ -3456,9 +3656,174 @@ const handleGenerateReport = async () => {
                     AI 1 detects and crops each seal region. AI 2 runs object detection on each crop,
                     and the overheat defect coordinates are mapped back onto the full packet frame.
                   </div>
+
+
+
+                  </div>
+
                 </div>
-              </div>
-            </section>
+              <div className="history-panel">
+
+  <div className="history-header">
+
+    <h3>
+      📋 Previous AI Seal Inspection History
+    </h3>
+
+    <span className="history-count">
+      {sealHistory.length} Records
+    </span>
+
+  </div>
+
+
+  <div className="history-table-container">
+
+    <table className="defect-table">
+
+      <thead>
+
+        <tr>
+
+          <th>Packet ID</th>
+          <th>Date</th>
+          <th>Result</th>
+          <th>Status</th>
+          <th>Defect</th>
+          <th>Screenshot</th>
+
+        </tr>
+
+      </thead>
+
+
+      <tbody>
+
+      {
+        sealHistory.length > 0 ?
+
+        [...sealHistory]
+        .sort(
+          (a,b)=>
+          new Date(b.created_at) -
+          new Date(a.created_at)
+        )
+        .map((item,index)=>(
+
+          <tr key={index}>
+
+            <td>
+              {item.packet_id || `PKT-${index+1}`}
+            </td>
+
+
+            <td>
+              {
+                new Date(
+                  item.created_at
+                ).toLocaleString()
+              }
+            </td>
+
+
+            <td>
+
+              <span
+                className={
+                  item.result_type === "PASS"
+                  ?
+                  "good-badge defect-badge"
+                  :
+                  "defect-badge"
+                }
+              >
+
+              {
+                item.result_type || "DEFECT"
+              }
+
+              </span>
+
+            </td>
+
+
+            <td>
+              {item.final_status || "UNKNOWN"}
+            </td>
+
+
+            <td>
+
+            {
+              item.overheat_result?.detected
+
+              ?
+
+              "🔥 Overheat"
+
+              :
+
+              "✅ Normal"
+
+            }
+
+            </td>
+
+
+            <td>
+
+            {
+              item.image_path ?
+
+              <img
+                src={buildImageUrl(item.image_path)}
+                className="history-image"
+                alt="packet result"
+              />
+
+              :
+
+              "Not Available"
+
+            }
+
+            </td>
+
+
+          </tr>
+
+        ))
+
+        :
+
+        <tr>
+
+          <td colSpan="6">
+
+            <div className="empty-state">
+
+              📭 No previous inspection records
+
+            </div>
+
+          </td>
+
+        </tr>
+
+      }
+
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+</div>
+
+            
+              
+          </section>
           ) : activeTab === "device" ? (
             <section className="device-page">
               <div className="device-hero">
@@ -3692,6 +4057,96 @@ const handleGenerateReport = async () => {
                         )}
                     </div>
                   )}
+
+                  {/* ======================================
+    PREVIOUS LEAK TEST HISTORY
+====================================== */}
+
+{leakHistory.length > 0 && (
+
+<div className="history-panel">
+
+    <h3>
+        📋 Previous AI Seal Inspection History
+    </h3>
+
+
+    <div className="history-table-container">
+
+        <table className="defect-table">
+
+<thead>
+
+<tr>
+<th>Date</th>
+<th>Status</th>
+<th>Average</th>
+<th>Range</th>
+</tr>
+
+</thead>
+
+
+<tbody>
+
+{
+leakHistory.map((item,index)=>(
+
+<tr key={index}>
+
+<td>
+{
+new Date(
+item.created_at
+).toLocaleString()
+}
+</td>
+
+
+<td>
+
+<span className={
+item.status === "GOOD"
+?
+"good-badge defect-badge"
+:
+"defect-badge"
+}>
+
+{item.status}
+
+</span>
+
+</td>
+
+
+<td>
+{item.average}
+</td>
+
+
+<td>
+{item.range}
+</td>
+
+
+</tr>
+
+))
+
+}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+)}
+
+
                 </div>
               </div>
                         </section>

@@ -247,13 +247,25 @@ class ArduinoLeakDevice:
                     )[1]
 
 
-                 # ==================================================
+                # ==================================================
+                # TEST COMPLETE
+                # ==================================================
+                                # ==================================================
                 # TEST COMPLETE
                 # ==================================================
                 elif line == "TEST_COMPLETE":
 
-                    # Save completed leak test result for final report
-                    report_service.save_leak_result(result)
+                    # Save latest result for PDF report
+                    report_service.save_leak_result(
+                        result
+                    )
+
+
+                    # Save permanently to MongoDB
+                    report_service.save_leak_history(
+                        result
+                    )
+
 
                     return result
 

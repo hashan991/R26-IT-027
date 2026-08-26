@@ -7,6 +7,11 @@ import cv2
 from dotenv import load_dotenv
 from ultralytics import YOLO
 
+from app.modules.packet_seal_detection.history_service import (
+    create_camera_history,
+    save_camera_history
+)
+
 from app.modules.packet_seal_detection.report_service import report_service
 
 # ==================================================
@@ -77,7 +82,22 @@ class RealtimeSealInspector:
         self.camera = None
         self.running = False
 
+        self.camera_lock = threading.Lock()
+
         self.result_lock = threading.Lock()
+
+        # ==========================================
+        # MULTI FRAME VALIDATION SETTINGS
+        # ==========================================
+
+        self.overheat_history = []
+
+        self.validation_frames = 5
+
+        self.min_overheat_confidence = 0.40
+        self.history_saved = False
+        self.last_packet_signature = None
+
 
         self.latest_result = {
             "camera_connected": False,
@@ -98,7 +118,10 @@ class RealtimeSealInspector:
         if self.camera is not None and self.camera.isOpened():
             return True
 
-        self.camera = cv2.VideoCapture(CAMERA_URL)
+        self.camera = cv2.VideoCapture(
+            CAMERA_URL,
+            cv2.CAP_FFMPEG
+        )
 
         # Try to reduce stream delay
         self.camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
@@ -123,11 +146,27 @@ class RealtimeSealInspector:
 
     def close_camera(self):
 
-        if self.camera is not None:
+        with self.camera_lock:
 
-            self.camera.release()
+            if self.camera is not None:
 
-        self.camera = None
+                try:
+                    self.camera.release()
+                    time.sleep(1)
+
+                except Exception as e:
+                    print(
+                        "Camera release error:",
+                        e
+                    )
+
+
+            self.camera = None
+
+
+        cv2.destroyAllWindows()
+
+        print("Camera released successfully")
 
 
     # ==================================================
@@ -150,6 +189,12 @@ class RealtimeSealInspector:
                 "message": "Could not connect to IP Webcam."
             }
 
+        self.overheat_history.clear()
+
+        self.history_saved = False
+
+        self.last_packet_signature = None
+
         self.running = True
 
         return {
@@ -165,21 +210,57 @@ class RealtimeSealInspector:
 
     def stop(self):
 
+        print("Stopping realtime camera...")
+
+
         self.running = False
 
+
+        time.sleep(0.2)
+
+
         self.close_camera()
+
 
         with self.result_lock:
 
             self.latest_result["camera_connected"] = False
             self.latest_result["final_status"] = "STOPPED"
 
-        return {
-            "stopped": True,
-            "message": "Real-time seal inspection stopped."
-        }
+            return {
+                "stopped": True,
+                "message": "Real-time seal inspection stopped."
+            }
 
 
+    # ==================================================
+    # SAVE HISTORY BACKGROUND
+    # ==================================================
+
+    def save_history_background(self, history_data):
+
+        import asyncio
+
+        async def save():
+
+            await save_camera_history(
+                history_data
+            )
+
+        asyncio.run(save())
+
+    def generate_packet_signature(self, result):
+
+        return (
+            result.get("seal_count"),
+            result.get("final_status"),
+            str(result.get("seals"))
+        )
+
+
+        
+
+                
     # ==================================================
     # PROCESS ONE FRAME
     # ==================================================
@@ -190,9 +271,14 @@ class RealtimeSealInspector:
 
         seals_data = []
 
+        current_overheat_detected = False
+
+        current_overheat_confidence = 0.0
+
         packet_overheat_detected = False
 
         highest_overheat_confidence = 0.0
+        confirmed_frames = 0
 
 
         # ==================================================
@@ -221,6 +307,8 @@ class RealtimeSealInspector:
                 int,
                 seal_box.xyxy[0].tolist()
             )
+
+            
 
 
             # Keep coordinates inside full image
@@ -318,15 +406,17 @@ class RealtimeSealInspector:
 
                 if is_overheat:
 
+                    current_overheat_detected = True
                     seal_overheat_detected = True
-                    packet_overheat_detected = True
 
-                    highest_overheat_confidence = max(
-                        highest_overheat_confidence,
+
+                    current_overheat_confidence = max(
+                        current_overheat_confidence,
                         defect_confidence
                     )
 
-                    defect_color = (0, 0, 255)
+
+                    defect_color = (0,0,255)
 
                 else:
 
@@ -449,6 +539,49 @@ class RealtimeSealInspector:
                 "defects": defects
             })
 
+            
+
+
+
+            
+
+
+        # ==================================================
+        # MULTI FRAME OVERHEAT VALIDATION
+        # ==================================================
+
+        if (
+            current_overheat_detected
+            and current_overheat_confidence >= self.min_overheat_confidence
+        ):
+
+            self.overheat_history.append(True)
+
+        else:
+
+            self.overheat_history.append(False)
+
+
+
+        if len(self.overheat_history) > self.validation_frames:
+
+            self.overheat_history.pop(0)
+
+
+
+        confirmed_frames = self.overheat_history.count(True)
+
+
+
+        if confirmed_frames >= self.validation_frames:
+
+            packet_overheat_detected = True
+
+            highest_overheat_confidence = current_overheat_confidence
+
+        else:
+
+            packet_overheat_detected = False
 
         # ==================================================
         # PACKET LEVEL RESULT
@@ -493,6 +626,18 @@ class RealtimeSealInspector:
             "camera_connected": True,
             "seal_count": len(seals_data),
             "overheat_detected": packet_overheat_detected,
+            "validation": {
+
+            "confirmed_frames": confirmed_frames,
+
+            "required_frames": self.validation_frames,
+
+            "status":
+                "CONFIRMED"
+                if confirmed_frames >= self.validation_frames
+                else "CHECKING"
+
+        },
             "highest_overheat_confidence": round(
                 highest_overheat_confidence,
                 4
@@ -518,6 +663,34 @@ class RealtimeSealInspector:
             result=result_data,
             annotated_frame=frame
         )
+
+        packet_signature = self.generate_packet_signature(
+            result_data
+        )
+
+
+        if (
+            len(seals_data) > 0
+            and packet_signature != self.last_packet_signature
+        ):
+
+            history_data = create_camera_history(
+                result=result_data
+            )
+
+
+            threading.Thread(
+                target=self.save_history_background,
+                args=(history_data,),
+                daemon=True
+            ).start()
+
+
+            self.last_packet_signature = packet_signature
+
+        
+
+    
 
 
         return frame
@@ -546,7 +719,16 @@ class RealtimeSealInspector:
                 break
 
 
-            success, frame = self.camera.read()
+            with self.camera_lock:
+
+                if (
+                    self.camera is None
+                    or not self.camera.isOpened()
+                ):
+                    break
+
+
+                success, frame = self.camera.read()
 
 
             if not success:

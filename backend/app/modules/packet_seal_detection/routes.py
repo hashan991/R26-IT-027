@@ -10,6 +10,7 @@ from app.modules.packet_seal_detection.realtime_service import realtime_inspecto
 
 from app.modules.packet_seal_detection.report_service import report_service
 
+from app.modules.packet_seal_detection.leak_repository import get_leak_history
 
 router = APIRouter()
 
@@ -215,12 +216,14 @@ def generate_final_report():
 
         return report
 
+
     except ValueError as error:
 
         raise HTTPException(
             status_code=400,
             detail=str(error)
         )
+
 
     except Exception as error:
 
@@ -235,4 +238,29 @@ def generate_final_report():
                 "Failed to generate inspection report: "
                 + str(error)
             )
+        )
+
+# ==================================================
+# LEAK TEST HISTORY
+# ==================================================
+
+@router.get("/leak/history")
+async def leak_history():
+
+    try:
+
+        history = await get_leak_history()
+
+
+        return {
+            "count": len(history),
+            "history": history
+        }
+
+
+    except Exception as error:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
         )

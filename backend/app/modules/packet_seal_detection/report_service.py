@@ -20,6 +20,8 @@ from reportlab.platypus import (
     PageBreak,
 )
 
+from app.modules.packet_seal_detection.leak_repository import save_leak_test
+
 
 # ==================================================
 # PATH SETTINGS
@@ -102,6 +104,34 @@ class InspectionReportService:
 
             self.latest_leak_result = result.copy()
 
+     # ==================================================
+    # save_leak_history() function
+    # ==================================================
+
+        # ==================================================
+    # SAVE LEAK HISTORY TO MONGODB
+    # ==================================================
+
+    def save_leak_history(
+        self,
+        result
+    ):
+
+        import asyncio
+
+        try:
+
+            asyncio.run(
+                save_leak_test(result)
+            )
+
+
+        except Exception as error:
+
+            print(
+                "MongoDB history save error:",
+                error
+            )
 
     # ==================================================
     # GET CURRENT REPORT DATA

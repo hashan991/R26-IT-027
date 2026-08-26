@@ -133,3 +133,29 @@ export const getReportDownloadUrl = (downloadUrl) => {
 
   return `${baseURL}${downloadUrl}`;
 };
+
+// ==================================================
+// GET PACKET LEAK TEST HISTORY
+// ==================================================
+
+export const getLeakTestHistory = async () => {
+  const response = await api.get(
+    "/api/seals/leak/history"
+  );
+
+  return response.data;
+};
+
+// ==================================================
+// GET PACKET SEAL INSPECTION HISTORY
+// ==================================================
+
+export const getSealInspectionHistory = async () => {
+
+  const response = await api.get(
+    "/api/seals/history"
+  );
+
+  return response.data;
+
+};
