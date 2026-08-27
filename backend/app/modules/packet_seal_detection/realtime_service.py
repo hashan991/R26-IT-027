@@ -3,6 +3,10 @@ import time
 import threading
 from pathlib import Path
 
+from datetime import datetime, timezone
+
+import uuid
+
 import cv2
 from dotenv import load_dotenv
 from ultralytics import YOLO
@@ -27,6 +31,20 @@ load_dotenv()
 
 CURRENT_FILE = Path(__file__).resolve()
 PROJECT_ROOT = CURRENT_FILE.parents[4]
+
+HISTORY_IMAGE_DIR = (
+    PROJECT_ROOT
+    / "backend"
+    / "app"
+    / "static"
+    / "history"
+)
+
+HISTORY_IMAGE_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
 
 SEAL_MODEL_PATH = (
     PROJECT_ROOT
@@ -86,6 +104,9 @@ class RealtimeSealInspector:
 
         self.result_lock = threading.Lock()
 
+        self.latest_frame = None
+        self.frame_condition = threading.Condition()
+
         # ==========================================
         # MULTI FRAME VALIDATION SETTINGS
         # ==========================================
@@ -95,8 +116,34 @@ class RealtimeSealInspector:
         self.validation_frames = 5
 
         self.min_overheat_confidence = 0.40
+
+        # ==========================================
+        # FINAL INSPECTION IMAGE SETTINGS
+        # ==========================================
+
+        # ===============================
+        # 3 SECOND INSPECTION CYCLE
+        # ===============================
+
+        self.captured_frames = []
+
+        self.frame_results = []
+
+        self.inspection_start_time = None
+
+        self.inspection_duration = 3
+
+
+        self.final_image = None
+
+        self.best_confidence = 0
+
+
         self.history_saved = False
-        self.last_packet_signature = None
+
+        self.last_history_time = 0
+
+        
 
 
         self.latest_result = {
@@ -191,11 +238,28 @@ class RealtimeSealInspector:
 
         self.overheat_history.clear()
 
+        self.captured_frames.clear()
+
+        self.frame_results.clear()
+
+        self.final_image = None
+
+        self.best_confidence = 0
+
+        self.inspection_start_time = time.time()
+
         self.history_saved = False
 
-        self.last_packet_signature = None
+        self.latest_frame = None
 
         self.running = True
+
+        self.processing_thread = threading.Thread(
+            target=self.background_processing,
+            daemon=True
+        )
+
+        self.processing_thread.start()
 
         return {
             "started": True,
@@ -241,13 +305,26 @@ class RealtimeSealInspector:
 
         import asyncio
 
-        async def save():
+        try:
 
-            await save_camera_history(
-                history_data
+            asyncio.run(
+                save_camera_history(
+                    history_data
+                )
             )
 
-        asyncio.run(save())
+
+            print(
+                "History saved successfully"
+            )
+
+
+        except Exception as e:
+
+            print(
+                "History save error:",
+                e
+            )
 
     def generate_packet_signature(self, result):
 
@@ -255,6 +332,52 @@ class RealtimeSealInspector:
             result.get("seal_count"),
             result.get("final_status"),
             str(result.get("seals"))
+        )
+
+    def reset_inspection_cycle(self):
+
+        self.captured_frames.clear()
+
+        self.frame_results.clear()
+
+        self.final_image = None
+
+        self.best_confidence = 0
+
+        self.history_saved = False
+
+        self.inspection_start_time = time.time()
+
+    # ==================================================
+    # SAVE FINAL INSPECTION IMAGE
+    # ==================================================
+
+    def save_final_image(self):
+
+        if self.final_image is None:
+            return None
+
+
+        filename = (
+            f"inspection_"
+            f"{uuid.uuid4().hex}.jpg"
+        )
+
+
+        image_path = (
+            HISTORY_IMAGE_DIR
+            / filename
+        )
+
+
+        cv2.imwrite(
+            str(image_path),
+            self.final_image
+        )
+
+
+        return (
+            f"/static/history/{filename}"
         )
 
 
@@ -266,6 +389,30 @@ class RealtimeSealInspector:
     # ==================================================
 
     def process_frame(self, frame):
+
+
+        # ==========================================
+        # CAPTURE INSPECTION FRAMES
+        # ==========================================
+
+        if self.inspection_start_time is None:
+
+            self.inspection_start_time = time.time()
+
+
+        elapsed = (
+            time.time()
+            -
+            self.inspection_start_time
+        )
+
+
+        if elapsed <= self.inspection_duration:
+
+            self.captured_frames.append(
+                frame.copy()
+            )
+
 
         frame_height, frame_width = frame.shape[:2]
 
@@ -618,41 +765,76 @@ class RealtimeSealInspector:
         )
 
 
-                # ==================================================
+        # ==================================================
+        # ==================================================
         # BUILD LATEST RESULT
         # ==================================================
 
         result_data = {
+
             "camera_connected": True,
+
             "seal_count": len(seals_data),
+
             "overheat_detected": packet_overheat_detected,
+
+
             "validation": {
 
-            "confirmed_frames": confirmed_frames,
+                "confirmed_frames": confirmed_frames,
 
-            "required_frames": self.validation_frames,
+                "required_frames": self.validation_frames,
 
-            "status":
-                "CONFIRMED"
-                if confirmed_frames >= self.validation_frames
+                "status":
+                    "CONFIRMED"
+                    if confirmed_frames >= self.validation_frames
                 else "CHECKING"
 
-        },
+            },
+
+
             "highest_overheat_confidence": round(
                 highest_overheat_confidence,
                 4
             ),
+
+
             "final_status": final_status,
-            "seals": seals_data
+
+
+            "seals": seals_data,
+
+
+            # ==========================================
+            # 3 SECOND INSPECTION INFORMATION
+            # ==========================================
+
+            "inspection_cycle": {
+
+                "duration_seconds": 3,
+
+                "frames_captured": len(
+                    self.captured_frames
+                )
+
+            },
+
+
+            "inspection_image": None
+
         }
 
+        confidence = highest_overheat_confidence
 
-        # ==================================================
-        # SAVE LATEST RESULT FOR FRONTEND
-        # ==================================================
 
-        with self.result_lock:
-            self.latest_result = result_data
+        if (
+            confidence > self.best_confidence
+            or self.final_image is None
+        ):
+
+            self.best_confidence = confidence
+
+            self.final_image = frame.copy()
 
 
         # ==================================================
@@ -664,18 +846,55 @@ class RealtimeSealInspector:
             annotated_frame=frame
         )
 
+        # ==================================================
+        # LIVE RESULT UPDATE (NO DELAY)
+        # ==================================================
+
+        with self.result_lock:
+
+            self.latest_result = result_data.copy()
+
         packet_signature = self.generate_packet_signature(
             result_data
         )
 
+        
+
 
         if (
-            len(seals_data) > 0
-            and packet_signature != self.last_packet_signature
-        ):
+            time.time() - self.inspection_start_time
+            >= self.inspection_duration
+            and len(seals_data) > 0
+            and not self.history_saved
+        ): 
+
+
+            image_path = self.save_final_image()
+
+            self.history_saved = True
+
+            result_data["inspection_image"] = image_path
+
+            with self.result_lock:
+
+                self.latest_result = result_data.copy()
+
+
+            # ==========================================
+            # FINAL INSPECTION TIMESTAMP
+            # ==========================================
+
+            inspection_timestamp = datetime.now(timezone.utc)
+
+            result_data["created_at"] = inspection_timestamp.isoformat()
+
+            # ==========================================
+            # CREATE HISTORY RECORD
+            # ==========================================
 
             history_data = create_camera_history(
-                result=result_data
+                result=result_data,
+                image_path=image_path
             )
 
 
@@ -685,30 +904,24 @@ class RealtimeSealInspector:
                 daemon=True
             ).start()
 
+            self.reset_inspection_cycle()
+
 
             self.last_packet_signature = packet_signature
 
-        
-
     
-
-
         return frame
-
-
-        # ==================================================
-    # MJPEG VIDEO STREAM
+    # ==================================================
+    # BACKGROUND FRAME PROCESSING
     # ==================================================
 
-    def generate_stream(self):
+    # ==================================================
+    # BACKGROUND CAMERA + AI PROCESSING LOOP
+    # ==================================================
 
-        if not self.running:
+    def background_processing(self):
 
-            start_result = self.start()
-
-            if not start_result.get("started"):
-                return
-
+        print("Background AI processing started")
 
         while self.running:
 
@@ -716,48 +929,100 @@ class RealtimeSealInspector:
                 self.camera is None
                 or not self.camera.isOpened()
             ):
-                break
+                time.sleep(0.1)
+                continue
 
+            # ------------------------------------------
+            # Read camera frame - ONLY HERE
+            # ------------------------------------------
 
             with self.camera_lock:
 
-                if (
-                    self.camera is None
-                    or not self.camera.isOpened()
-                ):
-                    break
-
-
                 success, frame = self.camera.read()
-
 
             if not success:
 
                 time.sleep(0.05)
                 continue
 
+            # ------------------------------------------
+            # AI PROCESSING
+            # ------------------------------------------
 
-            # Run AI 1 + AI 2 and draw boxes
             processed_frame = self.process_frame(
                 frame
             )
 
+            # ------------------------------------------
+            # Store latest processed frame
+            # ------------------------------------------
 
-            # Convert frame to JPEG
+            with self.frame_condition:
+
+                self.latest_frame = processed_frame.copy()
+
+                self.frame_condition.notify_all()
+
+            # ------------------------------------------
+            # Small delay
+            # ------------------------------------------
+
+            time.sleep(0.03)
+
+        print("Background AI processing stopped")
+
+            
+
+
+    # ==================================================
+    # MJPEG VIDEO STREAM
+    # ==================================================
+
+    # ==================================================
+    # MJPEG VIDEO STREAM
+    # ==================================================
+
+    def generate_stream(self):
+
+        while self.running:
+
+            # ------------------------------------------
+            # Get latest processed frame
+            # ------------------------------------------
+
+            with self.frame_condition:
+
+                if self.latest_frame is None:
+
+                    self.frame_condition.wait(
+                        timeout=1.0
+                    )
+
+                if self.latest_frame is None:
+
+                    continue
+
+                frame = self.latest_frame.copy()
+
+            # ------------------------------------------
+            # Encode JPEG
+            # ------------------------------------------
+
             encode_success, buffer = cv2.imencode(
                 ".jpg",
-                processed_frame
+                frame
             )
 
-
             if not encode_success:
-                continue
 
+                continue
 
             frame_bytes = buffer.tobytes()
 
+            # ------------------------------------------
+            # MJPEG response
+            # ------------------------------------------
 
-            # Send as MJPEG stream
             yield (
                 b"--frame\r\n"
                 b"Content-Type: image/jpeg\r\n\r\n"
@@ -766,9 +1031,9 @@ class RealtimeSealInspector:
             )
 
 
-    # ==================================================
-    # GET LATEST AI RESULT
-    # ==================================================
+        # ==================================================
+        # GET LATEST AI RESULT
+        # ==================================================
 
     def get_latest_result(self):
 
