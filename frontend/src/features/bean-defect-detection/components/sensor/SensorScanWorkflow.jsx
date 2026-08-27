@@ -2,6 +2,16 @@ import { useEffect, useRef, useState } from "react";
 
 import { sendSensorIndicatorCommand } from "../../services/sensorService";
 
+
+import {
+  SENSOR_THRESHOLDS,
+  TOTAL_VOTING_SENSORS,
+  SENSOR_VOTE_WEIGHT,
+  GOOD_MAX_BAD_VOTES,
+  REVIEW_BAD_VOTES,
+  BAD_MIN_BAD_VOTES,
+} from "/src/features/bean-defect-detection/config/sensorQualityConfig";
+
 // =========================================================
 // CONFIGURATION
 // =========================================================
@@ -36,14 +46,15 @@ const SAMPLE_EXPOSURE_TIME = 120;
 // service when the backend is updated.
 // =========================================================
 
-const MQ2_BAD_THRESHOLD = 129.5;
-const MQ3_BAD_THRESHOLD = 38.5;
-const MQ135_BAD_THRESHOLD = 9.5;
-const MOISTURE_BAD_THRESHOLD = -16;
-const HUMIDITY_BAD_THRESHOLD = 10.7;
+const MQ2_BAD_THRESHOLD = SENSOR_THRESHOLDS.mq2.badThreshold;
 
-const TOTAL_VOTING_SENSORS = 5;
-const SCORE_PER_SENSOR = 20;
+const MQ3_BAD_THRESHOLD = SENSOR_THRESHOLDS.mq3.badThreshold;
+
+const MQ135_BAD_THRESHOLD = SENSOR_THRESHOLDS.mq135.badThreshold;
+
+const MOISTURE_BAD_THRESHOLD = SENSOR_THRESHOLDS.moisture.badThreshold;
+
+const HUMIDITY_BAD_THRESHOLD = SENSOR_THRESHOLDS.humidity.badThreshold;
 
 function SensorScanWorkflow({
   sensorData,
@@ -486,14 +497,13 @@ function SensorScanWorkflow({
   // SENSOR QUALITY ASSESSMENT
   // =========================================================
   //
-  // New research method:
+  // Research method is controlled by sensorQualityConfig.js:
   //
-  // 0 BAD votes -> Score 100 -> GOOD
-  // 1 BAD vote  -> Score  80 -> GOOD
-  // 2 BAD votes -> Score  60 -> REVIEW
-  // 3 BAD votes -> Score  40 -> BAD
-  // 4 BAD votes -> Score  20 -> BAD
-  // 5 BAD votes -> Score   0 -> BAD
+  // Sensor Score = 100 - (BAD vote count × SENSOR_VOTE_WEIGHT)
+  //
+  // GOOD   -> badCount <= GOOD_MAX_BAD_VOTES
+  // REVIEW -> badCount === REVIEW_BAD_VOTES
+  // BAD    -> badCount >= BAD_MIN_BAD_VOTES
   //
   // =========================================================
 
@@ -608,14 +618,14 @@ function SensorScanWorkflow({
   // ---------------------------------------------------------
   // SENSOR SCORE
   //
-  // Five equal-weight sensors.
-  // Each BAD vote removes 20 points.
+  // Equal-weight voting sensors.
+  // Each BAD vote removes SENSOR_VOTE_WEIGHT points from config.
   // ---------------------------------------------------------
 
   const sensorQualityScore = sensorResponsesAvailable
     ? Math.max(
         0,
-        100 - badCount * SCORE_PER_SENSOR,
+        100 - badCount * SENSOR_VOTE_WEIGHT,
       )
     : 0;
 
@@ -629,18 +639,20 @@ function SensorScanWorkflow({
       return "REVIEW";
     }
 
-    // Majority of the 5 sensors indicate BAD.
-    if (badCount >= 3) {
+    if (badCount >= BAD_MIN_BAD_VOTES) {
       return "BAD";
     }
 
-    // Two BAD votes = uncertain condition.
-    if (badCount === 2) {
+    if (badCount === REVIEW_BAD_VOTES) {
       return "REVIEW";
     }
 
-    // Zero or one BAD vote.
-    return "GOOD";
+    if (badCount <= GOOD_MAX_BAD_VOTES) {
+      return "GOOD";
+    }
+
+    // Safety fallback if future config values leave a gap.
+    return "REVIEW";
   };
 
   const sensorQualityStatus = getSensorQualityStatus();
@@ -1213,12 +1225,12 @@ function SensorScanWorkflow({
                       SENSOR QUALITY ASSESSMENT
                     </span>
 
-                    <h4>5-Sensor Vote Score & Status</h4>
+                    <h4>{TOTAL_VOTING_SENSORS}-Sensor Vote Score & Status</h4>
 
                     <p>
-                      Five sensor responses are compared with experimentally
-                      derived BAD thresholds. Each BAD vote removes 20 points
-                      from the sensor score.
+                      {TOTAL_VOTING_SENSORS} sensor responses are compared with
+                      experimentally derived BAD thresholds. Each BAD vote removes{" "}
+                      {SENSOR_VOTE_WEIGHT} points from the sensor score.
                     </p>
                   </div>
 
@@ -1323,10 +1335,11 @@ function SensorScanWorkflow({
                   <span>i</span>
 
                   <p>
-                    Status rule: 0-1 BAD votes = GOOD, 2 BAD votes = REVIEW,
-                    and 3-5 BAD votes = BAD. The final coffee bean grade is
-                    calculated later by combining this sensor score with the
-                    Physical AI score.
+                    Status rule: 0-{GOOD_MAX_BAD_VOTES} BAD votes = GOOD,{" "}
+                    {REVIEW_BAD_VOTES} BAD votes = REVIEW, and{" "}
+                    {BAD_MIN_BAD_VOTES}-{TOTAL_VOTING_SENSORS} BAD votes = BAD.
+                    The final coffee bean grade is calculated later by combining
+                    this sensor score with the Physical AI score.
                   </p>
                 </div>
               </div>

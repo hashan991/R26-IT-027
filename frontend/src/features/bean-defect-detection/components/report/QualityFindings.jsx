@@ -1,3 +1,12 @@
+import {
+  SENSOR_THRESHOLDS,
+  TOTAL_VOTING_SENSORS,
+  SENSOR_VOTE_WEIGHT,
+  GOOD_MAX_BAD_VOTES,
+  REVIEW_BAD_VOTES,
+  BAD_MIN_BAD_VOTES,
+} from "/src/features/bean-defect-detection/config/sensorQualityConfig";
+
 function QualityFindings({
   finalScore = 0,
   grade = "-",
@@ -119,17 +128,27 @@ function QualityFindings({
 
   const temperatureResponse = sensorAssessment.temperature_response;
 
-  const mq2Threshold = Number(sensorAssessment.mq2_threshold ?? 129.5);
+const mq2Threshold = Number(
+  sensorAssessment.mq2_threshold ?? SENSOR_THRESHOLDS.mq2.badThreshold,
+);
 
-  const mq3Threshold = Number(sensorAssessment.mq3_threshold ?? 38.5);
+const mq3Threshold = Number(
+  sensorAssessment.mq3_threshold ?? SENSOR_THRESHOLDS.mq3.badThreshold,
+);
 
-  const mq135Threshold = Number(sensorAssessment.mq135_threshold ?? 9.5);
+const mq135Threshold = Number(
+  sensorAssessment.mq135_threshold ?? SENSOR_THRESHOLDS.mq135.badThreshold,
+);
 
-  const moistureThreshold = Number(
-    sensorAssessment.moisture_threshold ?? -16.0,
-  );
+const moistureThreshold = Number(
+  sensorAssessment.moisture_threshold ??
+    SENSOR_THRESHOLDS.moisture.badThreshold,
+);
 
-  const humidityThreshold = Number(sensorAssessment.humidity_threshold ?? 10.7);
+const humidityThreshold = Number(
+  sensorAssessment.humidity_threshold ??
+    SENSOR_THRESHOLDS.humidity.badThreshold,
+);
 
   // =========================================================
   // SENSOR INDIVIDUAL VOTE STATE
@@ -306,7 +325,7 @@ function QualityFindings({
   const totalVotingSensors =
     Number.isFinite(backendTotalVotingSensors) && backendTotalVotingSensors > 0
       ? backendTotalVotingSensors
-      : 5;
+      : TOTAL_VOTING_SENSORS;
 
   const goodVoteCount = Math.max(0, validVoteCount - badCount);
 
@@ -329,7 +348,7 @@ function QualityFindings({
       );
     }
 
-    if (badCount >= 3) {
+    if (badCount >= BAD_MIN_BAD_VOTES) {
       return (
         `${badCount} of ${totalVotingSensors} sensors produced BAD votes. ` +
         "Because three or more BAD votes form the BAD decision zone, " +
@@ -337,7 +356,7 @@ function QualityFindings({
       );
     }
 
-    if (badCount === 2) {
+    if (badCount === REVIEW_BAD_VOTES) {
       return (
         `Exactly ${badCount} of ${totalVotingSensors} sensors produced BAD votes. ` +
         "According to the research-defined voting rule, two BAD votes indicate mixed evidence, " +
@@ -920,25 +939,19 @@ function QualityFindings({
           <div className="logic-rules">
             <div>
               <span className="logic-dot good-dot" />
-
-              <p>0–1 BAD votes</p>
-
+              0–{GOOD_MAX_BAD_VOTES} BAD votes
               <strong>GOOD</strong>
             </div>
 
             <div>
               <span className="logic-dot warning-dot" />
-
-              <p>Exactly 2 BAD votes</p>
-
+              Exactly {REVIEW_BAD_VOTES} BAD votes
               <strong>REVIEW</strong>
             </div>
 
             <div>
               <span className="logic-dot danger-dot" />
-
-              <p>3–5 BAD votes</p>
-
+              {BAD_MIN_BAD_VOTES}–{TOTAL_VOTING_SENSORS} BAD votes
               <strong>BAD</strong>
             </div>
           </div>
@@ -946,7 +959,10 @@ function QualityFindings({
           <div className="sensor-score-formula">
             <span>SCORE FORMULA</span>
 
-            <strong>Sensor Score = 100 - (BAD Votes × 20)</strong>
+            <strong>
+              {" "}
+              Sensor Score = 100 - (BAD Votes × {SENSOR_VOTE_WEIGHT})
+            </strong>
           </div>
         </div>
 

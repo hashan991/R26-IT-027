@@ -1,3 +1,9 @@
+import {
+  SENSOR_THRESHOLDS,
+  TOTAL_VOTING_SENSORS,
+  SENSOR_VOTE_WEIGHT,
+} from "/src/features/bean-defect-detection/config/sensorQualityConfig";
+
 function SensorAssessmentCard({ sensorAssessment = {} }) {
   // =========================================================
   // OVERALL SENSOR STATUS
@@ -25,11 +31,27 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
   // =========================================================
 
   const thresholds = {
-    mq2: Number(sensorAssessment.mq2_threshold ?? 129.5),
-    mq3: Number(sensorAssessment.mq3_threshold ?? 38.5),
-    mq135: Number(sensorAssessment.mq135_threshold ?? 9.5),
-    moisture: Number(sensorAssessment.moisture_threshold ?? -16),
-    humidity: Number(sensorAssessment.humidity_threshold ?? 10.7),
+    mq2: Number(
+      sensorAssessment.mq2_threshold ?? SENSOR_THRESHOLDS.mq2.badThreshold,
+    ),
+
+    mq3: Number(
+      sensorAssessment.mq3_threshold ?? SENSOR_THRESHOLDS.mq3.badThreshold,
+    ),
+
+    mq135: Number(
+      sensorAssessment.mq135_threshold ?? SENSOR_THRESHOLDS.mq135.badThreshold,
+    ),
+
+    moisture: Number(
+      sensorAssessment.moisture_threshold ??
+        SENSOR_THRESHOLDS.moisture.badThreshold,
+    ),
+
+    humidity: Number(
+      sensorAssessment.humidity_threshold ??
+        SENSOR_THRESHOLDS.humidity.badThreshold,
+    ),
   };
 
   // =========================================================
@@ -210,7 +232,7 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
   const totalVotingSensors =
     Number.isFinite(backendTotalVotingSensors) && backendTotalVotingSensors > 0
       ? backendTotalVotingSensors
-      : 5;
+      : TOTAL_VOTING_SENSORS;
 
   // =========================================================
   // OVERALL SENSOR SCORE
@@ -219,7 +241,9 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
   const backendSensorScore = Number(sensorAssessment.sensor_score);
 
   const fallbackSensorScore =
-    validVoteCount === totalVotingSensors ? 100 - badCount * 20 : 0;
+    validVoteCount === totalVotingSensors
+      ? 100 - badCount * SENSOR_VOTE_WEIGHT
+      : 0;
 
   const sensorScore = Math.max(
     0,

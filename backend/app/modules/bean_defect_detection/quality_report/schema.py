@@ -13,6 +13,8 @@ from pydantic import (
     model_validator,
 )
 
+from .. import sensor_quality_config as sensor_config
+
 
 # =========================================================
 # BASE MODEL
@@ -534,15 +536,25 @@ class SensorScoreBreakdown(BaseModel):
     # grading standards.
     # -----------------------------------------------------
 
-    mq2_threshold: float = 129.5
+    mq2_threshold: float = (
+        sensor_config.MQ2_BAD_THRESHOLD
+    )
 
-    mq3_threshold: float = 38.5
+    mq3_threshold: float = (
+        sensor_config.MQ3_BAD_THRESHOLD
+    )
 
-    mq135_threshold: float = 9.5
+    mq135_threshold: float = (
+        sensor_config.MQ135_BAD_THRESHOLD
+    )
 
-    moisture_threshold: float = -16.0
+    moisture_threshold: float = (
+        sensor_config.MOISTURE_BAD_THRESHOLD
+    )
 
-    humidity_threshold: float = 10.7
+    humidity_threshold: float = (
+        sensor_config.HUMIDITY_BAD_THRESHOLD
+    )
 
 
     # -----------------------------------------------------
@@ -572,7 +584,9 @@ class SensorScoreBreakdown(BaseModel):
 
     valid_vote_count: int = 0
 
-    total_voting_sensors: int = 5
+    total_voting_sensors: int = (
+    sensor_config.TOTAL_VOTING_SENSORS
+    )
 
     # Explicit methodology flag for report/UI clarity.
     temperature_used_for_decision: bool = False

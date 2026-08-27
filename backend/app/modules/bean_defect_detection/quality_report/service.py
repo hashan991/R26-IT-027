@@ -17,6 +17,8 @@ from .schema import (
     SensorScoreBreakdown,
 )
 
+from .. import sensor_quality_config as sensor_config
+
 
 # =========================================================
 # QUALITY REPORT SERVICE
@@ -71,19 +73,49 @@ class QualityReportService:
     # not official SCA grading thresholds.
     # =====================================================
 
-    MQ2_BAD_THRESHOLD = 129.5
+# =====================================================
+# SENSOR QUALITY CONFIG
+# =====================================================
 
-    MQ3_BAD_THRESHOLD = 38.5
+    MQ2_BAD_THRESHOLD = (
+        sensor_config.MQ2_BAD_THRESHOLD
+    )
 
-    MQ135_BAD_THRESHOLD = 9.5
+    MQ3_BAD_THRESHOLD = (
+        sensor_config.MQ3_BAD_THRESHOLD
+    )
 
-    MOISTURE_BAD_THRESHOLD = -16.0
+    MQ135_BAD_THRESHOLD = (
+        sensor_config.MQ135_BAD_THRESHOLD
+    )
 
-    HUMIDITY_BAD_THRESHOLD = 10.7
+    MOISTURE_BAD_THRESHOLD = (
+        sensor_config.MOISTURE_BAD_THRESHOLD
+    )
 
-    VOTING_SENSOR_COUNT = 5
+    HUMIDITY_BAD_THRESHOLD = (
+        sensor_config.HUMIDITY_BAD_THRESHOLD
+    )
 
-    SENSOR_VOTE_WEIGHT = 20.0
+    TOTAL_VOTING_SENSORS = (
+        sensor_config.TOTAL_VOTING_SENSORS
+    )
+
+    SENSOR_VOTE_WEIGHT = (
+        sensor_config.SENSOR_VOTE_WEIGHT
+    )
+
+    GOOD_MAX_BAD_VOTES = (
+        sensor_config.GOOD_MAX_BAD_VOTES
+    )
+
+    REVIEW_BAD_VOTES = (
+        sensor_config.REVIEW_BAD_VOTES
+    )
+
+    BAD_MIN_BAD_VOTES = (
+        sensor_config.BAD_MIN_BAD_VOTES
+    )
 
 
     # =====================================================
@@ -557,24 +589,22 @@ class QualityReportService:
             # SENSOR STATUS
             # ---------------------------------------------
 
-            if bad_count >= 3:
+            if (
+                bad_count
+                >=
+                self.BAD_MIN_BAD_VOTES
+            ):
+                sensor_status = "BAD"
 
-                sensor_status = (
-                    "BAD"
-                )
-
-            elif bad_count == 2:
-
-                sensor_status = (
-                    "REVIEW"
-                )
+            elif (
+                bad_count
+                ==
+                self.REVIEW_BAD_VOTES
+            ):
+                sensor_status = "REVIEW"
 
             else:
-
-                sensor_status = (
-                    "GOOD"
-                )
-
+                sensor_status = "GOOD"
 
         # -------------------------------------------------
         # EXISTING PER-SENSOR SCORE FIELDS
@@ -1710,7 +1740,7 @@ class QualityReportService:
         # OVERALL SENSOR FINDING
         # -------------------------------------------------
 
-        if available_vote_count < self.VOTING_SENSOR_COUNT:
+        if available_vote_count < self.TOTAL_VOTING_SENSORS:
 
             findings.append(
                 QualityFinding(
@@ -1722,7 +1752,7 @@ class QualityReportService:
 
                     description=(
                         f"Only {available_vote_count} of "
-                        f"{self.VOTING_SENSOR_COUNT} voting sensor "
+                        f"{self.TOTAL_VOTING_SENSORS} voting sensor "
                         f"responses were available. A complete "
                         f"five-sensor quality decision could not "
                         f"be produced."
@@ -1751,7 +1781,7 @@ class QualityReportService:
 
                     description=(
                         f"{bad_count} of "
-                        f"{self.VOTING_SENSOR_COUNT} sensors "
+                        f"{self.TOTAL_VOTING_SENSORS} sensors "
                         f"produced BAD votes. The sensor "
                         f"quality score is "
                         f"{sensor_assessment.sensor_score:.2f}/100, "
@@ -1779,7 +1809,7 @@ class QualityReportService:
 
                     description=(
                         f"{bad_count} of "
-                        f"{self.VOTING_SENSOR_COUNT} sensors "
+                        f"{self.TOTAL_VOTING_SENSORS} sensors "
                         f"produced BAD votes. The sensor "
                         f"quality score is "
                         f"{sensor_assessment.sensor_score:.2f}/100, "
@@ -1803,7 +1833,7 @@ class QualityReportService:
 
                     description=(
                         f"{bad_count} of "
-                        f"{self.VOTING_SENSOR_COUNT} sensors "
+                        f"{self.TOTAL_VOTING_SENSORS} sensors "
                         f"produced BAD votes. Two BAD votes "
                         f"produce a REVIEW result. The sensor "
                         f"quality score is "
