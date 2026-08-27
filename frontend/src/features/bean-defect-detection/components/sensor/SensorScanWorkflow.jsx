@@ -11,25 +11,39 @@ import { sendSensorIndicatorCommand } from "../../services/sensorService";
 const SAMPLE_EXPOSURE_TIME = 120;
 
 // =========================================================
-// SENSOR QUALITY SCORING
+// SENSOR QUALITY VOTING + SCORING
 // =========================================================
+//
+// Response (Δ) = Sample - Baseline
+//
+// Five sensors participate in the quality vote:
+//   1. MQ-2
+//   2. MQ-3
+//   3. MQ-135
+//   4. Moisture
+//   5. Humidity
+//
+// Temperature is retained as a supporting environmental
+// measurement only because the experimental GOOD/BAD ranges
+// overlapped.
 //
 // IMPORTANT:
-// These thresholds mirror the current backend quality-report
-// sensor scoring logic so Step 1 shows the same score/status
-// that will later appear in the Final Quality Report.
+// These are research-defined thresholds derived from the
+// collected experimental GOOD and BAD coffee-bean datasets.
+// They are NOT official coffee-industry grading thresholds.
 //
-// They are research-defined experimental thresholds, not an
-// official coffee-industry grading standard.
+// Keep these values identical to the backend quality-report
+// service when the backend is updated.
 // =========================================================
 
-const MQ2_GOOD_MAX = 44;
-const MQ2_BAD_THRESHOLD = 73;
-const MQ2_BAD_MAX = 277;
+const MQ2_BAD_THRESHOLD = 129.5;
+const MQ3_BAD_THRESHOLD = 38.5;
+const MQ135_BAD_THRESHOLD = 9.5;
+const MOISTURE_BAD_THRESHOLD = -16;
+const HUMIDITY_BAD_THRESHOLD = 10.7;
 
-const MQ135_GOOD_MAX = 15;
-const MQ135_BAD_THRESHOLD = 22.5;
-const MQ135_BAD_MAX = 103;
+const TOTAL_VOTING_SENSORS = 5;
+const SCORE_PER_SENSOR = 20;
 
 function SensorScanWorkflow({
   sensorData,
@@ -471,10 +485,17 @@ function SensorScanWorkflow({
   // =========================================================
   // SENSOR QUALITY ASSESSMENT
   // =========================================================
-
-  const clampScore = (value) => {
-    return Math.max(0, Math.min(100, Number(value)));
-  };
+  //
+  // New research method:
+  //
+  // 0 BAD votes -> Score 100 -> GOOD
+  // 1 BAD vote  -> Score  80 -> GOOD
+  // 2 BAD votes -> Score  60 -> REVIEW
+  // 3 BAD votes -> Score  40 -> BAD
+  // 4 BAD votes -> Score  20 -> BAD
+  // 5 BAD votes -> Score   0 -> BAD
+  //
+  // =========================================================
 
   const calculateNumericDifference = (sample, baseline) => {
     if (
@@ -496,68 +517,19 @@ function SensorScanWorkflow({
     return Number((sampleValue - baselineValue).toFixed(2));
   };
 
-  const calculateMq2Score = (response) => {
-    if (response === null || response === undefined) {
-      return null;
-    }
-
-    const value = Number(response);
-
-    if (!Number.isFinite(value)) {
-      return null;
-    }
-
-    if (value <= MQ2_GOOD_MAX) {
-      return 100;
-    }
-
-    if (value < MQ2_BAD_THRESHOLD) {
-      const score =
-        100 -
-        (30 * (value - MQ2_GOOD_MAX)) / (MQ2_BAD_THRESHOLD - MQ2_GOOD_MAX);
-
-      return Number(clampScore(score).toFixed(2));
-    }
-
-    const score =
-      (70 * (MQ2_BAD_MAX - value)) / (MQ2_BAD_MAX - MQ2_BAD_THRESHOLD);
-
-    return Number(clampScore(score).toFixed(2));
-  };
-
-  const calculateMq135Score = (response) => {
-    if (response === null || response === undefined) {
-      return null;
-    }
-
-    const value = Number(response);
-
-    if (!Number.isFinite(value)) {
-      return null;
-    }
-
-    if (value <= MQ135_GOOD_MAX) {
-      return 100;
-    }
-
-    if (value < MQ135_BAD_THRESHOLD) {
-      const score =
-        100 -
-        (30 * (value - MQ135_GOOD_MAX)) /
-          (MQ135_BAD_THRESHOLD - MQ135_GOOD_MAX);
-
-      return Number(clampScore(score).toFixed(2));
-    }
-
-    const score =
-      (70 * (MQ135_BAD_MAX - value)) / (MQ135_BAD_MAX - MQ135_BAD_THRESHOLD);
-
-    return Number(clampScore(score).toFixed(2));
-  };
+  // ---------------------------------------------------------
+  // RESPONSE VALUES
+  // Δ = Sample - Baseline
+  // ---------------------------------------------------------
 
   const mq2QualityResponse = calculateNumericDifference(
     sampleData?.mq2,
     baselineData?.mq2,
+  );
+
+  const mq3QualityResponse = calculateNumericDifference(
+    sampleData?.mq3,
+    baselineData?.mq3,
   );
 
   const mq135QualityResponse = calculateNumericDifference(
@@ -565,53 +537,128 @@ function SensorScanWorkflow({
     baselineData?.mq135,
   );
 
-  const mq2QualityScore = calculateMq2Score(mq2QualityResponse);
-
-  const mq135QualityScore = calculateMq135Score(mq135QualityResponse);
-
-  const availablePrimaryScores = [mq2QualityScore, mq135QualityScore].filter(
-    (score) => score !== null && score !== undefined,
+  const moistureQualityResponse = calculateNumericDifference(
+    sampleData?.moisture,
+    baselineData?.moisture,
   );
 
-  const sensorQualityScore = availablePrimaryScores.length
-    ? Number(
-        (
-          availablePrimaryScores.reduce((total, score) => total + score, 0) /
-          availablePrimaryScores.length
-        ).toFixed(2),
+  const humidityQualityResponse = calculateNumericDifference(
+    sampleData?.humidity,
+    baselineData?.humidity,
+  );
+
+  const temperatureQualityResponse = calculateNumericDifference(
+    sampleData?.temperature,
+    baselineData?.temperature,
+  );
+
+  // ---------------------------------------------------------
+  // CHECK THAT ALL 5 VOTING SENSOR RESPONSES ARE AVAILABLE
+  // ---------------------------------------------------------
+
+  const sensorResponsesAvailable =
+    mq2QualityResponse !== null &&
+    mq3QualityResponse !== null &&
+    mq135QualityResponse !== null &&
+    moistureQualityResponse !== null &&
+    humidityQualityResponse !== null;
+
+  // ---------------------------------------------------------
+  // INDIVIDUAL BAD VOTES
+  // ---------------------------------------------------------
+
+  const mq2Bad =
+    mq2QualityResponse !== null &&
+    mq2QualityResponse >= MQ2_BAD_THRESHOLD;
+
+  const mq3Bad =
+    mq3QualityResponse !== null &&
+    mq3QualityResponse >= MQ3_BAD_THRESHOLD;
+
+  const mq135Bad =
+    mq135QualityResponse !== null &&
+    mq135QualityResponse >= MQ135_BAD_THRESHOLD;
+
+  /*
+    Moisture response direction is opposite to the gas/humidity
+    sensors in the collected experimental data.
+
+    More-negative response = stronger BAD indication.
+  */
+  const moistureBad =
+    moistureQualityResponse !== null &&
+    moistureQualityResponse <= MOISTURE_BAD_THRESHOLD;
+
+  const humidityBad =
+    humidityQualityResponse !== null &&
+    humidityQualityResponse >= HUMIDITY_BAD_THRESHOLD;
+
+  // ---------------------------------------------------------
+  // COUNT BAD VOTES
+  // ---------------------------------------------------------
+
+  const badCount = [
+    mq2Bad,
+    mq3Bad,
+    mq135Bad,
+    moistureBad,
+    humidityBad,
+  ].filter(Boolean).length;
+
+  // ---------------------------------------------------------
+  // SENSOR SCORE
+  //
+  // Five equal-weight sensors.
+  // Each BAD vote removes 20 points.
+  // ---------------------------------------------------------
+
+  const sensorQualityScore = sensorResponsesAvailable
+    ? Math.max(
+        0,
+        100 - badCount * SCORE_PER_SENSOR,
       )
     : 0;
 
+  // ---------------------------------------------------------
+  // SENSOR STATUS
+  // ---------------------------------------------------------
+
   const getSensorQualityStatus = () => {
-    if (mq2QualityResponse === null || mq135QualityResponse === null) {
+    // Missing data means the quality decision is not reliable.
+    if (!sensorResponsesAvailable) {
       return "REVIEW";
     }
 
-    if (
-      mq2QualityResponse < MQ2_BAD_THRESHOLD &&
-      mq135QualityResponse < MQ135_BAD_THRESHOLD
-    ) {
-      return "GOOD";
-    }
-
-    if (
-      mq2QualityResponse >= MQ2_BAD_THRESHOLD &&
-      mq135QualityResponse >= MQ135_BAD_THRESHOLD
-    ) {
+    // Majority of the 5 sensors indicate BAD.
+    if (badCount >= 3) {
       return "BAD";
     }
 
-    return "REVIEW";
+    // Two BAD votes = uncertain condition.
+    if (badCount === 2) {
+      return "REVIEW";
+    }
+
+    // Zero or one BAD vote.
+    return "GOOD";
   };
 
   const sensorQualityStatus = getSensorQualityStatus();
+
+  const getVoteLabel = (response, isBad) => {
+    if (response === null || response === undefined) {
+      return "NO DATA";
+    }
+
+    return isBad ? "BAD vote" : "GOOD vote";
+  };
 
   // =========================================================
   // AUTOMATIC HARDWARE QUALITY INDICATOR
   // =========================================================
   //
-  // GOOD   -> PASS  -> Green LED blinks
-  // BAD    -> FAIL  -> Red LED blinks + buzzer
+  // GOOD   -> PASS  -> Green quality indication
+  // BAD    -> FAIL  -> Red quality indication
   // REVIEW -> RESET -> All indicators OFF
   //
   // The command is sent only after both baseline and sample
@@ -1166,12 +1213,12 @@ function SensorScanWorkflow({
                       SENSOR QUALITY ASSESSMENT
                     </span>
 
-                    <h4>Sensor Score & Status</h4>
+                    <h4>5-Sensor Vote Score & Status</h4>
 
                     <p>
-                      Calculated from the stable sample response relative to the
-                      captured baseline using the same current scoring rules as
-                      the final quality report.
+                      Five sensor responses are compared with experimentally
+                      derived BAD thresholds. Each BAD vote removes 20 points
+                      from the sensor score.
                     </p>
                   </div>
 
@@ -1202,33 +1249,72 @@ function SensorScanWorkflow({
                         }}
                       ></div>
                     </div>
+
+                    <div className="sensor-quality-vote-count">
+                      {sensorResponsesAvailable
+                        ? `${badCount} / ${TOTAL_VOTING_SENSORS} BAD votes`
+                        : "Voting sensor data incomplete"}
+                    </div>
                   </div>
 
                   <div className="sensor-quality-detail-grid">
                     <div className="sensor-quality-detail-card">
-                      <span>MQ-2 Response</span>
+                      <span>MQ-2</span>
                       <strong>{formatQualityNumber(mq2QualityResponse)}</strong>
-                      <small>Sample − Baseline</small>
+                      <small>
+                        {getVoteLabel(mq2QualityResponse, mq2Bad)} · BAD ≥{" "}
+                        {MQ2_BAD_THRESHOLD}
+                      </small>
                     </div>
 
                     <div className="sensor-quality-detail-card">
-                      <span>MQ-2 Score</span>
-                      <strong>{formatQualityNumber(mq2QualityScore)}</strong>
-                      <small>/100</small>
+                      <span>MQ-3</span>
+                      <strong>{formatQualityNumber(mq3QualityResponse)}</strong>
+                      <small>
+                        {getVoteLabel(mq3QualityResponse, mq3Bad)} · BAD ≥{" "}
+                        {MQ3_BAD_THRESHOLD}
+                      </small>
                     </div>
 
                     <div className="sensor-quality-detail-card">
-                      <span>MQ-135 Response</span>
+                      <span>MQ-135</span>
                       <strong>
                         {formatQualityNumber(mq135QualityResponse)}
                       </strong>
-                      <small>Sample − Baseline</small>
+                      <small>
+                        {getVoteLabel(mq135QualityResponse, mq135Bad)} · BAD ≥{" "}
+                        {MQ135_BAD_THRESHOLD}
+                      </small>
                     </div>
 
                     <div className="sensor-quality-detail-card">
-                      <span>MQ-135 Score</span>
-                      <strong>{formatQualityNumber(mq135QualityScore)}</strong>
-                      <small>/100</small>
+                      <span>Moisture</span>
+                      <strong>
+                        {formatQualityNumber(moistureQualityResponse)}
+                      </strong>
+                      <small>
+                        {getVoteLabel(moistureQualityResponse, moistureBad)} · BAD ≤{" "}
+                        {MOISTURE_BAD_THRESHOLD}
+                      </small>
+                    </div>
+
+                    <div className="sensor-quality-detail-card">
+                      <span>Humidity</span>
+                      <strong>
+                        {formatQualityNumber(humidityQualityResponse)}
+                      </strong>
+                      <small>
+                        {getVoteLabel(humidityQualityResponse, humidityBad)} · BAD ≥{" "}
+                        {HUMIDITY_BAD_THRESHOLD}
+                      </small>
+                    </div>
+
+                    <div className="sensor-quality-detail-card">
+                      <span>Temperature</span>
+                      <strong>
+                        {formatQualityNumber(temperatureQualityResponse)}
+                      </strong>
+                      <small>Supporting only · not used for voting</small>
                     </div>
                   </div>
                 </div>
@@ -1237,9 +1323,10 @@ function SensorScanWorkflow({
                   <span>i</span>
 
                   <p>
-                    This is the Step 1 sensor assessment only. The final coffee
-                    bean grade is calculated later by combining the sensor score
-                    with the Physical AI score.
+                    Status rule: 0-1 BAD votes = GOOD, 2 BAD votes = REVIEW,
+                    and 3-5 BAD votes = BAD. The final coffee bean grade is
+                    calculated later by combining this sensor score with the
+                    Physical AI score.
                   </p>
                 </div>
               </div>
@@ -2711,11 +2798,30 @@ function SensorScanWorkflow({
         }
 
 
+        .sensor-quality-vote-count {
+          margin-top: 10px;
+
+          color:
+            rgba(
+              255,
+              232,
+              204,
+              0.58
+            );
+
+          font-size: 9px;
+
+          font-weight: 850;
+
+          letter-spacing: 0.35px;
+        }
+
+
         .sensor-quality-detail-grid {
           display: grid;
 
           grid-template-columns:
-            repeat(4, minmax(0, 1fr));
+            repeat(3, minmax(0, 1fr));
 
           gap: 9px;
         }

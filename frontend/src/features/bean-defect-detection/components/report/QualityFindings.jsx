@@ -91,53 +91,224 @@ function QualityFindings({
     physicalScore * Number(physicalWeight || 0);
 
   // =========================================================
-  // SENSOR VALUES
+  // FIVE-SENSOR VOTING VALUES
+  // =========================================================
+  //
+  // Response = Sample - Baseline
+  //
+  // BAD vote thresholds:
+  //
+  // MQ-2      >= 129.5
+  // MQ-3      >= 38.5
+  // MQ-135    >= 9.5
+  // Moisture  <= -16.0
+  // Humidity  >= 10.7
+  //
+  // Temperature is supporting information only.
   // =========================================================
 
   const mq2Response = sensorAssessment.mq2_response;
 
+  const mq3Response = sensorAssessment.mq3_response;
+
   const mq135Response = sensorAssessment.mq135_response;
 
-  const mq2Threshold = sensorAssessment.mq2_threshold;
+  const moistureResponse = sensorAssessment.moisture_response;
 
-  const mq135Threshold = sensorAssessment.mq135_threshold;
+  const humidityResponse = sensorAssessment.humidity_response;
+
+  const temperatureResponse = sensorAssessment.temperature_response;
+
+  const mq2Threshold = Number(sensorAssessment.mq2_threshold ?? 129.5);
+
+  const mq3Threshold = Number(sensorAssessment.mq3_threshold ?? 38.5);
+
+  const mq135Threshold = Number(sensorAssessment.mq135_threshold ?? 9.5);
+
+  const moistureThreshold = Number(
+    sensorAssessment.moisture_threshold ?? -16.0,
+  );
+
+  const humidityThreshold = Number(sensorAssessment.humidity_threshold ?? 10.7);
 
   // =========================================================
-  // SENSOR INDIVIDUAL STATE
+  // SENSOR INDIVIDUAL VOTE STATE
   // =========================================================
 
-  const getThresholdState = (response, threshold) => {
+  const getSensorVoteState = ({
+    response,
+    threshold,
+    direction = "high",
+    backendBad,
+  }) => {
     if (
       response === null ||
       response === undefined ||
+      response === "" ||
       threshold === null ||
       threshold === undefined
     ) {
       return {
+        bad: null,
         label: "NO DATA",
         className: "neutral",
         symbol: "?",
+        ruleSymbol: direction === "low" ? "≤" : "≥",
       };
     }
 
-    if (Number(response) >= Number(threshold)) {
+    const responseNumber = Number(response);
+
+    const thresholdNumber = Number(threshold);
+
+    if (!Number.isFinite(responseNumber) || !Number.isFinite(thresholdNumber)) {
       return {
-        label: "THRESHOLD EXCEEDED",
+        bad: null,
+        label: "NO DATA",
+        className: "neutral",
+        symbol: "?",
+        ruleSymbol: direction === "low" ? "≤" : "≥",
+      };
+    }
+
+    const calculatedBad =
+      direction === "low"
+        ? responseNumber <= thresholdNumber
+        : responseNumber >= thresholdNumber;
+
+    const bad = typeof backendBad === "boolean" ? backendBad : calculatedBad;
+
+    if (bad) {
+      return {
+        bad: true,
+        label: "BAD VOTE",
         className: "danger",
-        symbol: "≥",
+        symbol: direction === "low" ? "≤" : "≥",
+        ruleSymbol: direction === "low" ? "≤" : "≥",
       };
     }
 
     return {
-      label: "BELOW THRESHOLD",
+      bad: false,
+      label: "GOOD VOTE",
       className: "good",
-      symbol: "<",
+      symbol: direction === "low" ? ">" : "<",
+      ruleSymbol: direction === "low" ? "≤" : "≥",
     };
   };
 
-  const mq2State = getThresholdState(mq2Response, mq2Threshold);
+  const mq2State = getSensorVoteState({
+    response: mq2Response,
+    threshold: mq2Threshold,
+    direction: "high",
+    backendBad: sensorAssessment.mq2_bad,
+  });
 
-  const mq135State = getThresholdState(mq135Response, mq135Threshold);
+  const mq3State = getSensorVoteState({
+    response: mq3Response,
+    threshold: mq3Threshold,
+    direction: "high",
+    backendBad: sensorAssessment.mq3_bad,
+  });
+
+  const mq135State = getSensorVoteState({
+    response: mq135Response,
+    threshold: mq135Threshold,
+    direction: "high",
+    backendBad: sensorAssessment.mq135_bad,
+  });
+
+  const moistureState = getSensorVoteState({
+    response: moistureResponse,
+    threshold: moistureThreshold,
+    direction: "low",
+    backendBad: sensorAssessment.moisture_bad,
+  });
+
+  const humidityState = getSensorVoteState({
+    response: humidityResponse,
+    threshold: humidityThreshold,
+    direction: "high",
+    backendBad: sensorAssessment.humidity_bad,
+  });
+
+  const votingSensors = [
+    {
+      name: "MQ-2",
+      type: "VOTING SENSOR",
+      response: mq2Response,
+      threshold: mq2Threshold,
+      state: mq2State,
+      direction: "high",
+    },
+
+    {
+      name: "MQ-3",
+      type: "VOTING SENSOR",
+      response: mq3Response,
+      threshold: mq3Threshold,
+      state: mq3State,
+      direction: "high",
+    },
+
+    {
+      name: "MQ-135",
+      type: "VOTING SENSOR",
+      response: mq135Response,
+      threshold: mq135Threshold,
+      state: mq135State,
+      direction: "high",
+    },
+
+    {
+      name: "Moisture",
+      type: "VOTING SENSOR",
+      response: moistureResponse,
+      threshold: moistureThreshold,
+      state: moistureState,
+      direction: "low",
+    },
+
+    {
+      name: "Humidity",
+      type: "VOTING SENSOR",
+      response: humidityResponse,
+      threshold: humidityThreshold,
+      state: humidityState,
+      direction: "high",
+    },
+  ];
+
+  const calculatedValidVoteCount = votingSensors.filter(
+    (sensor) => sensor.state.bad !== null,
+  ).length;
+
+  const calculatedBadCount = votingSensors.filter(
+    (sensor) => sensor.state.bad === true,
+  ).length;
+
+  const backendBadCount = Number(sensorAssessment.bad_count);
+
+  const backendValidVoteCount = Number(sensorAssessment.valid_vote_count);
+
+  const backendTotalVotingSensors = Number(
+    sensorAssessment.total_voting_sensors,
+  );
+
+  const badCount = Number.isFinite(backendBadCount)
+    ? backendBadCount
+    : calculatedBadCount;
+
+  const validVoteCount = Number.isFinite(backendValidVoteCount)
+    ? backendValidVoteCount
+    : calculatedValidVoteCount;
+
+  const totalVotingSensors =
+    Number.isFinite(backendTotalVotingSensors) && backendTotalVotingSensors > 0
+      ? backendTotalVotingSensors
+      : 5;
+
+  const goodVoteCount = Math.max(0, validVoteCount - badCount);
 
   // =========================================================
   // SENSOR DECISION EXPLANATION
@@ -151,42 +322,34 @@ function QualityFindings({
       );
     }
 
-    if (
-      mq2Response === null ||
-      mq2Response === undefined ||
-      mq135Response === null ||
-      mq135Response === undefined
-    ) {
+    if (validVoteCount < totalVotingSensors) {
       return (
-        "One or more primary sensor responses are unavailable. " +
-        "The sample therefore requires review."
+        `Only ${validVoteCount} of ${totalVotingSensors} voting sensor responses were valid. ` +
+        "A complete five-sensor decision could not be generated, so the sample requires REVIEW."
       );
     }
 
-    const mq2Exceeded = Number(mq2Response) >= Number(mq2Threshold);
-
-    const mq135Exceeded = Number(mq135Response) >= Number(mq135Threshold);
-
-    if (!mq2Exceeded && !mq135Exceeded) {
+    if (badCount >= 3) {
       return (
-        "Both primary gas sensor responses remained below " +
-        "their experimental decision thresholds. " +
-        "Therefore, the sensor assessment returned GOOD."
+        `${badCount} of ${totalVotingSensors} sensors produced BAD votes. ` +
+        "Because three or more BAD votes form the BAD decision zone, " +
+        "the sensor assessment returned BAD."
       );
     }
 
-    if (mq2Exceeded && mq135Exceeded) {
+    if (badCount === 2) {
       return (
-        "Both primary gas sensor responses reached or exceeded " +
-        "their experimental decision thresholds. " +
-        "Therefore, the sensor assessment returned BAD."
+        `Exactly ${badCount} of ${totalVotingSensors} sensors produced BAD votes. ` +
+        "According to the research-defined voting rule, two BAD votes indicate mixed evidence, " +
+        "so the sensor assessment returned REVIEW."
       );
     }
 
     return (
-      "Only one primary gas sensor response exceeded its " +
-      "experimental decision threshold while the other remained below it. " +
-      "Because the evidence is mixed, the sensor assessment returned REVIEW."
+      `${badCount} of ${totalVotingSensors} sensors produced BAD votes and ` +
+      `${goodVoteCount} produced GOOD votes. ` +
+      "Because zero or one BAD vote is within the GOOD decision zone, " +
+      "the sensor assessment returned GOOD."
     );
   };
 
@@ -643,91 +806,77 @@ function QualityFindings({
           </div>
         </div>
 
-        {/* PRIMARY SENSOR EVIDENCE */}
+        {/* FIVE-SENSOR VOTING EVIDENCE */}
 
         <div className="primary-sensor-evidence">
-          {/* MQ2 */}
+          {votingSensors.map((sensor) => (
+            <div
+              className={`
+                sensor-evidence-card
+                sensor-evidence-${sensor.state.className}
+              `}
+              key={sensor.name}
+            >
+              <div className="sensor-evidence-header">
+                <div>
+                  <span>{sensor.type}</span>
 
-          <div
-            className={`
-              sensor-evidence-card
-              sensor-evidence-${mq2State.className}
-            `}
-          >
-            <div className="sensor-evidence-header">
-              <div>
-                <span>PRIMARY SENSOR</span>
+                  <h5>{sensor.name}</h5>
+                </div>
 
-                <h5>MQ-2</h5>
+                <span
+                  className={`
+                    threshold-badge
+                    threshold-${sensor.state.className}
+                  `}
+                >
+                  {sensor.state.label}
+                </span>
               </div>
 
-              <span
-                className={`
-                  threshold-badge
-                  threshold-${mq2State.className}
-                `}
-              >
-                {mq2State.label}
-              </span>
+              <div className="threshold-comparison">
+                <div>
+                  <span>Response Δ</span>
+
+                  <strong>{formatValue(sensor.response)}</strong>
+                </div>
+
+                <div className="comparison-symbol">{sensor.state.symbol}</div>
+
+                <div>
+                  <span>BAD Threshold</span>
+
+                  <strong>{formatValue(sensor.threshold)}</strong>
+                </div>
+              </div>
+
+              <div className="sensor-vote-rule">
+                <span>BAD vote rule</span>
+
+                <strong>
+                  Δ {sensor.state.ruleSymbol} {formatValue(sensor.threshold)}
+                </strong>
+              </div>
             </div>
+          ))}
+        </div>
 
-            <div className="threshold-comparison">
-              <div>
-                <span>Response</span>
+        {/* TEMPERATURE SUPPORTING INFORMATION */}
 
-                <strong>{formatValue(mq2Response)}</strong>
-              </div>
+        <div className="temperature-supporting-box">
+          <div>
+            <span>SUPPORTING ENVIRONMENTAL READING</span>
 
-              <div className="comparison-symbol">{mq2State.symbol}</div>
-
-              <div>
-                <span>Decision Threshold</span>
-
-                <strong>{formatValue(mq2Threshold)}</strong>
-              </div>
-            </div>
+            <strong>Temperature Δ</strong>
           </div>
 
-          {/* MQ135 */}
+          <div>
+            <strong>{formatValue(temperatureResponse)}</strong>
 
-          <div
-            className={`
-              sensor-evidence-card
-              sensor-evidence-${mq135State.className}
-            `}
-          >
-            <div className="sensor-evidence-header">
-              <div>
-                <span>PRIMARY SENSOR</span>
-
-                <h5>MQ-135</h5>
-              </div>
-
-              <span
-                className={`
-                  threshold-badge
-                  threshold-${mq135State.className}
-                `}
-              >
-                {mq135State.label}
-              </span>
-            </div>
-
-            <div className="threshold-comparison">
-              <div>
-                <span>Response</span>
-
-                <strong>{formatValue(mq135Response)}</strong>
-              </div>
-
-              <div className="comparison-symbol">{mq135State.symbol}</div>
-
-              <div>
-                <span>Decision Threshold</span>
-
-                <strong>{formatValue(mq135Threshold)}</strong>
-              </div>
-            </div>
+            <small>
+              Not used as a quality vote because the experimental GOOD and BAD
+              temperature ranges overlapped.
+            </small>
           </div>
         </div>
 
@@ -737,14 +886,42 @@ function QualityFindings({
           <div className="logic-heading">
             <span>DECISION LOGIC</span>
 
-            <strong>Primary Sensor Interpretation</strong>
+            <strong>Five-Sensor Voting Interpretation</strong>
+          </div>
+
+          <div className="sensor-vote-summary">
+            <div>
+              <span>VALID VOTES</span>
+
+              <strong>
+                {validVoteCount}/{totalVotingSensors}
+              </strong>
+            </div>
+
+            <div>
+              <span>GOOD VOTES</span>
+
+              <strong>{goodVoteCount}</strong>
+            </div>
+
+            <div>
+              <span>BAD VOTES</span>
+
+              <strong>{badCount}</strong>
+            </div>
+
+            <div>
+              <span>SENSOR SCORE</span>
+
+              <strong>{formatValue(sensorScore)}/100</strong>
+            </div>
           </div>
 
           <div className="logic-rules">
             <div>
               <span className="logic-dot good-dot" />
 
-              <p>Both below threshold</p>
+              <p>0–1 BAD votes</p>
 
               <strong>GOOD</strong>
             </div>
@@ -752,7 +929,7 @@ function QualityFindings({
             <div>
               <span className="logic-dot warning-dot" />
 
-              <p>Only one threshold exceeded</p>
+              <p>Exactly 2 BAD votes</p>
 
               <strong>REVIEW</strong>
             </div>
@@ -760,10 +937,16 @@ function QualityFindings({
             <div>
               <span className="logic-dot danger-dot" />
 
-              <p>Both thresholds exceeded</p>
+              <p>3–5 BAD votes</p>
 
               <strong>BAD</strong>
             </div>
+          </div>
+
+          <div className="sensor-score-formula">
+            <span>SCORE FORMULA</span>
+
+            <strong>Sensor Score = 100 - (BAD Votes × 20)</strong>
           </div>
         </div>
 
@@ -1940,7 +2123,7 @@ function QualityFindings({
 
           grid-template-columns:
             repeat(
-              2,
+              3,
               minmax(
                 0,
                 1fr
@@ -2176,6 +2359,154 @@ function QualityFindings({
         }
 
 
+        .sensor-vote-rule {
+          margin-top: 9px;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: space-between;
+
+          gap: 8px;
+
+          padding:
+            8px 9px;
+
+          border-radius: 9px;
+
+          background:
+            rgba(
+              0,
+              0,
+              0,
+              0.08
+            );
+        }
+
+
+        .sensor-vote-rule span {
+          color:
+            rgba(
+              255,
+              235,
+              207,
+              0.27
+            );
+
+          font-size: 6px;
+
+          font-weight: 800;
+        }
+
+
+        .sensor-vote-rule strong {
+          color: #ead3b4;
+
+          font-size: 8px;
+        }
+
+
+        .temperature-supporting-box {
+          margin-top: 10px;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: space-between;
+
+          gap: 15px;
+
+          padding: 12px;
+
+          border-radius: 12px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.02
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              220,
+              170,
+              0.05
+            );
+        }
+
+
+        .temperature-supporting-box
+        > div:first-child
+        > span {
+          display: block;
+
+          color: #dca05e;
+
+          font-size: 6px;
+
+          font-weight: 900;
+
+          letter-spacing: 0.8px;
+        }
+
+
+        .temperature-supporting-box
+        > div:first-child
+        > strong {
+          display: block;
+
+          margin-top: 3px;
+
+          color: #ead4b6;
+
+          font-size: 10px;
+        }
+
+
+        .temperature-supporting-box
+        > div:last-child {
+          text-align: right;
+        }
+
+
+        .temperature-supporting-box
+        > div:last-child
+        > strong {
+          display: block;
+
+          color: #ffe0aa;
+
+          font-size: 16px;
+        }
+
+
+        .temperature-supporting-box small {
+          display: block;
+
+          max-width: 430px;
+
+          margin-top: 3px;
+
+          color:
+            rgba(
+              255,
+              235,
+              207,
+              0.27
+            );
+
+          font-size: 7px;
+
+          line-height: 1.45;
+        }
+
+
         /* =================================================
            LOGIC
         ================================================= */
@@ -2225,6 +2556,117 @@ function QualityFindings({
           color: #ead4b6;
 
           font-size: 10px;
+        }
+
+
+        .sensor-vote-summary {
+          margin-top: 10px;
+
+          display: grid;
+
+          grid-template-columns:
+            repeat(
+              4,
+              minmax(
+                0,
+                1fr
+              )
+            );
+
+          gap: 8px;
+        }
+
+
+        .sensor-vote-summary > div {
+          padding:
+            9px 10px;
+
+          border-radius: 9px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.02
+            );
+        }
+
+
+        .sensor-vote-summary span {
+          display: block;
+
+          color:
+            rgba(
+              255,
+              235,
+              207,
+              0.28
+            );
+
+          font-size: 6px;
+
+          font-weight: 850;
+        }
+
+
+        .sensor-vote-summary strong {
+          display: block;
+
+          margin-top: 4px;
+
+          color: #ffe0aa;
+
+          font-size: 12px;
+        }
+
+
+        .sensor-score-formula {
+          margin-top: 8px;
+
+          padding:
+            8px 9px;
+
+          border-radius: 9px;
+
+          background:
+            rgba(
+              216,
+              145,
+              72,
+              0.055
+            );
+
+          border:
+            1px solid
+            rgba(
+              226,
+              160,
+              92,
+              0.08
+            );
+        }
+
+
+        .sensor-score-formula span {
+          display: block;
+
+          color: #dca05e;
+
+          font-size: 6px;
+
+          font-weight: 900;
+        }
+
+
+        .sensor-score-formula strong {
+          display: block;
+
+          margin-top: 3px;
+
+          color: #ead4b6;
+
+          font-size: 9px;
         }
 
 
@@ -3122,6 +3564,30 @@ function QualityFindings({
           }
 
 
+          .primary-sensor-evidence {
+            grid-template-columns:
+              repeat(
+                2,
+                minmax(
+                  0,
+                  1fr
+                )
+              );
+          }
+
+
+          .sensor-vote-summary {
+            grid-template-columns:
+              repeat(
+                2,
+                minmax(
+                  0,
+                  1fr
+                )
+              );
+          }
+
+
           .physical-detection-grid {
             grid-template-columns:
               repeat(
@@ -3164,6 +3630,25 @@ function QualityFindings({
 
 
           .primary-sensor-evidence {
+            grid-template-columns:
+              1fr;
+          }
+
+
+          .temperature-supporting-box {
+            align-items: flex-start;
+
+            flex-direction: column;
+          }
+
+
+          .temperature-supporting-box
+          > div:last-child {
+            text-align: left;
+          }
+
+
+          .sensor-vote-summary {
             grid-template-columns:
               1fr;
           }
