@@ -16,7 +16,15 @@ from app.modules.packet_seal_detection.history_service import (
     save_camera_history
 )
 
+from app.modules.packet_seal_detection import inspection_service
+
 from app.modules.packet_seal_detection.report_service import report_service
+
+from app.modules.packet_seal_detection.inspection_service import (
+    update_vision_result,
+)
+
+from app.modules.packet_seal_detection import inspection_service
 
 # ==================================================
 # ENVIRONMENT
@@ -141,6 +149,12 @@ class RealtimeSealInspector:
 
         self.history_saved = False
 
+        # Current inspection session packet ID
+        # (comes from inspection_service - the active session
+        # created via POST /inspection/start)
+
+        self.current_packet_id = None
+
         self.last_history_time = 0
 
         
@@ -216,41 +230,52 @@ class RealtimeSealInspector:
         print("Camera released successfully")
 
 
-    # ==================================================
-    # START REAL-TIME INSPECTION
-    # ==================================================
+    #================================================
 
-    def start(self):
+    def start(self, packet_id=None):
 
         if self.running:
-
             return {
                 "started": True,
                 "message": "Real-time inspection is already running."
             }
 
-        if not self.open_camera():
+        # ------------------------------------------
+        # RESOLVE WHICH PACKET THIS CAMERA RUN BELONGS TO
+        # ------------------------------------------
 
+        resolved_packet_id = (
+            packet_id
+            or inspection_service.get_active_packet_id()
+        )
+
+        if not resolved_packet_id:
+            return {
+                "started": False,
+                "message": (
+                    "No active inspection session. Please start a new "
+                    "inspection (Packet ID) before starting the camera."
+                )
+            }
+
+        if not self.open_camera():
             return {
                 "started": False,
                 "message": "Could not connect to IP Webcam."
             }
 
         self.overheat_history.clear()
-
         self.captured_frames.clear()
-
         self.frame_results.clear()
 
         self.final_image = None
-
         self.best_confidence = 0
 
         self.inspection_start_time = time.time()
-
         self.history_saved = False
-
         self.latest_frame = None
+
+        self.current_packet_id = resolved_packet_id
 
         self.running = True
 
@@ -264,9 +289,9 @@ class RealtimeSealInspector:
         return {
             "started": True,
             "message": "Real-time seal inspection started.",
-            "camera_url": CAMERA_URL
+            "camera_url": CAMERA_URL,
+            "packet_id": self.current_packet_id
         }
-
 
     # ==================================================
     # STOP REAL-TIME INSPECTION
@@ -333,6 +358,20 @@ class RealtimeSealInspector:
             result.get("final_status"),
             str(result.get("seals"))
         )
+
+    # ==================================================
+    # RESET 3-SECOND INSPECTION CYCLE
+    # ==================================================
+    # FIXED BUG: this previously tried to assign
+    # `self.current_packet_id = packet_id` using a `packet_id`
+    # variable that was never defined anywhere in this method,
+    # which would crash the background processing thread the
+    # first time a cycle completed (NameError).
+    #
+    # The packet_id must NOT change mid-session: one physical
+    # packet keeps the SAME identity for the whole camera run,
+    # from Start Live Inspection until Stop Live Inspection.
+    # ==================================================
 
     def reset_inspection_cycle(self):
 
@@ -772,6 +811,8 @@ class RealtimeSealInspector:
 
         result_data = {
 
+            "packet_id": self.current_packet_id,
+
             "camera_connected": True,
 
             "seal_count": len(seals_data),
@@ -846,6 +887,17 @@ class RealtimeSealInspector:
             annotated_frame=frame
         )
 
+        # Save vision result into current inspection session
+        # (this is what lets /report/generate and the leak test
+        # later know this AI result belongs to this exact packet_id)
+
+        if self.current_packet_id:
+
+            update_vision_result(
+                self.current_packet_id,
+                result_data
+            )
+
         # ==================================================
         # LIVE RESULT UPDATE (NO DELAY)
         # ==================================================
@@ -887,6 +939,18 @@ class RealtimeSealInspector:
             inspection_timestamp = datetime.now(timezone.utc)
 
             result_data["created_at"] = inspection_timestamp.isoformat()
+
+            # ==========================================
+            # RE-SAVE VISION RESULT WITH FINAL IMAGE PATH
+            # AND TIMESTAMP ATTACHED
+            # ==========================================
+
+            if self.current_packet_id:
+
+                update_vision_result(
+                    self.current_packet_id,
+                    result_data
+                )
 
             # ==========================================
             # CREATE HISTORY RECORD

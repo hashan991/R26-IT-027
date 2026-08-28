@@ -1,36 +1,37 @@
-from datetime import datetime
-import uuid
+# app/modules/packet_seal_detection/history_service.py
+
+from datetime import datetime, timezone
 
 from app.database import get_database
 
-
-# ==================================================
-# GENERATE UNIQUE PACKET ID
-# ==================================================
-
-def generate_packet_id():
-
-    timestamp = datetime.now().strftime("%Y%m%d")
-
-    unique = uuid.uuid4().hex[:4].upper()
-
-    return f"PKT-{timestamp}-{unique}"
+from app.modules.packet_seal_detection import inspection_service
 
 
 # ==================================================
 # CREATE CAMERA INSPECTION HISTORY
 # ==================================================
+# IMPORTANT FIX:
+# Previously this generated a brand-new random packet_id here,
+# which meant the saved history record was NEVER the same
+# packet_id as the active inspection session (so the leak test
+# result could never be matched back to it). Now it uses the
+# packet_id that is already inside `result` (set by
+# realtime_service via the active session), falling back to a
+# fresh id only if no session was active.
+# ==================================================
 
 def create_camera_history(result, image_path=None):
 
-    packet_id = generate_packet_id()
+    packet_id = (
+        result.get("packet_id")
+        or inspection_service.get_active_packet_id()
+        or inspection_service.generate_packet_id()
+    )
 
     history = {
 
         "packet_id": packet_id,
-
         "inspection_id": packet_id,
-
         "inspection_stage": "camera",
 
         "result_type": (
@@ -39,67 +40,22 @@ def create_camera_history(result, image_path=None):
             else "DEFECT"
         ),
 
-        # ------------------------------------------
-        # SEAL RESULT
-        # ------------------------------------------
-
         "seal_result": {
-
-            "seal_count": result.get(
-                "seal_count",
-                0
-            ),
-
-            "seals": result.get(
-                "seals",
-                []
-            )
-
+            "seal_count": result.get("seal_count", 0),
+            "seals": result.get("seals", []),
         },
-
-        # ------------------------------------------
-        # OVERHEAT RESULT
-        # ------------------------------------------
 
         "overheat_result": {
-
-            "detected": result.get(
-                "overheat_detected",
-                False
-            ),
-
-            "confidence": result.get(
-                "highest_overheat_confidence",
-                0
-            ),
-
-            "validation": result.get(
-                "validation",
-                {}
-            )
-
+            "detected": result.get("overheat_detected", False),
+            "confidence": result.get("highest_overheat_confidence", 0),
+            "validation": result.get("validation", {}),
         },
 
-        # ------------------------------------------
-        # FINAL STATUS
-        # ------------------------------------------
-
-        "final_status": result.get(
-            "final_status"
-        ),
-
-        # ------------------------------------------
-        # ANNOTATED INSPECTION IMAGE
-        # ------------------------------------------
+        "final_status": result.get("final_status"),
 
         "image_path": image_path,
 
-        # ------------------------------------------
-        # CREATED TIME
-        # ------------------------------------------
-
-        "created_at": datetime.utcnow()
-
+        "created_at": datetime.now(timezone.utc),
     }
 
     return history
@@ -108,60 +64,35 @@ def create_camera_history(result, image_path=None):
 # ==================================================
 # SAVE CAMERA INSPECTION HISTORY
 # ==================================================
-
 async def save_camera_history(history):
 
     db = get_database()
-
     collection = db["packet_inspection_history"]
 
-    result = await collection.insert_one(
-        history
-    )
+    result = await collection.insert_one(history)
 
-    return str(
-        result.inserted_id
-    )
+    return str(result.inserted_id)
 
 
 # ==================================================
 # GET LATEST CAMERA INSPECTION HISTORY
 # ==================================================
-
 async def get_camera_history(limit=50):
 
     db = get_database()
-
     collection = db["packet_inspection_history"]
-
-    # ------------------------------------------
-    # GET NEWEST RECORDS FIRST
-    # ------------------------------------------
 
     cursor = (
         collection
         .find({})
-        .sort(
-            "created_at",
-            -1
-        )
+        .sort("created_at", -1)
         .limit(limit)
     )
 
-    records = await cursor.to_list(
-        length=limit
-    )
-
-    # ------------------------------------------
-    # CONVERT MONGODB OBJECT ID TO STRING
-    # ------------------------------------------
+    records = await cursor.to_list(length=limit)
 
     for record in records:
-
         if "_id" in record:
-
-            record["_id"] = str(
-                record["_id"]
-            )
+            record["_id"] = str(record["_id"])
 
     return records

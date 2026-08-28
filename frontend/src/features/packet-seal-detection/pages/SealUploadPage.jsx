@@ -11,6 +11,10 @@ import {
   getLeakTestHistory,
   getSealInspectionHistory,
 
+  // Packet inspection session
+  startInspectionSession,
+  getCurrentInspectionSession,
+
   // Final inspection report
   getInspectionReportStatus,
   generateInspectionReport,
@@ -1197,6 +1201,67 @@ const styles = `
     color: var(--warn); border-radius: var(--radius-sm); padding: 11px 12px; font-size: 11px; line-height: 1.55; font-weight: 600;
   }
 
+    /* ---------- Session bar ---------- */
+
+  .session-bar {
+    margin-top: 18px;
+    width: 100%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow-card);
+  }
+
+  .session-bar.active { border-color: var(--good-border); background: var(--good-bg); }
+
+  .session-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+
+  .session-icon {
+    width: 42px; height: 42px; border-radius: var(--radius-sm);
+    display: grid; place-items: center; font-size: 20px;
+    background: var(--surface-alt); border: 1px solid var(--border); flex: 0 0 auto;
+  }
+
+  .session-bar.active .session-icon { background: var(--surface); border-color: var(--good-border); }
+
+  .session-label { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 3px; }
+
+  .session-value { font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 700; color: var(--text); word-break: break-all; }
+
+  .session-bar.active .session-value { color: var(--good); }
+
+  .session-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+
+  .session-stage { display: flex; align-items: center; gap: 7px; }
+
+  .session-stage-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--border-strong); }
+
+  .session-stage-dot.done { background: var(--good); }
+
+  .session-stage-text { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+
+  .session-start-btn {
+    min-height: 42px; padding: 0 18px; border-radius: var(--radius-sm);
+    border: none; background: var(--accent); color: white;
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+
+  .session-start-btn:hover:not(:disabled) { opacity: 0.9; }
+  .session-start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .session-error {
+    width: 100%; margin-top: 4px; border: 1px solid var(--bad-border); background: var(--bad-bg);
+    color: var(--bad); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 12px; font-weight: 600;
+  }
+
+
   /* ---------- History ---------- */
 
   .history-panel { margin-top: 18px; width: 100%; border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-card); }
@@ -1301,6 +1366,13 @@ function SealUploadPage() {
   const [dragOver, setDragOver] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+    // Packet inspection session
+  const [activePacketId, setActivePacketId] = useState(null);
+  const [sessionStarting, setSessionStarting] = useState(false);
+  const [sessionError, setSessionError] = useState("");
+  const [visionStageDone, setVisionStageDone] = useState(false);
+  const [leakStageDone, setLeakStageDone] = useState(false);
+
   // Main page tabs
   const [activeTab, setActiveTab] = useState("realtime");
 
@@ -1335,6 +1407,45 @@ function SealUploadPage() {
   const [generatedReport, setGeneratedReport] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState("");
+
+    const refreshSessionStatus = async () => {
+    try {
+      const data = await getCurrentInspectionSession();
+
+      if (data?.active && data?.inspection) {
+        setActivePacketId(data.inspection.packet_id);
+        setVisionStageDone(Boolean(data.inspection.vision_result));
+        setLeakStageDone(Boolean(data.inspection.leak_result));
+      } else {
+        setActivePacketId(null);
+        setVisionStageDone(false);
+        setLeakStageDone(false);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleStartInspectionSession = async () => {
+    try {
+      setSessionStarting(true);
+      setSessionError("");
+
+      const data = await startInspectionSession();
+
+      setActivePacketId(data.packet_id);
+      setVisionStageDone(false);
+      setLeakStageDone(false);
+    } catch (error) {
+      console.error(error);
+      setSessionError(
+        error?.response?.data?.detail ||
+          "Could not start a new inspection session."
+      );
+    } finally {
+      setSessionStarting(false);
+    }
+  };
 
   const checkReportStatus = async () => {
     try {
@@ -1413,6 +1524,10 @@ function SealUploadPage() {
       setReportLoading(false);
     }
   };
+
+  useEffect(() => {
+  refreshSessionStatus();
+}, []);
 
 useEffect(() => {
 
@@ -1641,7 +1756,12 @@ const refreshRealtimeHistory = async () => {
 };
 
 
-  const handleLeakDeviceTest = async () => {
+      const handleLeakDeviceTest = async () => {
+    if (!activePacketId) {
+      setDeviceError("Please start a new inspection (Packet ID) first.");
+      return;
+    }
+
     if (!deviceStatus?.connected) {
       setDeviceError(
         "Device is not connected. Connect the Arduino and refresh the device status first."
@@ -1658,8 +1778,6 @@ const refreshRealtimeHistory = async () => {
 
       setDeviceResult(data.result || null);
 
-
-      // refresh history after new test
       await loadLeakHistory();
 
       if (data?.result?.error) {
@@ -1673,10 +1791,18 @@ const refreshRealtimeHistory = async () => {
       setDeviceError(apiMessage);
     } finally {
       setDeviceLoading(false);
+      refreshSessionStatus();
     }
   };
 
-  const handleStartRealtime = async () => {
+  
+
+      const handleStartRealtime = async () => {
+    if (!activePacketId) {
+      setRealtimeError("Please start a new inspection (Packet ID) first.");
+      return;
+    }
+
     try {
       setRealtimeStarting(true);
       setRealtimeError("");
@@ -1707,6 +1833,7 @@ const refreshRealtimeHistory = async () => {
       );
     } finally {
       setRealtimeStarting(false);
+      refreshSessionStatus();
     }
   };
 
@@ -1936,6 +2063,43 @@ const refreshRealtimeHistory = async () => {
               <div className="nav-pill">Seal QC</div>
             </div>
           </nav>
+
+                    <div className={`session-bar ${activePacketId ? "active" : ""}`}>
+            <div className="session-left">
+              <div className="session-icon">🏷️</div>
+              <div>
+                <div className="session-label">Active Inspection Session</div>
+                <div className="session-value">
+                  {activePacketId || "No active packet — start a new inspection"}
+                </div>
+              </div>
+            </div>
+
+            <div className="session-right">
+              <div className="session-stage">
+                <span className={`session-stage-dot ${visionStageDone ? "done" : ""}`} />
+                <span className="session-stage-text">AI Vision</span>
+              </div>
+
+              <div className="session-stage">
+                <span className={`session-stage-dot ${leakStageDone ? "done" : ""}`} />
+                <span className="session-stage-text">Leak Test</span>
+              </div>
+
+              <button
+                type="button"
+                className="session-start-btn"
+                onClick={handleStartInspectionSession}
+                disabled={sessionStarting}
+              >
+                {sessionStarting ? "Starting..." : "＋ Start New Inspection"}
+              </button>
+            </div>
+
+            {sessionError && (
+              <div className="session-error">⚠️ {sessionError}</div>
+            )}
+          </div>
 
           <div className="mode-tabs">
             <div className="mode-tabs-inner">
