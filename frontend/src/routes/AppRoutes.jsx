@@ -6,10 +6,11 @@ import LoginPage from "../auth/pages/LoginPage";
 import RegisterPage from "../auth/pages/RegisterPage";
 
 import BeanUploadPage from "../features/bean-defect-detection/pages/BeanUploadPage";
+import BeanQualityPage from "../features/bean-defect-detection/pages/BeanQualityPage";
 
 import SalesPredictionPage from "../features/sales-prediction/pages/SalesPredictionPage";
 
-import BeanQualityPage from "../features/bean-defect-detection/pages/BeanQualityPage";
+import SealUploadPage from "../features/packet-seal-detection/pages/SealUploadPage";
 
 import UserManagementPage from "../features/admin/pages/UserManagementPage";
 
@@ -20,19 +21,22 @@ import RoleRoute from "../shared/components/RoleRoute";
 import DashboardLayout from "../layouts/DashboardLayout";
 import DashboardHomePage from "../pages/DashboardHomePage";
 
-import SealUploadPage from "../features/packet-seal-detection/pages/SealUploadPage";
+// =====================================================
+// POWDER QUALITY MODULE
+// =====================================================
 
+import PowderDashboardLayout from "../features/powder-quality-checking/layouts/DashboardLayout";
+
+import PowderDashboard from "../features/powder-quality-checking/pages/Dashboard";
+import BatchIntelligence from "../features/powder-quality-checking/pages/BatchIntelligence";
+import ProductionIntelligence from "../features/powder-quality-checking/pages/ProductionIntelligence";
+import CoffeeInspectionReport from "../features/powder-quality-checking/pages/report/CoffeeInspectionReport";
+
+import { RefreshProvider } from "../features/powder-quality-checking/context/RefreshContext";
 
 function AppRoutes() {
   return (
     <Routes>
-
-  
-
-
-      <Route path="/sales" element={<SalesPredictionPage />} />
-      
-
       {/* =====================================================
           PUBLIC ROUTES
       ===================================================== */}
@@ -44,11 +48,13 @@ function AppRoutes() {
       <Route path="/register" element={<RegisterPage />} />
 
       {/* =====================================================
-          PROTECTED DASHBOARD ROUTES
+          MAIN PROTECTED DASHBOARD ROUTES
       ===================================================== */}
 
       <Route element={<DashboardLayout />}>
-        {/* DASHBOARD */}
+        {/* =====================================================
+            DASHBOARD
+        ===================================================== */}
 
         <Route
           path="/dashboard"
@@ -123,7 +129,10 @@ function AppRoutes() {
           }
         />
 
-        {/* PACKAGING / SEAL */}
+        {/* =====================================================
+            PACKAGING / SEAL QUALITY
+        ===================================================== */}
+
         <Route
           path="/seals"
           element={
@@ -132,12 +141,71 @@ function AppRoutes() {
             </RoleRoute>
           }
         />
+
+        {/* =====================================================
+            SALES PREDICTION
+        ===================================================== */}
+
+        <Route
+          path="/sales"
+          element={
+            <RoleRoute allowedRoles={["ADMIN", "SALES_ANALYST"]}>
+              <SalesPredictionPage />
+            </RoleRoute>
+          }
+        />
+
+        {/* =====================================================
+          POWDER QUALITY MODULE
+      ===================================================== */}
+
+        <Route
+          path="/powder"
+          element={
+            <RoleRoute allowedRoles={["ADMIN", "POWDER_QUALITY_INSPECTOR"]}>
+              <RefreshProvider>
+                <PowderDashboardLayout />
+              </RefreshProvider>
+            </RoleRoute>
+          }
+        >
+          {/* Powder Dashboard */}
+
+          <Route index element={<PowderDashboard />} />
+
+          <Route path="dashboard" element={<PowderDashboard />} />
+
+          {/* Batch Intelligence */}
+
+          <Route path="batch-intelligence" element={<BatchIntelligence />} />
+
+          {/* Production Intelligence */}
+
+          <Route
+            path="production-intelligence"
+            element={<ProductionIntelligence />}
+          />
+        </Route>
+
+        {/* =====================================================
+          POWDER QUALITY REPORT
+      ===================================================== */}
+
+        <Route
+          path="/powder/report/:batchId"
+          element={
+            <RoleRoute allowedRoles={["ADMIN", "POWDER_QUALITY_INSPECTOR"]}>
+              <RefreshProvider>
+                <CoffeeInspectionReport />
+              </RefreshProvider>
+            </RoleRoute>
+          }
+        />
       </Route>
 
       {/* =====================================================
           404
       ===================================================== */}
-
 
       <Route path="*" element={<h1>404 - Page Not Found</h1>} />
     </Routes>

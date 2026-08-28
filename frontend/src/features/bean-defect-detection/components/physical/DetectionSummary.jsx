@@ -46,12 +46,7 @@ function DetectionSummary({ result }) {
       count: blackBrokenCount,
       description: "Black + broken",
     },
-    {
-      key: "unknown",
-      label: "Unknown",
-      count: unknownCount,
-      description: "Unmatched AI combination",
-    },
+  
   ];
 
   return (
@@ -78,10 +73,6 @@ function DetectionSummary({ result }) {
           <strong>{totalDefects}</strong>
         </div>
 
-        <div className="summary-card">
-          <span>Unknown</span>
-          <strong>{unknownCount}</strong>
-        </div>
       </div>
 
       {/* QUALITY PERCENTAGES */}

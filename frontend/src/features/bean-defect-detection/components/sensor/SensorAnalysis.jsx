@@ -6,6 +6,7 @@ import SensorMetricCard from "./SensorMetricCard";
 import {
   getSensorStatus,
   getLatestSensorReading,
+  sendSensorIndicatorCommand,
 } from "../../services/sensorService";
 
 import SensorScanWorkflow from "./SensorScanWorkflow";
@@ -26,8 +27,8 @@ function SensorAnalysis({ onComplete }) {
     Repeated experiments වලින් පස්සේ tune කරන්න.
   */
   const STABILITY_THRESHOLDS = {
-    mq2Percent: 3,
-    mq3Percent: 3,
+    mq2Percent: 6,
+    mq3Percent: 6,
     mq135Percent: 3,
     moisturePercent: 1,
 
@@ -86,7 +87,7 @@ function SensorAnalysis({ onComplete }) {
   // =========================================================
   //
   // SensorScanWorkflow component එකේ capture වෙන
-  // Baseline / Sample / Recovery data parent component එකේ
+  // Baseline / Sample data parent component එකේ
   // save කරගෙන Final Quality Report එකට pass කරනවා.
   //
   // =========================================================
@@ -96,11 +97,9 @@ function SensorAnalysis({ onComplete }) {
 
     baseline: null,
     sample: null,
-    recovery: null,
 
     baselineCapturedAt: null,
     sampleCapturedAt: null,
-    recoveryCapturedAt: null,
 
     completed: false,
   });
@@ -616,7 +615,7 @@ function SensorAnalysis({ onComplete }) {
   // COMPLETE SENSOR STEP
   // =========================================================
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     setError("");
 
     // Sensor data nathnam
@@ -627,15 +626,10 @@ function SensorAnalysis({ onComplete }) {
       return;
     }
 
-    // Complete Baseline -> Sample -> Recovery workflow first
-    if (
-      !scanResult.completed ||
-      !scanResult.baseline ||
-      !scanResult.sample ||
-      !scanResult.recovery
-    ) {
+    // Complete Baseline -> Sample workflow first
+    if (!scanResult.completed || !scanResult.baseline || !scanResult.sample) {
       setError(
-        "Complete the full Baseline → Sample → Recovery sensor workflow before continuing to Physical AI Analysis.",
+        "Complete the Baseline → Sample sensor workflow before continuing to Physical AI Analysis.",
       );
       return;
     }
@@ -643,7 +637,7 @@ function SensorAnalysis({ onComplete }) {
     // Monitoring thama run wenawanam
     if (autoReading) {
       setError(
-        "Sensor monitoring is still active. Wait until the recovery reading is captured and the task is complete.",
+        "Sensor monitoring is still active. Wait until the sample reading is captured and the task is complete.",
       );
       return;
     }
@@ -657,7 +651,7 @@ function SensorAnalysis({ onComplete }) {
     // Snapshot lock wela nathnam
     if (!lockedAt) {
       setError(
-        "The final recovery reading has not been locked yet. Please wait until the sensor task is complete.",
+        "The final sample reading has not been locked yet. Please wait until the sensor task is complete.",
       );
       return;
     }
@@ -665,7 +659,7 @@ function SensorAnalysis({ onComplete }) {
     // Sensors stable nathnam
     if (stabilityStatus !== "stable") {
       setError(
-        "The final recovery readings are not stable yet. Wait until all sensors become stable.",
+        "The final sample readings are not stable yet. Wait until all sensors become stable.",
       );
       return;
     }
@@ -700,8 +694,6 @@ function SensorAnalysis({ onComplete }) {
       baseline: scanResult.baseline,
 
       sample: scanResult.sample,
-
-      recovery: scanResult.recovery,
 
       /*
         comparison intentionally stays null here.
@@ -744,8 +736,6 @@ function SensorAnalysis({ onComplete }) {
 
       sampleCapturedAt: scanResult.sampleCapturedAt,
 
-      recoveryCapturedAt: scanResult.recoveryCapturedAt,
-
       lockedAt: lockedAt.toISOString(),
 
       collectedAt: new Date().toISOString(),
@@ -755,6 +745,29 @@ function SensorAnalysis({ onComplete }) {
 
     console.log("STEP 1 SENSOR RESULT JSON:", JSON.stringify(result, null, 2));
 
+    // =========================================================
+    // TURN OFF RESULT LED BEFORE PHYSICAL AI ANALYSIS
+    // =========================================================
+    //
+    // GOOD result  -> Green LED remains ON on the result screen.
+    // BAD result   -> Red LED remains ON on the result screen.
+    // When the user clicks Continue to Physical AI Analysis,
+    // RESET is sent to Arduino before moving to Step 2.
+    //
+    // =========================================================
+
+    try {
+      await sendSensorIndicatorCommand("RESET");
+
+      console.log("Arduino indicator reset before Physical AI Analysis");
+    } catch (error) {
+      console.error(
+        "Unable to reset Arduino indicator before Physical AI Analysis:",
+        error,
+      );
+    }
+
+    // Continue to Step 2 after the RESET attempt.
     onComplete(result);
   };
 
@@ -1472,18 +1485,18 @@ function SensorAnalysis({ onComplete }) {
         <div className="sensor-actions">
           <div className="sensor-helper">
             {!scanResult.completed
-              ? "Complete the Baseline → Sample → Recovery sensor workflow first."
+              ? "Complete the Baseline → Sample sensor workflow first."
               : !sensorData
                 ? "Sensor data is not available."
                 : autoReading
-                  ? "Sensor monitoring is still active. Wait until the recovery stage is complete."
+                  ? "Sensor monitoring is still active. Wait until the sample stage is complete."
                   : reading
                     ? "Sensor reading is still in progress."
                     : !lockedAt
-                      ? "Waiting for the final recovery reading to be locked."
+                      ? "Waiting for the final sample reading to be locked."
                       : stabilityStatus !== "stable"
-                        ? "Final recovery readings are not stable yet."
-                        : "Sensor test complete. Baseline, sample, and recovery data are ready for the Final Quality Report."}
+                        ? "Final sample readings are not stable yet."
+                        : "Sensor test complete. Baseline and sample data are ready for the Final Quality Report."}
           </div>
 
           <button
@@ -1492,7 +1505,6 @@ function SensorAnalysis({ onComplete }) {
               !scanResult.completed ||
               !scanResult.baseline ||
               !scanResult.sample ||
-              !scanResult.recovery ||
               !sensorData ||
               autoReading ||
               reading ||
