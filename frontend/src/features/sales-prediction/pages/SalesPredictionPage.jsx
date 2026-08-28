@@ -138,13 +138,16 @@ function getDemandDescription(level) {
 function getQualityDescription(label) {
   if (!label) return "";
   const descriptions = {
-    "Premium": "🌟 Exceptional quality with superior flavor profile and characteristics",
-    "Good": "👍 High quality with consistent flavor and good characteristics",
-    "Standard": "📊 Acceptable quality meeting basic standards",
-    "Average": "📋 Moderate quality with some variations",
-    "Low": "⚠️ Below average quality requiring attention"
+    Premium:
+      "🌟 Exceptional quality with superior flavor profile and characteristics",
+    Good: "👍 High quality with consistent flavor and good characteristics",
+    Standard: "📊 Acceptable quality meeting basic standards",
+    Average: "📋 Moderate quality with some variations",
+    Low: "⚠️ Below average quality requiring attention",
   };
-  return descriptions[label] || "Quality characteristics are within expected ranges";
+  return (
+    descriptions[label] || "Quality characteristics are within expected ranges"
+  );
 }
 
 function SalesPredictionPage() {
@@ -159,8 +162,10 @@ function SalesPredictionPage() {
   const [error, setError] = useState("");
 
   const selectedMonthName = useMemo(
-    () => months.find((item) => item.value === Number(month))?.label || "Selected month",
-    [month]
+    () =>
+      months.find((item) => item.value === Number(month))?.label ||
+      "Selected month",
+    [month],
   );
 
   const handlePredict = async (event) => {
@@ -181,46 +186,28 @@ function SalesPredictionPage() {
     } finally {
       setLoading(false);
     }
-
   };
 
   const handleReportDownload = async () => {
+    try {
+      setReportLoading(true);
 
-  try {
+      await downloadSalesReport(year, month);
+    } catch (error) {
+      console.error("Report download failed:", error);
 
-    setReportLoading(true);
-
-    await downloadSalesReport(
-      year,
-      month
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      "Report download failed:",
-      error
-    );
-
-
-    setError(
-      "Unable to generate report"
-    );
-
-
-  } finally {
-
-    setReportLoading(false);
-
-  }
-
-};
+      setError("Unable to generate report");
+    } finally {
+      setReportLoading(false);
+    }
+  };
 
   const demandClass = getDemandClass(result?.sales_level);
   const demandEmoji = getEmojiForDemand(result?.sales_level);
   const demandDescription = getDemandDescription(result?.sales_level);
-  const qualityDescription = getQualityDescription(result?.predicted_quality_label);
+  const qualityDescription = getQualityDescription(
+    result?.predicted_quality_label,
+  );
 
   return (
     <div className="sales-page">
@@ -232,13 +219,16 @@ function SalesPredictionPage() {
           <p className="eyebrow">☕ Coffee Sales Intelligence</p>
           <h1>Weather-Based Coffee Sales Prediction</h1>
           <p className="hero-text">
-            Select a year and month to forecast coffee sales and quality.
-            The system automatically combines historical sales, weather patterns,
-            seasonality, and trained Random Forest models to generate a clear business forecast.
+            Select a year and month to forecast coffee sales and quality. The
+            system automatically combines historical sales, weather patterns,
+            seasonality, and trained Random Forest models to generate a clear
+            business forecast.
           </p>
 
           <div className="hero-badges">
-            <span><i className="badge-dot" /> Weather-aware forecast</span>
+            <span>
+              <i className="badge-dot" /> Weather-aware forecast
+            </span>
             <span>✦ Explainable AI</span>
             <span>◫ Monthly planning</span>
           </div>
@@ -272,49 +262,20 @@ function SalesPredictionPage() {
               </select>
             </div>
 
-           <div className="button-group">
+            <div className="button-group">
+              <button type="submit" disabled={loading}>
+                {loading ? "⏳ Analyzing..." : "🔮 Predict"}
+              </button>
 
-  <button
-    type="submit"
-    disabled={loading}
-  >
-
-    {
-      loading
-      ?
-      "⏳ Analyzing..."
-      :
-      "🔮 Predict"
-    }
-
-  </button>
-
-
-
-  <button
-
-    type="button"
-
-    className="report-button"
-
-    onClick={handleReportDownload}
-
-    disabled={reportLoading}
-
-  >
-
-    {
-      reportLoading
-      ?
-      "⏳ Generating..."
-      :
-      "📄 Download Report"
-    }
-
-  </button>
-
-
-</div>
+              <button
+                type="button"
+                className="report-button"
+                onClick={handleReportDownload}
+                disabled={reportLoading}
+              >
+                {reportLoading ? "⏳ Generating..." : "📄 Download Report"}
+              </button>
+            </div>
           </form>
 
           {error && (
@@ -334,7 +295,6 @@ function SalesPredictionPage() {
               <span className="live-dot" />
               <span>Forecast engine ready</span>
             </div>
-            <span className="model-chip">Random Forest</span>
           </div>
 
           <div className="coffee-visual" aria-hidden="true">
@@ -354,7 +314,9 @@ function SalesPredictionPage() {
           <div className="hero-insight-grid">
             <div className="glass-card mini-card">
               <span>Forecast Period</span>
-              <strong>{selectedMonthName} {year}</strong>
+              <strong>
+                {selectedMonthName} {year}
+              </strong>
             </div>
             <div className="glass-card mini-card">
               <span>Prediction Signals</span>
@@ -364,7 +326,10 @@ function SalesPredictionPage() {
 
           <div className="hero-mini-note">
             <span>✦</span>
-            <p>Built for production planning with transparent, explainable predictions.</p>
+            <p>
+              Built for production planning with transparent, explainable
+              predictions.
+            </p>
           </div>
         </div>
       </section>
@@ -373,9 +338,12 @@ function SalesPredictionPage() {
       {result && (
         <>
           <div className="results-header">
-            <h2>📊 Prediction Results for {selectedMonthName} {year}</h2>
+            <h2>
+              📊 Prediction Results for {selectedMonthName} {year}
+            </h2>
             <p className="results-subtitle">
-              Here's what the AI predicts for coffee sales and quality based on weather patterns and historical data.
+              Here's what the AI predicts for coffee sales and quality based on
+              weather patterns and historical data.
             </p>
           </div>
 
@@ -390,33 +358,43 @@ function SalesPredictionPage() {
               <p className="unit-text">coffee units</p>
               <div className="status-pill">
                 <span className="status-icon">
-                  {demandClass === "high" ? "🔥" : demandClass === "low" ? "❄️" : "📊"}
+                  {demandClass === "high"
+                    ? "🔥"
+                    : demandClass === "low"
+                      ? "❄️"
+                      : "📊"}
                 </span>
                 {result.sales_level || "Moderate"} Demand
               </div>
-              
+
               {/* Enhanced Explanation Section */}
               <div className="explanation-box">
                 <div className="explanation-header">
                   <span className="explanation-icon">💡</span>
                   <strong>What this means</strong>
                 </div>
-                <p className="explanation-text">{result.message || demandDescription}</p>
+                <p className="explanation-text">
+                  {result.message || demandDescription}
+                </p>
                 <div className="explanation-details">
                   <div className="detail-item">
                     <span className="detail-label">📈 Market Outlook:</span>
                     <span className="detail-value">
-                      {demandClass === "high" ? "Strong growth expected" : 
-                       demandClass === "low" ? "Cautious outlook" : 
-                       "Stable market conditions"}
+                      {demandClass === "high"
+                        ? "Strong growth expected"
+                        : demandClass === "low"
+                          ? "Cautious outlook"
+                          : "Stable market conditions"}
                     </span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">🎯 Action Priority:</span>
                     <span className="detail-value">
-                      {demandClass === "high" ? "High - Prepare immediately" : 
-                       demandClass === "low" ? "Low - Monitor closely" : 
-                       "Medium - Maintain operations"}
+                      {demandClass === "high"
+                        ? "High - Prepare immediately"
+                        : demandClass === "low"
+                          ? "Low - Monitor closely"
+                          : "Medium - Maintain operations"}
                     </span>
                   </div>
                 </div>
@@ -426,8 +404,10 @@ function SalesPredictionPage() {
             {/* Quality Card - Enhanced Explanation */}
             <div className="result-card">
               <p className="card-label">⭐ Predicted Coffee Quality</p>
-              <h3 className="quality-label">{result.predicted_quality_label || "Not available"}</h3>
-              
+              <h3 className="quality-label">
+                {result.predicted_quality_label || "Not available"}
+              </h3>
+
               {/* Enhanced Quality Description */}
               <div className="quality-explanation">
                 <p className="quality-description">{qualityDescription}</p>
@@ -449,24 +429,35 @@ function SalesPredictionPage() {
                     <span>Quality Level</span>
                     <span>Probability</span>
                   </div>
-                  {Object.entries(result.predicted_quality_probabilities).map(([label, probability]) => (
-                    <div key={label} className="prob-row">
-                      <span className="prob-label">
-                        {label === "Premium" ? "🌟" : 
-                         label === "Good" ? "👍" : 
-                         label === "Standard" ? "📊" : "📋"} {label}
-                      </span>
-                      <div className="prob-right">
-                        <div className="prob-track">
-                          <div
-                            className="prob-fill"
-                            style={{ width: `${Math.min(probability * 100, 100)}%` }}
-                          />
+                  {Object.entries(result.predicted_quality_probabilities).map(
+                    ([label, probability]) => (
+                      <div key={label} className="prob-row">
+                        <span className="prob-label">
+                          {label === "Premium"
+                            ? "🌟"
+                            : label === "Good"
+                              ? "👍"
+                              : label === "Standard"
+                                ? "📊"
+                                : "📋"}{" "}
+                          {label}
+                        </span>
+                        <div className="prob-right">
+                          <div className="prob-track">
+                            <div
+                              className="prob-fill"
+                              style={{
+                                width: `${Math.min(probability * 100, 100)}%`,
+                              }}
+                            />
+                          </div>
+                          <strong>
+                            {formatDecimal(probability * 100, 1)}%
+                          </strong>
                         </div>
-                        <strong>{formatDecimal(probability * 100, 1)}%</strong>
                       </div>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               )}
             </div>
@@ -479,45 +470,64 @@ function SalesPredictionPage() {
                   <MonthlyComparisonChart data={result.monthly_comparison} />
                   <div className="comparison-note">
                     <span className="note-icon">📊</span>
-                    <span>Comparing with historical sales for {selectedMonthName}</span>
+                    <span>
+                      Comparing with historical sales for {selectedMonthName}
+                    </span>
                   </div>
                 </>
               ) : (
                 <>
                   <div className="comparison-value">
                     <span className="comparison-icon">
-                      {result.sales_change_vs_monthly_average_pct > 0 ? "📈" : "📉"}
+                      {result.sales_change_vs_monthly_average_pct > 0
+                        ? "📈"
+                        : "📉"}
                     </span>
                     <h3>
-                      {result.sales_change_vs_monthly_average_pct > 0 ? "+" : ""}
-                      {formatDecimal(result.sales_change_vs_monthly_average_pct, 2)}%
+                      {result.sales_change_vs_monthly_average_pct > 0
+                        ? "+"
+                        : ""}
+                      {formatDecimal(
+                        result.sales_change_vs_monthly_average_pct,
+                        2,
+                      )}
+                      %
                     </h3>
                   </div>
-                  
+
                   {/* Enhanced Comparison Explanation */}
                   <div className="comparison-explanation">
                     <p className="comparison-status">
                       {result.sales_change_vs_monthly_average_pct > 0
                         ? "✅ Above the historical average for this month"
                         : result.sales_change_vs_monthly_average_pct < 0
-                        ? "⚠️ Below the historical average for this month"
-                        : "➡️ Matches the historical average for this month"}
+                          ? "⚠️ Below the historical average for this month"
+                          : "➡️ Matches the historical average for this month"}
                     </p>
                     <div className="comparison-details">
                       <div className="detail-item">
-                        <span className="detail-label">📊 Historical Average:</span>
+                        <span className="detail-label">
+                          📊 Historical Average:
+                        </span>
                         <span className="detail-value">
-                          {formatNumber(result.historical_monthly_average || 0)} units
+                          {formatNumber(result.historical_monthly_average || 0)}{" "}
+                          units
                         </span>
                       </div>
                       <div className="detail-item">
-                        <span className="detail-label">📈 Trend Direction:</span>
+                        <span className="detail-label">
+                          📈 Trend Direction:
+                        </span>
                         <span className="detail-value">
-                          {result.sales_change_vs_monthly_average_pct > 5 ? "Strong upward" :
-                           result.sales_change_vs_monthly_average_pct > 0 ? "Moderate upward" :
-                           result.sales_change_vs_monthly_average_pct < -5 ? "Strong downward" :
-                           result.sales_change_vs_monthly_average_pct < 0 ? "Moderate downward" :
-                           "Stable"}
+                          {result.sales_change_vs_monthly_average_pct > 5
+                            ? "Strong upward"
+                            : result.sales_change_vs_monthly_average_pct > 0
+                              ? "Moderate upward"
+                              : result.sales_change_vs_monthly_average_pct < -5
+                                ? "Strong downward"
+                                : result.sales_change_vs_monthly_average_pct < 0
+                                  ? "Moderate downward"
+                                  : "Stable"}
                         </span>
                       </div>
                     </div>
@@ -526,8 +536,8 @@ function SalesPredictionPage() {
                     {result.sales_change_vs_monthly_average_pct > 0
                       ? "This suggests stronger than usual demand for this month"
                       : result.sales_change_vs_monthly_average_pct < 0
-                      ? "This suggests weaker than usual demand for this month"
-                      : "This aligns with typical patterns for this month"}
+                        ? "This suggests weaker than usual demand for this month"
+                        : "This aligns with typical patterns for this month"}
                   </p>
                 </>
               )}
@@ -542,7 +552,8 @@ function SalesPredictionPage() {
                   <p className="card-label">🌤️ Model Input</p>
                   <h3>Weather Profile</h3>
                   <p className="input-description">
-                    These weather conditions were used by the AI to make its prediction
+                    These weather conditions were used by the AI to make its
+                    prediction
                   </p>
                 </div>
                 <span className="info-chip">Estimated</span>
@@ -551,65 +562,93 @@ function SalesPredictionPage() {
               <div className="metric-grid">
                 <div>
                   <span>🌧️ Rainfall</span>
-                  <strong>{formatDecimal(result.weather_profile?.Rainfall_mm)} mm</strong>
+                  <strong>
+                    {formatDecimal(result.weather_profile?.Rainfall_mm)} mm
+                  </strong>
                   <span className="metric-hint">
-                    {result.weather_profile?.Rainfall_mm > 100 ? "High rainfall" : 
-                     result.weather_profile?.Rainfall_mm > 50 ? "Moderate rainfall" : 
-                     "Low rainfall"}
+                    {result.weather_profile?.Rainfall_mm > 100
+                      ? "High rainfall"
+                      : result.weather_profile?.Rainfall_mm > 50
+                        ? "Moderate rainfall"
+                        : "Low rainfall"}
                   </span>
                 </div>
                 <div>
                   <span>💧 Humidity</span>
-                  <strong>{formatDecimal(result.weather_profile?.Humidity_pct)}%</strong>
+                  <strong>
+                    {formatDecimal(result.weather_profile?.Humidity_pct)}%
+                  </strong>
                   <span className="metric-hint">
-                    {result.weather_profile?.Humidity_pct > 70 ? "High humidity" : 
-                     result.weather_profile?.Humidity_pct > 50 ? "Moderate humidity" : 
-                     "Low humidity"}
+                    {result.weather_profile?.Humidity_pct > 70
+                      ? "High humidity"
+                      : result.weather_profile?.Humidity_pct > 50
+                        ? "Moderate humidity"
+                        : "Low humidity"}
                   </span>
                 </div>
                 <div>
                   <span>🌡️ Avg High</span>
-                  <strong>{formatDecimal(result.weather_profile?.Avg_High_C)}°C</strong>
+                  <strong>
+                    {formatDecimal(result.weather_profile?.Avg_High_C)}°C
+                  </strong>
                   <span className="metric-hint">
-                    {result.weather_profile?.Avg_High_C > 30 ? "Hot conditions" : 
-                     result.weather_profile?.Avg_High_C > 20 ? "Warm conditions" : 
-                     "Cool conditions"}
+                    {result.weather_profile?.Avg_High_C > 30
+                      ? "Hot conditions"
+                      : result.weather_profile?.Avg_High_C > 20
+                        ? "Warm conditions"
+                        : "Cool conditions"}
                   </span>
                 </div>
                 <div>
                   <span>🌡️ Avg Low</span>
-                  <strong>{formatDecimal(result.weather_profile?.Avg_Low_C)}°C</strong>
+                  <strong>
+                    {formatDecimal(result.weather_profile?.Avg_Low_C)}°C
+                  </strong>
                   <span className="metric-hint">
-                    {result.weather_profile?.Avg_Low_C > 20 ? "Warm nights" : 
-                     result.weather_profile?.Avg_Low_C > 10 ? "Mild nights" : 
-                     "Cool nights"}
+                    {result.weather_profile?.Avg_Low_C > 20
+                      ? "Warm nights"
+                      : result.weather_profile?.Avg_Low_C > 10
+                        ? "Mild nights"
+                        : "Cool nights"}
                   </span>
                 </div>
                 <div>
                   <span>☔ Rainy Days</span>
-                  <strong>{formatDecimal(result.weather_profile?.Rainy_Days, 1)}</strong>
+                  <strong>
+                    {formatDecimal(result.weather_profile?.Rainy_Days, 1)}
+                  </strong>
                   <span className="metric-hint">
-                    {result.weather_profile?.Rainy_Days > 15 ? "Frequent rain" : 
-                     result.weather_profile?.Rainy_Days > 8 ? "Moderate rain" : 
-                     "Few rainy days"}
+                    {result.weather_profile?.Rainy_Days > 15
+                      ? "Frequent rain"
+                      : result.weather_profile?.Rainy_Days > 8
+                        ? "Moderate rain"
+                        : "Few rainy days"}
                   </span>
                 </div>
                 <div>
                   <span>☁️ Cloud Cover</span>
-                  <strong>{formatDecimal(result.weather_profile?.Cloud_pct)}%</strong>
+                  <strong>
+                    {formatDecimal(result.weather_profile?.Cloud_pct)}%
+                  </strong>
                   <span className="metric-hint">
-                    {result.weather_profile?.Cloud_pct > 70 ? "Very cloudy" : 
-                     result.weather_profile?.Cloud_pct > 40 ? "Partly cloudy" : 
-                     "Clear skies"}
+                    {result.weather_profile?.Cloud_pct > 70
+                      ? "Very cloudy"
+                      : result.weather_profile?.Cloud_pct > 40
+                        ? "Partly cloudy"
+                        : "Clear skies"}
                   </span>
                 </div>
                 <div>
                   <span>💨 Wind Speed</span>
-                  <strong>{formatDecimal(result.weather_profile?.Wind_mph)} mph</strong>
+                  <strong>
+                    {formatDecimal(result.weather_profile?.Wind_mph)} mph
+                  </strong>
                   <span className="metric-hint">
-                    {result.weather_profile?.Wind_mph > 15 ? "Windy conditions" : 
-                     result.weather_profile?.Wind_mph > 8 ? "Moderate winds" : 
-                     "Calm conditions"}
+                    {result.weather_profile?.Wind_mph > 15
+                      ? "Windy conditions"
+                      : result.weather_profile?.Wind_mph > 8
+                        ? "Moderate winds"
+                        : "Calm conditions"}
                   </span>
                 </div>
               </div>
@@ -619,27 +658,34 @@ function SalesPredictionPage() {
               <p className="card-label">💡 Recommended Action</p>
               <h3>Decision Support Guide</h3>
               <p className="action-subtitle">
-                Based on the predicted demand level, here are recommended actions
+                Based on the predicted demand level, here are recommended
+                actions
               </p>
 
               <div className={`action-box ${demandClass}`}>
                 <div className="action-icon">
-                  {demandClass === "high" ? "🚀" : demandClass === "low" ? "🛑" : "⚖️"}
+                  {demandClass === "high"
+                    ? "🚀"
+                    : demandClass === "low"
+                      ? "🛑"
+                      : "⚖️"}
                 </div>
                 <strong>
-                  {demandClass === "high" ? "Prepare for high demand" : 
-                   demandClass === "low" ? "Avoid overproduction" : 
-                   "Maintain normal production"}
+                  {demandClass === "high"
+                    ? "Prepare for high demand"
+                    : demandClass === "low"
+                      ? "Avoid overproduction"
+                      : "Maintain normal production"}
                 </strong>
                 <p>
-                  {demandClass === "high" && 
+                  {demandClass === "high" &&
                     "Increase stock availability, verify raw material supply, and prepare production capacity early. Consider hiring temporary staff if needed."}
-                  {demandClass === "medium" && 
+                  {demandClass === "medium" &&
                     "Keep regular production levels and monitor any demand changes during the month. Maintain standard inventory levels."}
-                  {demandClass === "low" && 
+                  {demandClass === "low" &&
                     "Control inventory, reduce unnecessary production, and consider promotional activity if needed. Focus on cost optimization."}
                 </p>
-                
+
                 {/* Additional Action Details */}
                 <div className="action-details">
                   <div className="action-detail-item">
@@ -647,9 +693,11 @@ function SalesPredictionPage() {
                     <div>
                       <strong>Priority Level:</strong>
                       <span className="priority-level">
-                        {demandClass === "high" ? "🔴 High" : 
-                         demandClass === "low" ? "🟢 Low" : 
-                         "🟡 Medium"}
+                        {demandClass === "high"
+                          ? "🔴 High"
+                          : demandClass === "low"
+                            ? "🟢 Low"
+                            : "🟡 Medium"}
                       </span>
                     </div>
                   </div>
@@ -658,9 +706,11 @@ function SalesPredictionPage() {
                     <div>
                       <strong>Timeline:</strong>
                       <span>
-                        {demandClass === "high" ? "Immediate action required" : 
-                         demandClass === "low" ? "Monitor over next 2-3 weeks" : 
-                         "Standard weekly review"}
+                        {demandClass === "high"
+                          ? "Immediate action required"
+                          : demandClass === "low"
+                            ? "Monitor over next 2-3 weeks"
+                            : "Standard weekly review"}
                       </span>
                     </div>
                   </div>
@@ -670,7 +720,8 @@ function SalesPredictionPage() {
               <div className="source-box">
                 <span>📋 Previous sales information</span>
                 <strong>
-                  {result.data_sources?.previous_month_sales_source || "Not available"}
+                  {result.data_sources?.previous_month_sales_source ||
+                    "Not available"}
                 </strong>
                 <p className="source-hint">
                   This data source was used to understand historical patterns
@@ -691,7 +742,6 @@ function SalesPredictionPage() {
                     prediction so the result is easier to understand and trust.
                   </p>
                 </div>
-                
               </div>
 
               <div className="xai-grid">
@@ -725,34 +775,47 @@ function SalesPredictionPage() {
                         <span>Impact</span>
                       </div>
                       {result.xai.sales_explanation.map((item, index) => {
-                        const strength = getSalesImpactStrength(item.shap_value);
+                        const strength = getSalesImpactStrength(
+                          item.shap_value,
+                        );
                         return (
-                          <div className="friendly-xai-item" key={`${item.feature}-${index}`}>
+                          <div
+                            className="friendly-xai-item"
+                            key={`${item.feature}-${index}`}
+                          >
                             <div className="factor-rank">{index + 1}</div>
                             <div className="factor-content">
                               <div className="factor-heading">
                                 <strong>{getFeatureLabel(item.feature)}</strong>
-                                <span className={`strength-chip ${strength.toLowerCase()}`}>
+                                <span
+                                  className={`strength-chip ${strength.toLowerCase()}`}
+                                >
                                   {strength} influence
                                 </span>
                               </div>
                               <p>{getSalesImpactText(item.direction)}</p>
                               <div className="factor-explanation">
                                 <span className="factor-detail">
-                                  {item.direction === "positive" ? "📈 Driving sales up" : 
-                                   item.direction === "negative" ? "📉 Driving sales down" : 
-                                   "➡️ Minimal impact"}
+                                  {item.direction === "positive"
+                                    ? "📈 Driving sales up"
+                                    : item.direction === "negative"
+                                      ? "📉 Driving sales down"
+                                      : "➡️ Minimal impact"}
                                 </span>
                               </div>
                             </div>
-                            <div className={`direction-panel ${item.direction}`}>
-                              <span className="direction-arrow">{getImpactArrow(item.direction)}</span>
+                            <div
+                              className={`direction-panel ${item.direction}`}
+                            >
+                              <span className="direction-arrow">
+                                {getImpactArrow(item.direction)}
+                              </span>
                               <small>
                                 {item.direction === "positive"
                                   ? "Increase"
                                   : item.direction === "negative"
-                                  ? "Decrease"
-                                  : "Neutral"}
+                                    ? "Decrease"
+                                    : "Neutral"}
                               </small>
                             </div>
                           </div>
@@ -760,7 +823,9 @@ function SalesPredictionPage() {
                       })}
                     </div>
                   ) : (
-                    <div className="xai-empty">Sales explanation is not available.</div>
+                    <div className="xai-empty">
+                      Sales explanation is not available.
+                    </div>
                   )}
                 </div>
 
@@ -769,14 +834,18 @@ function SalesPredictionPage() {
                   <div className="xai-card-header">
                     <div>
                       <p className="card-label">Quality Explanation</p>
-                      <h3>Why Quality Was Predicted {result.predicted_quality_label || ""}</h3>
+                      <h3>
+                        Why Quality Was Predicted{" "}
+                        {result.predicted_quality_label || ""}
+                      </h3>
                     </div>
                     <span className="quality-icon">🌱</span>
                   </div>
 
                   <p className="xai-intro">
                     These factors had the strongest influence on the predicted
-                    coffee quality category.You can undrstand the science behind coffee quality assessment.
+                    coffee quality category.You can undrstand the science behind
+                    coffee quality assessment.
                   </p>
 
                   <FeatureImpactChart
@@ -793,34 +862,52 @@ function SalesPredictionPage() {
                         <span>Impact</span>
                       </div>
                       {result.xai.quality_explanation.map((item, index) => {
-                        const strength = getQualityImpactStrength(item.shap_value);
+                        const strength = getQualityImpactStrength(
+                          item.shap_value,
+                        );
                         return (
-                          <div className="friendly-xai-item" key={`${item.feature}-${index}`}>
+                          <div
+                            className="friendly-xai-item"
+                            key={`${item.feature}-${index}`}
+                          >
                             <div className="factor-rank">{index + 1}</div>
                             <div className="factor-content">
                               <div className="factor-heading">
                                 <strong>{getFeatureLabel(item.feature)}</strong>
-                                <span className={`strength-chip ${strength.toLowerCase()}`}>
+                                <span
+                                  className={`strength-chip ${strength.toLowerCase()}`}
+                                >
                                   {strength} influence
                                 </span>
                               </div>
-                              <p>{getQualityImpactText(item.direction, result.predicted_quality_label)}</p>
+                              <p>
+                                {getQualityImpactText(
+                                  item.direction,
+                                  result.predicted_quality_label,
+                                )}
+                              </p>
                               <div className="factor-explanation">
                                 <span className="factor-detail">
-                                  {item.direction === "positive" ? "✅ Supporting quality" : 
-                                   item.direction === "negative" ? "⚠️ Reducing quality" : 
-                                   "➡️ Minimal effect"}
+                                  {item.direction === "positive"
+                                    ? "✅ Supporting quality"
+                                    : item.direction === "negative"
+                                      ? "⚠️ Reducing quality"
+                                      : "➡️ Minimal effect"}
                                 </span>
                               </div>
                             </div>
-                            <div className={`direction-panel ${item.direction}`}>
-                              <span className="direction-arrow">{getImpactArrow(item.direction)}</span>
+                            <div
+                              className={`direction-panel ${item.direction}`}
+                            >
+                              <span className="direction-arrow">
+                                {getImpactArrow(item.direction)}
+                              </span>
                               <small>
                                 {item.direction === "positive"
                                   ? "Supports"
                                   : item.direction === "negative"
-                                  ? "Opposes"
-                                  : "Neutral"}
+                                    ? "Opposes"
+                                    : "Neutral"}
                               </small>
                             </div>
                           </div>
@@ -828,7 +915,9 @@ function SalesPredictionPage() {
                       })}
                     </div>
                   ) : (
-                    <div className="xai-empty">Quality explanation is not available.</div>
+                    <div className="xai-empty">
+                      Quality explanation is not available.
+                    </div>
                   )}
                 </div>
               </div>
@@ -839,7 +928,10 @@ function SalesPredictionPage() {
                   <div>
                     <p className="card-label">XAI Reading Guide</p>
                     <h3>How to Read These Explanations</h3>
-                    <p>The AI highlights the factors that pushed the final prediction up, down, or had only a small effect.</p>
+                    <p>
+                      The AI highlights the factors that pushed the final
+                      prediction up, down, or had only a small effect.
+                    </p>
                   </div>
                 </div>
 
@@ -848,7 +940,9 @@ function SalesPredictionPage() {
                     <span className="guide-icon">↗</span>
                     <div>
                       <strong>Supporting Factors</strong>
-                      <span>Helped move the prediction toward the final result.</span>
+                      <span>
+                        Helped move the prediction toward the final result.
+                      </span>
                     </div>
                   </div>
 
@@ -871,7 +965,10 @@ function SalesPredictionPage() {
 
                 <div className="guide-tip">
                   <span>☕</span>
-                  <p>Use the strongest factors first when planning inventory, production, and quality-control actions.</p>
+                  <p>
+                    Use the strongest factors first when planning inventory,
+                    production, and quality-control actions.
+                  </p>
                 </div>
               </div>
             </section>
