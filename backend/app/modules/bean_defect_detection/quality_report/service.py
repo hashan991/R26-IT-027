@@ -1282,44 +1282,6 @@ class QualityReportService:
         physical_status: str,
     ) -> str:
 
-        # -------------------------------------------------
-        # INCOMPLETE ANALYSIS
-        # -------------------------------------------------
-
-        if (
-            sensor_status == "SKIPPED"
-            or
-            physical_status == "NO_DATA"
-        ):
-            return "Needs Review"
-
-
-        # -------------------------------------------------
-        # QUALITY CONTROL SAFEGUARD
-        #
-        # Even if the 50/50 numerical score is high,
-        # a clearly BAD sensor result or POOR physical
-        # result must not be automatically accepted.
-        # -------------------------------------------------
-
-        if (
-            sensor_status == "BAD"
-            or
-            physical_status == "POOR"
-        ):
-            return "Needs Review"
-
-
-        # -------------------------------------------------
-        # UNCERTAIN COMPONENT
-        # -------------------------------------------------
-
-        if (
-            sensor_status == "REVIEW"
-            or
-            physical_status == "REVIEW"
-        ):
-            return "Needs Review"
 
 
         # -------------------------------------------------
