@@ -24,8 +24,6 @@ from app.modules.packet_seal_detection.inspection_service import (
     update_vision_result,
 )
 
-from app.modules.packet_seal_detection import inspection_service
-
 # ==================================================
 # ENVIRONMENT
 # ==================================================
