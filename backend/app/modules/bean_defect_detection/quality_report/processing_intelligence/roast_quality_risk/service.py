@@ -1,95 +1,67 @@
-from typing import Any, Dict, List
+from typing import List
+
+from ..defect_profile import (
+    DefectProfile,
+)
 
 from .schema import (
     RoastQualityRisk,
-    RoastRiskItem,
+    RoastQualityRiskItem,
 )
 
 
 # =========================================================
-# ROAST QUALITY RISK SERVICE
+# ROAST QUALITY RISKS SERVICE
+# =========================================================
+#
+# MODULE 3 - DEFECT-DRIVEN DESIGN
+#
+# Each active defect independently generates a roast-quality
+# risk item.
+#
+# Overall final score, grade, sensor status and physical
+# status DO NOT trigger Module 3 risks.
+#
 # =========================================================
 
 class RoastQualityRiskService:
 
     # =====================================================
-    # RISK SCORE BOUNDARIES
+    # RESEARCH-DEFINED SEVERITY DISPLAY SCORES
     # =====================================================
     #
-    # Research-defined risk bands:
+    # These numbers are NOT probabilities and are NOT
+    # official ISO / ICO / SCA risk scores.
     #
-    # 0  - 24.99  → LOW
-    # 25 - 49.99  → MEDIUM
-    # 50 - 74.99  → HIGH
-    # 75 - 100    → CRITICAL
+    # They only provide a consistent numeric representation
+    # for the categorical workflow severity.
     #
-    # These are decision-support rules for this research
-    # system and are not official SCA roasting limits.
     # =====================================================
 
-    LOW_MAX = 24.99
-    MEDIUM_MAX = 49.99
-    HIGH_MAX = 74.99
+    RISK_SCORE = {
+        "LOW": 25.0,
+        "MEDIUM": 50.0,
+        "HIGH": 75.0,
+        "CRITICAL": 100.0,
+    }
 
 
-    # =====================================================
-    # SAFE INTEGER
-    # =====================================================
-
-    @staticmethod
-    def _safe_int(
-        value: Any,
-        default: int = 0,
-    ) -> int:
-
-        try:
-            return int(value)
-
-        except (
-            TypeError,
-            ValueError,
-        ):
-            return default
+    RISK_RANK = {
+        "LOW": 1,
+        "MEDIUM": 2,
+        "HIGH": 3,
+        "CRITICAL": 4,
+    }
 
 
-    # =====================================================
-    # SAFE FLOAT
-    # =====================================================
-
-    @staticmethod
-    def _safe_float(
-        value: Any,
-        default: float = 0.0,
-    ) -> float:
-
-        try:
-            return float(value)
-
-        except (
-            TypeError,
-            ValueError,
-        ):
-            return default
-
-
-    # =====================================================
-    # CLAMP SCORE
-    # =====================================================
-
-    @staticmethod
-    def _clamp(
-        value: float,
-        minimum: float = 0.0,
-        maximum: float = 100.0,
-    ) -> float:
-
-        return max(
-            minimum,
-            min(
-                maximum,
-                value,
-            ),
-        )
+    SENSOR_DEFECTS = {
+        "MQ2_ABNORMAL",
+        "MQ3_ABNORMAL",
+        "MQ135_ABNORMAL",
+        "MOISTURE_DEFECT",
+        "TEMPERATURE_ABNORMAL",
+        "HUMIDITY_ABNORMAL",
+    }
 
 
     # =====================================================
@@ -108,976 +80,876 @@ class RoastQualityRiskService:
         return round(
             (
                 count
-                / total
+                /
+                total
             )
-            * 100,
+            *
+            100,
             2,
         )
 
 
     # =====================================================
-    # CONVERT SCORE TO RISK LEVEL
+    # ADD RISK
     # =====================================================
 
-    def _risk_level(
+    def _add_risk(
         self,
-        score: float,
+        risks: List[
+            RoastQualityRiskItem
+        ],
+        *,
+        defect: str,
+        risk_name: str,
+        risk_level: str,
+        explanation: str,
+        drivers: List[str],
+        recommended_control: str,
+        evidence_class: str,
+        source_basis: List[str],
+        detected_count=None,
+    ) -> None:
+
+        risks.append(
+            RoastQualityRiskItem(
+
+                defect=defect,
+
+                risk_name=(
+                    risk_name
+                ),
+
+                risk_level=(
+                    risk_level
+                ),
+
+                risk_score=(
+                    self.RISK_SCORE[
+                        risk_level
+                    ]
+                ),
+
+                explanation=(
+                    explanation
+                ),
+
+                drivers=drivers,
+
+                recommended_control=(
+                    recommended_control
+                ),
+
+                evidence_class=(
+                    evidence_class
+                ),
+
+                source_basis=(
+                    source_basis
+                ),
+
+                detected_count=(
+                    detected_count
+                ),
+            )
+        )
+
+
+    # =====================================================
+    # OVERALL RISK
+    # =====================================================
+
+    def _get_overall_risk(
+        self,
+        risks: List[
+            RoastQualityRiskItem
+        ],
     ) -> str:
 
-        score = self._clamp(
-            score
-        )
-
-
-        if (
-            score
-            <= self.LOW_MAX
-        ):
+        if not risks:
             return "LOW"
 
-
-        if (
-            score
-            <= self.MEDIUM_MAX
-        ):
-            return "MEDIUM"
-
-
-        if (
-            score
-            <= self.HIGH_MAX
-        ):
-            return "HIGH"
-
-
-        return "CRITICAL"
-
-
-    # =====================================================
-    # SENSOR RISK CONTRIBUTION
-    # =====================================================
-
-    @staticmethod
-    def _sensor_risk_contribution(
-        sensor_status: str,
-    ) -> float:
-
-        sensor_status = (
-            sensor_status
-            or "SKIPPED"
-        ).upper()
-
-
-        if (
-            sensor_status
-            == "GOOD"
-        ):
-            return 0.0
-
-
-        if (
-            sensor_status
-            == "REVIEW"
-        ):
-            return 20.0
-
-
-        if (
-            sensor_status
-            == "BAD"
-        ):
-            return 40.0
-
-
-        # SKIPPED or unknown
-        return 15.0
-
-
-    # =====================================================
-    # UNEVEN ROASTING RISK
-    # =====================================================
-
-    def _calculate_uneven_roasting_risk(
-        self,
-        *,
-        broken_percentage: float,
-        unknown_percentage: float,
-    ) -> RoastRiskItem:
-
-        # Broken beans are the main driver.
-        #
-        # Unknown classifications contribute a smaller
-        # uncertainty penalty.
-
-        score = (
-            broken_percentage
-            * 3.0
-            +
-            unknown_percentage
-            * 1.0
-        )
-
-
-        score = round(
-            self._clamp(
-                score
-            ),
-            2,
-        )
-
-
-        level = self._risk_level(
-            score
-        )
-
-
-        drivers: List[str] = []
-
-
-        if (
-            broken_percentage
-            > 0
-        ):
-            drivers.append(
-                (
-                    f"Broken beans represent "
-                    f"{broken_percentage:.2f}% "
-                    "of the inspected sample."
-                )
-            )
-
-
-        if (
-            unknown_percentage
-            > 0
-        ):
-            drivers.append(
-                (
-                    f"{unknown_percentage:.2f}% "
-                    "of beans have uncertain "
-                    "classifications."
-                )
-            )
-
-
-        if (
-            not drivers
-        ):
-            drivers.append(
-                (
-                    "No meaningful broken-bean or "
-                    "classification uncertainty was "
-                    "detected."
-                )
-            )
-
-
-        if (
-            level == "LOW"
-        ):
-            explanation = (
-                "The detected bean shape profile "
-                "indicates a low risk of roasting "
-                "variation caused by broken beans."
-            )
-
-
-        elif (
-            level == "MEDIUM"
-        ):
-            explanation = (
-                "A moderate amount of broken-bean "
-                "variation may contribute to less "
-                "uniform roasting behavior."
-            )
-
-
-        elif (
-            level == "HIGH"
-        ):
-            explanation = (
-                "The broken-bean level indicates a "
-                "high risk of uneven roasting and "
-                "batch inconsistency."
-            )
-
-
-        else:
-            explanation = (
-                "The physical shape variation is very "
-                "high and may strongly reduce roasting "
-                "uniformity unless corrective sorting "
-                "is performed."
-            )
-
-
-        return RoastRiskItem(
-
-            risk_name=(
-                "Uneven Roasting Risk"
-            ),
-
-            risk_level=level,
-
-            risk_score=score,
-
-            explanation=explanation,
-
-            drivers=drivers,
-        )
-
-
-    # =====================================================
-    # DEFECT-RELATED FLAVOR RISK
-    # =====================================================
-
-    def _calculate_defect_flavor_risk(
-        self,
-        *,
-        severe_defect_percentage: float,
-        sensor_status: str,
-    ) -> RoastRiskItem:
-
-        sensor_contribution = (
-            self._sensor_risk_contribution(
-                sensor_status
-            )
-        )
-
-
-        # Severe black / black-and-broken defects are
-        # treated as the primary risk signal.
-        #
-        # Sensor assessment adds supporting evidence.
-
-        score = (
-            severe_defect_percentage
-            * 2.0
-            +
-            sensor_contribution
-        )
-
-
-        score = round(
-            self._clamp(
-                score
-            ),
-            2,
-        )
-
-
-        level = self._risk_level(
-            score
-        )
-
-
-        drivers: List[str] = []
-
-
-        if (
-            severe_defect_percentage
-            > 0
-        ):
-            drivers.append(
-                (
-                    f"Severe black or black-and-broken "
-                    f"defects represent "
-                    f"{severe_defect_percentage:.2f}% "
-                    "of the inspected sample."
-                )
-            )
-
-
-        drivers.append(
+        return max(
             (
-                f"Sensor assessment status: "
-                f"{sensor_status}."
-            )
-        )
-
-
-        if (
-            level == "LOW"
-        ):
-            explanation = (
-                "The available defect and sensor "
-                "evidence indicates a low "
-                "defect-related quality risk during "
-                "roasting."
-            )
-
-
-        elif (
-            level == "MEDIUM"
-        ):
-            explanation = (
-                "Some defect-related quality risk is "
-                "present. Sorting and quality review "
-                "should be completed before roasting."
-            )
-
-
-        elif (
-            level == "HIGH"
-        ):
-            explanation = (
-                "The batch contains a high level of "
-                "quality defects that may negatively "
-                "affect the consistency of the roasted "
-                "product."
-            )
-
-
-        else:
-            explanation = (
-                "The severe defect profile indicates a "
-                "critical quality risk. Direct roasting "
-                "is not recommended before corrective "
-                "sorting and reassessment."
-            )
-
-
-        return RoastRiskItem(
-
-            risk_name=(
-                "Defect-Related Flavor Risk"
+                risk.risk_level
+                for risk in risks
             ),
-
-            risk_level=level,
-
-            risk_score=score,
-
-            explanation=explanation,
-
-            drivers=drivers,
+            key=lambda level:
+                self.RISK_RANK[
+                    level
+                ],
         )
 
 
     # =====================================================
-    # BATCH UNIFORMITY RISK
-    # =====================================================
-
-    def _calculate_batch_uniformity_risk(
-        self,
-        *,
-        broken_percentage: float,
-        severe_defect_percentage: float,
-        unknown_percentage: float,
-    ) -> RoastRiskItem:
-
-        # The uniformity score combines:
-        #
-        # broken beans       → shape variation
-        # severe defects     → quality variation
-        # unknown beans      → classification uncertainty
-
-        score = (
-            broken_percentage
-            * 2.0
-            +
-            severe_defect_percentage
-            * 1.2
-            +
-            unknown_percentage
-            * 2.0
-        )
-
-
-        score = round(
-            self._clamp(
-                score
-            ),
-            2,
-        )
-
-
-        level = self._risk_level(
-            score
-        )
-
-
-        drivers: List[str] = [
-            (
-                f"Broken bean proportion: "
-                f"{broken_percentage:.2f}%."
-            ),
-            (
-                f"Severe defect proportion: "
-                f"{severe_defect_percentage:.2f}%."
-            ),
-            (
-                f"Unknown classification proportion: "
-                f"{unknown_percentage:.2f}%."
-            ),
-        ]
-
-
-        if (
-            level == "LOW"
-        ):
-            explanation = (
-                "The physical defect distribution is "
-                "relatively uniform and presents a low "
-                "batch consistency risk."
-            )
-
-
-        elif (
-            level == "MEDIUM"
-        ):
-            explanation = (
-                "Moderate variation exists within the "
-                "batch and may reduce roasting "
-                "consistency."
-            )
-
-
-        elif (
-            level == "HIGH"
-        ):
-            explanation = (
-                "Substantial physical variation exists "
-                "within the batch. Corrective sorting "
-                "is recommended before roasting."
-            )
-
-
-        else:
-            explanation = (
-                "The batch contains extensive physical "
-                "quality variation and has a critical "
-                "uniformity risk."
-            )
-
-
-        return RoastRiskItem(
-
-            risk_name=(
-                "Batch Uniformity Risk"
-            ),
-
-            risk_level=level,
-
-            risk_score=score,
-
-            explanation=explanation,
-
-            drivers=drivers,
-        )
-
-
-    # =====================================================
-    # GENERATE COMPLETE ROAST RISK ASSESSMENT
+    # GENERATE
     # =====================================================
 
     def generate(
         self,
         *,
-        sensor_status: str,
-        physical_status: str,
-        final_score: float,
-        grade: str,
-        quality_status: str,
-        counts: Dict[str, Any],
+        defect_profile: DefectProfile,
     ) -> RoastQualityRisk:
 
-        # -------------------------------------------------
-        # NORMALIZE
-        # -------------------------------------------------
-
-        sensor_status = (
-            sensor_status
-            or "SKIPPED"
-        ).upper()
-
-
-        physical_status = (
-            physical_status
-            or "NO_DATA"
-        ).upper()
-
-
-        final_score = self._safe_float(
-            final_score
+        sensor = (
+            defect_profile.sensor
         )
 
-
-        grade = (
-            grade
-            or "Reject"
+        physical = (
+            defect_profile.physical
         )
 
-
-        quality_status = (
-            quality_status
-            or "Needs Review"
+        yield_counts = (
+            defect_profile.yield_counts
         )
 
+        inspection = (
+            defect_profile.inspection
+        )
 
-        # -------------------------------------------------
-        # COUNTS
-        # -------------------------------------------------
+        risks: List[
+            RoastQualityRiskItem
+        ] = []
 
-        total = self._safe_int(
-            counts.get(
-                "total_beans",
-                0,
+
+        # =================================================
+        # 1. MQ2 ABNORMAL
+        # =================================================
+
+        if sensor.mq2_abnormal:
+
+            self._add_risk(
+                risks,
+
+                defect="MQ2_ABNORMAL",
+
+                risk_name=(
+                    "Possible Smoke or Combustible "
+                    "Volatile Contamination Risk"
+                ),
+
+                risk_level="HIGH",
+
+                explanation=(
+                    "An abnormal MQ-2 response may indicate "
+                    "exposure to smoke or combustible "
+                    "volatile gases. Such exposure can "
+                    "create an off-odour or contamination "
+                    "concern before roasting. The MQ-2 "
+                    "signal is broad and does not confirm a "
+                    "specific coffee defect."
+                ),
+
+                drivers=[
+                    (
+                        "The research-defined MQ-2 defect "
+                        "flag is active."
+                    ),
+                    (
+                        "MQ-2 is a broad smoke and "
+                        "flammable-gas sensor."
+                    ),
+                ],
+
+                recommended_control=(
+                    "Verify the batch in a clean "
+                    "environment, inspect for smoke, fuel "
+                    "or combustible-vapour exposure, and "
+                    "repeat the sensor assessment before "
+                    "roasting."
+                ),
+
+                evidence_class=(
+                    "SENSOR_TECHNICAL_RULE"
+                ),
+
+                source_basis=[
+                    (
+                        "Winsen MQ-2 technical "
+                        "documentation."
+                    ),
+                    (
+                        "ISO 8455 green-coffee storage and "
+                        "transport contamination-control "
+                        "principles."
+                    ),
+                ],
+            )
+
+
+        # =================================================
+        # 2. MQ3 ABNORMAL
+        # =================================================
+
+        if sensor.mq3_abnormal:
+
+            self._add_risk(
+                risks,
+
+                defect="MQ3_ABNORMAL",
+
+                risk_name=(
+                    "Possible Fermentation-Related "
+                    "Off-Flavour Risk"
+                ),
+
+                risk_level="HIGH",
+
+                explanation=(
+                    "An abnormal MQ-3 response indicates an "
+                    "alcohol-sensitive volatile signal. "
+                    "This may justify review for abnormal "
+                    "fermentative odour or volatile "
+                    "exposure, but the MQ-3 response does "
+                    "not confirm fermentation by itself."
+                ),
+
+                drivers=[
+                    (
+                        "The research-defined MQ-3 defect "
+                        "flag is active."
+                    ),
+                    (
+                        "MQ-3 is alcohol-sensitive rather "
+                        "than coffee-defect-specific."
+                    ),
+                ],
+
+                recommended_control=(
+                    "Inspect for unusual fermentative "
+                    "odours and external alcohol or solvent "
+                    "sources, then repeat the sensor "
+                    "assessment before roasting."
+                ),
+
+                evidence_class=(
+                    "SENSOR_TECHNICAL_RULE"
+                ),
+
+                source_basis=[
+                    (
+                        "Winsen MQ-3B technical "
+                        "documentation."
+                    ),
+                    (
+                        "FAO green-coffee post-harvest "
+                        "guidance on excessive fermentation "
+                        "and flavour defects."
+                    ),
+                ],
+            )
+
+
+        # =================================================
+        # 3. MQ135 ABNORMAL
+        # =================================================
+
+        if sensor.mq135_abnormal:
+
+            self._add_risk(
+                risks,
+
+                defect="MQ135_ABNORMAL",
+
+                risk_name=(
+                    "Possible Environmental VOC or "
+                    "Odour Contamination Risk"
+                ),
+
+                risk_level="HIGH",
+
+                explanation=(
+                    "An abnormal MQ-135 response may "
+                    "indicate unusual environmental gases "
+                    "or volatile compounds. Because MQ-135 "
+                    "is broad and non-specific, the signal "
+                    "is treated as a contamination-screening "
+                    "risk rather than proof of a specific "
+                    "coffee defect."
+                ),
+
+                drivers=[
+                    (
+                        "The research-defined MQ-135 defect "
+                        "flag is active."
+                    ),
+                    (
+                        "MQ-135 responds to multiple gases "
+                        "and vapours."
+                    ),
+                ],
+
+                recommended_control=(
+                    "Inspect for chemical, fuel, smoke and "
+                    "strong-odour exposure, move the batch "
+                    "to a clean ventilated environment when "
+                    "needed, and repeat the assessment."
+                ),
+
+                evidence_class=(
+                    "SENSOR_TECHNICAL_RULE"
+                ),
+
+                source_basis=[
+                    (
+                        "Winsen MQ135 technical "
+                        "documentation."
+                    ),
+                    (
+                        "ISO 8455 and FAO guidance on "
+                        "protecting green coffee from "
+                        "contamination and strong odours."
+                    ),
+                ],
+            )
+
+
+        # =================================================
+        # 4. MOISTURE DEFECT
+        # =================================================
+
+        if sensor.moisture_defect:
+
+            self._add_risk(
+                risks,
+
+                defect="MOISTURE_DEFECT",
+
+                risk_name=(
+                    "Inconsistent Roast Development Risk"
+                ),
+
+                risk_level="HIGH",
+
+                explanation=(
+                    "The experimental moisture sensor "
+                    "response indicates a moisture anomaly. "
+                    "A non-uniform or unsuitable bean "
+                    "moisture condition can contribute to "
+                    "inconsistent roast development and "
+                    "quality variation. The current raw "
+                    "sensor response does not establish an "
+                    "actual standardized moisture "
+                    "percentage."
+                ),
+
+                drivers=[
+                    (
+                        "The research-defined moisture "
+                        "defect flag is active."
+                    ),
+                    (
+                        "The current sensor result is a "
+                        "response anomaly, not a calibrated "
+                        "green-coffee moisture percentage."
+                    ),
+                ],
+
+                recommended_control=(
+                    "Verify actual bean moisture using an "
+                    "appropriate calibrated or reference "
+                    "method, correct the moisture condition "
+                    "as required, and reassess before "
+                    "roasting."
+                ),
+
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+
+                source_basis=[
+                    (
+                        "ICO Coffee Quality-Improvement "
+                        "Programme moisture guidance."
+                    ),
+                    (
+                        "ISO 6673 reference moisture / "
+                        "water-content determination."
+                    ),
+                    (
+                        "ISO 24115 moisture-meter "
+                        "calibration guidance."
+                    ),
+                ],
+            )
+
+
+        # =================================================
+        # 5. TEMPERATURE ABNORMAL
+        # =================================================
+        #
+        # Current project configuration keeps this False
+        # until a separately validated temperature rule is
+        # available.
+        #
+        # =================================================
+
+        if sensor.temperature_abnormal:
+
+            self._add_risk(
+                risks,
+
+                defect="TEMPERATURE_ABNORMAL",
+
+                risk_name=(
+                    "Pre-Roast Condition Instability Risk"
+                ),
+
+                risk_level="MEDIUM",
+
+                explanation=(
+                    "An abnormal pre-roast environmental "
+                    "temperature condition can indicate an "
+                    "unstable storage or handling "
+                    "environment that may reduce process "
+                    "consistency."
+                ),
+
+                drivers=[
+                    (
+                        "A separately validated temperature "
+                        "abnormality flag is active."
+                    ),
+                ],
+
+                recommended_control=(
+                    "Stabilize the storage and pre-roast "
+                    "environment and reassess the batch "
+                    "before direct roasting."
+                ),
+
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+
+                source_basis=[
+                    (
+                        "ISO 8455 green-coffee storage and "
+                        "transport quality-preservation "
+                        "guidance."
+                    ),
+                    (
+                        "FAO drying and storage guidance."
+                    ),
+                ],
+            )
+
+
+        # =================================================
+        # 6. HUMIDITY ABNORMAL
+        # =================================================
+
+        if sensor.humidity_abnormal:
+
+            self._add_risk(
+                risks,
+
+                defect="HUMIDITY_ABNORMAL",
+
+                risk_name=(
+                    "Moisture Reabsorption and "
+                    "Musty/Mould Quality Risk"
+                ),
+
+                risk_level="HIGH",
+
+                explanation=(
+                    "Abnormal humidity exposure can promote "
+                    "moisture reabsorption in green coffee "
+                    "and increase the risk of storage "
+                    "quality deterioration, including "
+                    "musty or mould-related quality "
+                    "problems."
+                ),
+
+                drivers=[
+                    (
+                        "The research-defined humidity "
+                        "defect flag is active."
+                    ),
+                ],
+
+                recommended_control=(
+                    "Protect the batch from further humid "
+                    "air, condensation and re-wetting, move "
+                    "it to dry ventilated storage, and "
+                    "verify bean moisture before roasting."
+                ),
+
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+
+                source_basis=[
+                    (
+                        "ISO 8455 green-coffee storage and "
+                        "transport guidance."
+                    ),
+                    (
+                        "FAO guidance on green-coffee "
+                        "humidity, re-wetting and mould / "
+                        "musty quality deterioration."
+                    ),
+                ],
+            )
+
+
+        # =================================================
+        # 7. BROKEN BEANS
+        # =================================================
+        #
+        # defect_profile.physical.broken already equals:
+        #
+        #   broken + black_and_broken
+        #
+        # =================================================
+
+        if physical.broken > 0:
+
+            self._add_risk(
+                risks,
+
+                defect="BROKEN_BEANS",
+
+                risk_name=(
+                    "Uneven Roasting and Charring Risk"
+                ),
+
+                risk_level="HIGH",
+
+                explanation=(
+                    "Broken or chipped beans can roast "
+                    "faster than whole beans and can char, "
+                    "increasing the risk of uneven roast "
+                    "development and beverage-quality "
+                    "variation."
+                ),
+
+                drivers=[
+                    (
+                        f"{physical.broken} beans contribute "
+                        "to the normalized broken-bean "
+                        "defect profile."
+                    ),
+                    (
+                        "The normalized count includes "
+                        "beans that are both black and "
+                        "broken."
+                    ),
+                ],
+
+                recommended_control=(
+                    "Perform secondary sorting and separate "
+                    "the broken fraction before the final "
+                    "roasting lot is prepared."
+                ),
+
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+
+                source_basis=[
+                    (
+                        "FAO green-coffee defects and "
+                        "post-harvest guidance describing "
+                        "faster roasting and charring of "
+                        "broken beans."
+                    ),
+                ],
+
+                detected_count=(
+                    physical.broken
+                ),
+            )
+
+
+        # =================================================
+        # 8. BLACK BEANS
+        # =================================================
+        #
+        # defect_profile.physical.black already equals:
+        #
+        #   black + black_and_broken
+        #
+        # =================================================
+
+        if physical.black > 0:
+
+            self._add_risk(
+                risks,
+
+                defect="BLACK_BEANS",
+
+                risk_name=(
+                    "Severe Sensory Quality "
+                    "Degradation Risk"
+                ),
+
+                risk_level="CRITICAL",
+
+                explanation=(
+                    "Black beans are a recognized "
+                    "green-coffee defect associated with "
+                    "serious sensory-quality concern. FAO "
+                    "guidance notes that black beans can "
+                    "produce bitter and disagreeable "
+                    "beverage effects."
+                ),
+
+                drivers=[
+                    (
+                        f"{physical.black} beans contribute "
+                        "to the normalized black-bean "
+                        "defect profile."
+                    ),
+                    (
+                        "The normalized count includes "
+                        "beans that are both black and "
+                        "broken."
+                    ),
+                ],
+
+                recommended_control=(
+                    "Remove and segregate the black-bean "
+                    "fraction before roasting and reassess "
+                    "the remaining coffee lot."
+                ),
+
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+
+                source_basis=[
+                    (
+                        "ISO 10470 green-coffee defect "
+                        "reference framework."
+                    ),
+                    (
+                        "FAO green-coffee defect guidance "
+                        "on black-bean sensory effects."
+                    ),
+                ],
+
+                detected_count=(
+                    physical.black
+                ),
+            )
+
+
+        # =================================================
+        # AGGREGATE MODULE RESULT
+        # =================================================
+
+        overall_risk = (
+            self._get_overall_risk(
+                risks
             )
         )
 
 
-        broken = self._safe_int(
-            counts.get(
-                "broken",
-                0,
+        overall_risk_score = (
+            max(
+                (
+                    risk.risk_score
+                    for risk in risks
+                ),
+                default=0.0,
             )
         )
 
 
-        black = self._safe_int(
-            counts.get(
-                "black",
-                0,
+        sensor_risk_contribution = (
+            max(
+                (
+                    risk.risk_score
+                    for risk in risks
+                    if risk.defect
+                    in self.SENSOR_DEFECTS
+                ),
+                default=0.0,
             )
         )
 
 
-        black_and_broken = (
-            self._safe_int(
-                counts.get(
-                    "black_and_broken",
-                    0,
+        recommended_controls = []
+
+        for risk in risks:
+
+            if (
+                risk.recommended_control
+                not in recommended_controls
+            ):
+                recommended_controls.append(
+                    risk.recommended_control
                 )
-            )
+
+
+        inspection_complete = (
+            inspection.sensor_complete
+            and
+            inspection.physical_complete
         )
 
 
-        unknown = self._safe_int(
-            counts.get(
-                "unknown",
-                0,
-            )
+        requires_corrective_action = (
+            len(risks)
+            > 0
         )
 
 
-        # -------------------------------------------------
-        # PERCENTAGES
-        # -------------------------------------------------
+        # =================================================
+        # COMPATIBILITY PERCENTAGES
+        # =================================================
+        #
+        # These are defect-property percentages, not mutually
+        # exclusive yield categories.
+        #
+        # A black-and-broken bean contributes to BOTH the
+        # normalized broken and normalized black properties.
+        #
+        # =================================================
+
+        total = (
+            yield_counts.total_beans
+        )
+
 
         broken_percentage = (
             self._percentage(
-                broken,
+                physical.broken,
                 total,
             )
-        )
-
-
-        severe_defect_count = (
-            black
-            + black_and_broken
         )
 
 
         severe_defect_percentage = (
             self._percentage(
-                severe_defect_count,
+                physical.black,
                 total,
             )
         )
-
-
-        unknown_percentage = (
-            self._percentage(
-                unknown,
-                total,
-            )
-        )
-
-
-        sensor_contribution = (
-            self._sensor_risk_contribution(
-                sensor_status
-            )
-        )
-
-
-        # =================================================
-        # NO PHYSICAL DATA
-        # =================================================
-
-        if (
-            total <= 0
-            or
-            physical_status
-            == "NO_DATA"
-        ):
-
-            missing_data_risk = (
-                RoastRiskItem(
-
-                    risk_name=(
-                        "Incomplete Inspection Risk"
-                    ),
-
-                    risk_level="HIGH",
-
-                    risk_score=70.0,
-
-                    explanation=(
-                        "Physical AI inspection data is "
-                        "not available. Roast quality "
-                        "risk cannot be fully evaluated."
-                    ),
-
-                    drivers=[
-                        (
-                            "Physical defect counts are "
-                            "missing or incomplete."
-                        ),
-                    ],
-                )
-            )
-
-
-            return RoastQualityRisk(
-
-                overall_risk="HIGH",
-
-                overall_risk_score=70.0,
-
-                title=(
-                    "Roast Risk Assessment Incomplete"
-                ),
-
-                summary=(
-                    "The system cannot produce a full "
-                    "roast-quality risk assessment until "
-                    "physical AI inspection is completed."
-                ),
-
-                broken_percentage=0.0,
-
-                severe_defect_percentage=0.0,
-
-                unknown_percentage=0.0,
-
-                risks=[
-                    missing_data_risk
-                ],
-
-                sensor_status=(
-                    sensor_status
-                ),
-
-                sensor_risk_contribution=(
-                    sensor_contribution
-                ),
-
-                requires_corrective_action=True,
-
-                recommended_controls=[
-                    (
-                        "Complete the physical AI "
-                        "inspection."
-                    ),
-                    (
-                        "Generate a new roast-quality "
-                        "risk assessment before roasting."
-                    ),
-                ],
-
-                methodology_note=(
-                    "The risk assessment requires "
-                    "physical defect information. "
-                    "A HIGH risk is assigned to "
-                    "incomplete inspection to prevent "
-                    "automatic roasting release."
-                ),
-            )
-
-
-        # =================================================
-        # CALCULATE INDIVIDUAL RISKS
-        # =================================================
-
-        uneven_risk = (
-            self._calculate_uneven_roasting_risk(
-                broken_percentage=(
-                    broken_percentage
-                ),
-                unknown_percentage=(
-                    unknown_percentage
-                ),
-            )
-        )
-
-
-        flavor_risk = (
-            self._calculate_defect_flavor_risk(
-                severe_defect_percentage=(
-                    severe_defect_percentage
-                ),
-                sensor_status=(
-                    sensor_status
-                ),
-            )
-        )
-
-
-        uniformity_risk = (
-            self._calculate_batch_uniformity_risk(
-                broken_percentage=(
-                    broken_percentage
-                ),
-                severe_defect_percentage=(
-                    severe_defect_percentage
-                ),
-                unknown_percentage=(
-                    unknown_percentage
-                ),
-            )
-        )
-
-
-        risks = [
-            uneven_risk,
-            flavor_risk,
-            uniformity_risk,
-        ]
-
-
-        # =================================================
-        # OVERALL RISK
-        # =================================================
-        #
-        # Conservative quality-control rule:
-        #
-        # The highest major risk is used as the overall
-        # roast risk so that a severe problem is not hidden
-        # by averaging it with low-risk categories.
-        # =================================================
-
-        overall_score = max(
-            risk.risk_score
-            for risk
-            in risks
-        )
-
-
-        # -------------------------------------------------
-        # ADD QUALITY STATUS SAFEGUARD
-        # -------------------------------------------------
-
-        if (
-            physical_status == "POOR"
-        ):
-            overall_score = max(
-                overall_score,
-                75.0,
-            )
-
-
-        if (
-            sensor_status == "BAD"
-        ):
-            overall_score = max(
-                overall_score,
-                75.0,
-            )
-
-
-        if (
-            grade == "Reject"
-        ):
-            overall_score = max(
-                overall_score,
-                85.0,
-            )
-
-
-        overall_score = round(
-            self._clamp(
-                overall_score
-            ),
-            2,
-        )
-
-
-        overall_level = (
-            self._risk_level(
-                overall_score
-            )
-        )
-
-
-        # =================================================
-        # RECOMMENDED CONTROLS
-        # =================================================
-
-        controls: List[str] = []
-
-
-        if (
-            severe_defect_count
-            > 0
-        ):
-            controls.append(
-                (
-                    "Remove black and "
-                    "black-and-broken beans before "
-                    "roasting."
-                )
-            )
-
-
-        if (
-            broken
-            > 0
-        ):
-            controls.append(
-                (
-                    "Perform secondary sorting to "
-                    "reduce broken-bean variation."
-                )
-            )
-
-
-        if (
-            unknown
-            > 0
-        ):
-            controls.append(
-                (
-                    "Manually inspect uncertain "
-                    "bean classifications."
-                )
-            )
-
-
-        if (
-            sensor_status
-            in {
-                "BAD",
-                "REVIEW",
-                "SKIPPED",
-            }
-        ):
-            controls.append(
-                (
-                    "Repeat or review the sensor "
-                    "quality assessment before roasting."
-                )
-            )
-
-
-        if (
-            overall_level
-            in {
-                "HIGH",
-                "CRITICAL",
-            }
-        ):
-            controls.append(
-                (
-                    "Repeat the physical AI inspection "
-                    "after corrective sorting."
-                )
-            )
-
-
-        if (
-            not controls
-        ):
-            controls.append(
-                (
-                    "Continue with standard pre-roast "
-                    "quality-control procedures."
-                )
-            )
 
 
         # =================================================
         # TITLE / SUMMARY
         # =================================================
 
-        if (
-            overall_level == "LOW"
-        ):
+        if not inspection_complete:
 
             title = (
-                "Low Roast Quality Risk"
+                "Roast Quality Risk Assessment "
+                "Requires Complete Inspection"
             )
 
-            summary = (
-                "The current defect profile indicates "
-                "a low risk of quality inconsistency "
-                "during roasting."
-            )
+            if risks:
+                summary = (
+                    f"{len(risks)} active defect-related "
+                    "roast risk(s) were identified, but "
+                    "one or more required inspections are "
+                    "incomplete. The listed risks remain "
+                    "valid; complete the missing inspection "
+                    "before relying on the overall batch "
+                    "assessment."
+                )
+            else:
+                summary = (
+                    "No active defect-related roast risk "
+                    "was identified from the available "
+                    "evidence, but one or more required "
+                    "inspections are incomplete. A complete "
+                    "risk assessment requires the missing "
+                    "inspection data."
+                )
 
 
-        elif (
-            overall_level == "MEDIUM"
-        ):
-
-            title = (
-                "Moderate Roast Quality Risk"
-            )
-
-            summary = (
-                "Some physical quality variation is "
-                "present. Pre-roast sorting and process "
-                "attention are recommended."
-            )
-
-
-        elif (
-            overall_level == "HIGH"
-        ):
-
-            title = (
-                "High Roast Quality Risk"
-            )
-
-            summary = (
-                "The current quality profile presents "
-                "a high risk of inconsistent roasting. "
-                "Corrective preparation should be "
-                "completed before roasting."
-            )
-
-
-        else:
+        elif overall_risk == "CRITICAL":
 
             title = (
                 "Critical Roast Quality Risk"
             )
 
             summary = (
-                "The current batch contains severe "
-                "quality conditions that may strongly "
-                "affect roast consistency. Direct "
-                "roasting is not recommended before "
-                "corrective action and reassessment."
+                f"{len(risks)} defect-driven roast-quality "
+                "risk(s) were identified. At least one "
+                "active defect carries a research-defined "
+                "CRITICAL risk level and requires "
+                "corrective action before roasting."
+            )
+
+
+        elif overall_risk == "HIGH":
+
+            title = (
+                "High Roast Quality Risk"
+            )
+
+            summary = (
+                f"{len(risks)} defect-driven roast-quality "
+                "risk(s) were identified. Corrective "
+                "controls should be completed before the "
+                "batch proceeds to roasting."
+            )
+
+
+        elif overall_risk == "MEDIUM":
+
+            title = (
+                "Moderate Roast Quality Risk"
+            )
+
+            summary = (
+                f"{len(risks)} defect-driven roast-quality "
+                "risk(s) were identified. The batch "
+                "requires additional process control before "
+                "direct roasting."
+            )
+
+
+        else:
+
+            title = (
+                "Low Detected Roast Quality Risk"
+            )
+
+            summary = (
+                "No active Processing Intelligence defect "
+                "currently generates a specific roast-"
+                "quality risk. Continue normal pre-roast "
+                "and roasting quality controls."
             )
 
 
         # =================================================
-        # RETURN
+        # RESPONSE
         # =================================================
 
         return RoastQualityRisk(
 
             overall_risk=(
-                overall_level
+                overall_risk
             ),
 
             overall_risk_score=(
-                overall_score
+                overall_risk_score
             ),
 
             title=title,
 
             summary=summary,
+
+            risks=risks,
+
+            active_risk_count=(
+                len(risks)
+            ),
+
+            active_defect_count=(
+                defect_profile
+                .active_defect_count
+            ),
+
+            inspection_complete=(
+                inspection_complete
+            ),
 
             broken_percentage=(
                 broken_percentage
@@ -1087,42 +959,41 @@ class RoastQualityRiskService:
                 severe_defect_percentage
             ),
 
-            unknown_percentage=(
-                unknown_percentage
-            ),
-
-            risks=risks,
+            unknown_percentage=0.0,
 
             sensor_status=(
-                sensor_status
+                "DEFECT_DRIVEN"
             ),
 
             sensor_risk_contribution=(
-                sensor_contribution
+                sensor_risk_contribution
             ),
 
             requires_corrective_action=(
-                overall_level
-                in {
-                    "MEDIUM",
-                    "HIGH",
-                    "CRITICAL",
-                }
+                requires_corrective_action
             ),
 
             recommended_controls=(
-                controls
+                recommended_controls
             ),
 
             methodology_note=(
-                "This roast-quality risk assessment is "
-                "a research-defined decision-support "
-                "model based on the raw-bean defect "
-                "distribution and sensor quality status. "
-                "It estimates roasting-process and "
-                "quality risks; it does not predict a "
-                "cupping score, flavor profile, or exact "
-                "roasting temperature and duration."
+                "Module 3 is defect-driven. Each active "
+                "sensor or physical defect independently "
+                "generates its relevant roast-quality risk. "
+                "Final quality score, grade, overall sensor "
+                "status and physical status do not trigger "
+                "these risks. MQ sensor risks are screening "
+                "and verification risks because MQ-2, "
+                "MQ-3 and MQ-135 are broad, non-specific "
+                "gas sensors. Moisture, humidity, broken-"
+                "bean and black-bean risk interpretations "
+                "are supported by recognized green-coffee "
+                "quality and post-harvest guidance, while "
+                "the exact LOW/MEDIUM/HIGH/CRITICAL labels "
+                "and 25/50/75/100 display scores are "
+                "research-defined. The numeric scores are "
+                "not probabilities of roast failure."
             ),
         )
 

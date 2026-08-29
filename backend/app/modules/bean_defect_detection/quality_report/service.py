@@ -6,6 +6,10 @@ from .processing_intelligence.service import (
     processing_intelligence_service,
 )
 
+from .processing_intelligence.defect_profile import (
+    build_defect_profile,
+)
+
 from .schema import (
     GenerateQualityReportRequest,
     PhysicalDefectCounts,
@@ -2601,6 +2605,112 @@ class QualityReportService:
         }
 
 
+        # -------------------------------------------------
+        # DEFECT-DRIVEN PROCESSING INTELLIGENCE INPUT
+        # -------------------------------------------------
+        #
+        # Reuse the same research-defined sensor thresholds
+        # already used by the five-vote sensor assessment.
+        #
+        # Temperature remains supporting information only
+        # because the experimental GOOD and BAD ranges overlap.
+        # No unvalidated temperature threshold is added here.
+        #
+        # -------------------------------------------------
+
+        sensor_defects = {
+
+            "mq2_abnormal": (
+                self._is_bad_sensor_response(
+                    "mq2",
+                    sensor_assessment.mq2_response,
+                )
+                is True
+            ),
+
+            "mq3_abnormal": (
+                self._is_bad_sensor_response(
+                    "mq3",
+                    sensor_assessment.mq3_response,
+                )
+                is True
+            ),
+
+            "mq135_abnormal": (
+                self._is_bad_sensor_response(
+                    "mq135",
+                    sensor_assessment.mq135_response,
+                )
+                is True
+            ),
+
+            "moisture_defect": (
+                self._is_bad_sensor_response(
+                    "moisture",
+                    sensor_assessment.moisture_response,
+                )
+                is True
+            ),
+
+            "temperature_abnormal": False,
+
+            "humidity_abnormal": (
+                self._is_bad_sensor_response(
+                    "humidity",
+                    sensor_assessment.humidity_response,
+                )
+                is True
+            ),
+        }
+
+
+        # -------------------------------------------------
+        # NORMALIZED DEFECT PROFILE
+        # -------------------------------------------------
+        #
+        # Modules 1, 2, 3, 4, 6 and 7:
+        #
+        #   broken = broken + black_and_broken
+        #   black  = black + black_and_broken
+        #
+        # Module 5 - Usable Yield:
+        #
+        #   good
+        #   broken
+        #   black
+        #   black_and_broken
+        #
+        # remain separate.
+        #
+        # -------------------------------------------------
+
+        defect_profile = build_defect_profile(
+            sensor_defects=sensor_defects,
+            counts=processing_counts,
+        )
+
+
+        # Temporary development log.
+        # This lets us confirm the new normalized input before
+        # replacing the old processing-intelligence service.
+
+        print(
+            "PROCESSING INTELLIGENCE DEFECT PROFILE:",
+            defect_profile.model_dump(),
+        )
+
+
+        # -------------------------------------------------
+        # EXISTING PROCESSING INTELLIGENCE
+        # -------------------------------------------------
+        #
+        # Keep the old service call unchanged for this step.
+        # The next migration step will update service.py to
+        # consume defect_profile and generate the seven new
+        # defect-driven modules.
+        #
+        # -------------------------------------------------
+
         processing_intelligence = (
             processing_intelligence_service.generate(
 
@@ -2639,6 +2749,10 @@ class QualityReportService:
                     .physical_result
                     .weight_calibrated
                 ),
+
+                defect_profile=(
+                     defect_profile
+                 ),
             )
         )
 

@@ -25,3 +25,27 @@ export const generateBeanQualityReport = async (
 
   return response.data;
 };
+
+export const saveBeanQualityReport = async (report) => {
+  const response = await api.post("/api/beans/quality-report/save", {
+    report,
+  });
+
+  return response.data;
+};
+
+export const getBeanQualityReportHistory = async (limit = 50) => {
+  const response = await api.get("/api/beans/quality-report/history", {
+    params: {
+      limit,
+    },
+  });
+
+  return response.data;
+};
+
+export const getSavedBeanQualityReport = async (reportId) => {
+  const response = await api.get(`/api/beans/quality-report/saved/${reportId}`);
+
+  return response.data;
+};

@@ -42,6 +42,20 @@ from app.modules.bean_defect_detection.quality_report.routes import (
     router as quality_report_router,
 )
 
+
+from .quality_report.schema import (
+    SaveQualityReportRequest,
+    SaveQualityReportResponse,
+)
+
+from .quality_report.crud import (
+    save_quality_report,
+    get_saved_quality_report,
+    get_quality_report_history,
+)
+
+
+
 # =========================================================
 # BEAN ROUTER
 # =========================================================
@@ -227,4 +241,86 @@ async def predict_beans(
         ),
 
         "result": result,
+    }
+
+
+# =========================================================
+# SAVE FINAL BEAN QUALITY REPORT
+# =========================================================
+
+@router.post(
+    "/quality-report/save",
+    response_model=SaveQualityReportResponse,
+)
+async def save_final_quality_report(
+    request: SaveQualityReportRequest,
+):
+    try:
+        saved_report = await save_quality_report(
+            request.report
+        )
+
+        return SaveQualityReportResponse(
+            status="success",
+            message="Quality report saved successfully.",
+            report_id=saved_report.get(
+                "report_id"
+            ),
+        )
+
+    except Exception as error:
+        print(
+            "[QUALITY REPORT] Save failed:",
+            str(error),
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Failed to save the coffee bean "
+                "quality report."
+            ),
+        )
+
+
+# =========================================================
+# GET SAVED REPORT
+# =========================================================
+
+@router.get(
+    "/quality-report/saved/{report_id}"
+)
+async def get_final_quality_report(
+    report_id: str,
+):
+    report = await get_saved_quality_report(
+        report_id
+    )
+
+    if not report:
+        raise HTTPException(
+            status_code=404,
+            detail="Quality report not found.",
+        )
+
+    return report
+
+
+# =========================================================
+# REPORT HISTORY
+# =========================================================
+
+@router.get(
+    "/quality-report/history"
+)
+async def get_final_quality_report_history(
+    limit: int = 50,
+):
+    reports = await get_quality_report_history(
+        limit=limit
+    )
+
+    return {
+        "count": len(reports),
+        "data": reports,
     }

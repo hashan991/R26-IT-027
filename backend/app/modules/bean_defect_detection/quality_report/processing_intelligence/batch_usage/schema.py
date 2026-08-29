@@ -1,52 +1,123 @@
-from typing import List, Literal
+from typing import List, Literal, Optional
 
-from pydantic import BaseModel
-
-
-# =========================================================
-# BATCH USAGE SUITABILITY
-# =========================================================
-
-UsageSuitability = Literal[
-    "SUITABLE",
-    "CONDITIONAL",
-    "NOT_RECOMMENDED",
-]
+from pydantic import BaseModel, Field
 
 
 # =========================================================
-# INDIVIDUAL BATCH USAGE OPTION
+# SINGLE DEFECT-DRIVEN BATCH USAGE RECOMMENDATION
+# =========================================================
+
+class BatchUsageDefectRecommendation(BaseModel):
+
+    defect: Literal[
+        "MQ2_ABNORMAL",
+        "MQ3_ABNORMAL",
+        "MQ135_ABNORMAL",
+        "MOISTURE_DEFECT",
+        "TEMPERATURE_ABNORMAL",
+        "HUMIDITY_ABNORMAL",
+        "BROKEN_BEANS",
+        "BLACK_BEANS",
+    ]
+
+    recommendation: Literal[
+        "SORT_AND_USE",
+        "STABILIZE_AND_REASSESS",
+        "CONDITION_AND_REASSESS",
+        "HOLD_AND_STABILIZE",
+        "HOLD_FOR_VERIFICATION",
+    ]
+
+    title: str
+
+    explanation: str
+
+    required_action: str
+
+    evidence_class: Literal[
+        "STANDARD_DIRECT",
+        "STANDARD_SUPPORTED_RESEARCH_RULE",
+        "SENSOR_TECHNICAL_RULE",
+    ]
+
+    detected_count: Optional[int] = Field(
+        default=None,
+        ge=0,
+    )
+
+
+# =========================================================
+# LEGACY / FRONTEND COMPATIBILITY OPTION
+# =========================================================
+#
+# Older frontend/report code may still expect usage_options.
+# The new defect-driven Module 4 does NOT assign arbitrary
+# premium/economy product tiers. This model is retained only
+# so existing imports and rendering logic do not break.
+#
 # =========================================================
 
 class BatchUsageOption(BaseModel):
 
     use_case: str
 
-    suitability: UsageSuitability
+    suitability: Literal[
+        "SUITABLE",
+        "CONDITIONAL",
+        "NOT_RECOMMENDED",
+    ]
 
     explanation: str
 
-    conditions: List[str]
+    conditions: List[str] = Field(
+        default_factory=list
+    )
+
+
+# Optional compatibility alias for older imports.
+UsageOption = BatchUsageOption
 
 
 # =========================================================
-# COMPLETE BATCH USAGE RECOMMENDATION
+# MODULE 4 RESPONSE
 # =========================================================
 
 class BatchUsageRecommendation(BaseModel):
 
+    module: Literal[
+        "BATCH_USAGE_RECOMMENDATION"
+    ] = "BATCH_USAGE_RECOMMENDATION"
+
     # -----------------------------------------------------
-    # MAIN RECOMMENDATION
+    # OVERALL RECOMMENDATION
+    # -----------------------------------------------------
+    #
+    # Research-defined aggregation order:
+    #
+    # INSPECTION_REQUIRED
+    #       >
+    # HOLD_FOR_VERIFICATION
+    #       >
+    # HOLD_AND_STABILIZE
+    #       >
+    # CONDITION_AND_REASSESS
+    #       >
+    # STABILIZE_AND_REASSESS
+    #       >
+    # SORT_AND_USE
+    #       >
+    # DIRECT_USE
+    #
     # -----------------------------------------------------
 
     primary_recommendation: Literal[
-        "PREMIUM_EVALUATION",
-        "STANDARD_PRODUCT",
-        "COMMERCIAL_BLEND",
-        "ECONOMY_PRODUCT",
-        "REWORK_ONLY",
+        "DIRECT_USE",
+        "SORT_AND_USE",
+        "STABILIZE_AND_REASSESS",
+        "CONDITION_AND_REASSESS",
+        "HOLD_AND_STABILIZE",
+        "HOLD_FOR_VERIFICATION",
         "INSPECTION_REQUIRED",
-        "REJECT",
     ]
 
     title: str
@@ -55,52 +126,75 @@ class BatchUsageRecommendation(BaseModel):
 
     recommended_use: str
 
-    alternative_uses: List[str]
+    # Every active defect keeps its own recommendation.
+    recommendations: List[
+        BatchUsageDefectRecommendation
+    ] = Field(
+        default_factory=list
+    )
+
+    active_defect_count: int = Field(
+        default=0,
+        ge=0,
+    )
+
+    inspection_complete: bool = True
 
     # -----------------------------------------------------
-    # USAGE OPTIONS
+    # ACTION FLAGS
     # -----------------------------------------------------
+
+    direct_use_allowed: bool = False
+
+    sorting_required: bool = False
+
+    stabilization_required: bool = False
+
+    conditioning_required: bool = False
+
+    verification_required: bool = False
+
+    reinspection_required: bool = False
+
+    rework_required: bool = False
+
+    # The new Module 4 does not make blend allocation
+    # decisions. Kept only for backward compatibility.
+    blend_evaluation_required: bool = False
+
+    # -----------------------------------------------------
+    # COMPATIBILITY / EXPLAINABILITY FIELDS
+    # -----------------------------------------------------
+
+    alternative_uses: List[str] = Field(
+        default_factory=list
+    )
 
     usage_options: List[
         BatchUsageOption
-    ]
+    ] = Field(
+        default_factory=list
+    )
 
-    # -----------------------------------------------------
-    # PROCESS REQUIREMENTS
-    # -----------------------------------------------------
+    restrictions: List[str] = Field(
+        default_factory=list
+    )
 
-    direct_use_allowed: bool
+    good_percentage: float = 0.0
 
-    rework_required: bool
+    broken_percentage: float = 0.0
 
-    sorting_required: bool
+    severe_defect_percentage: float = 0.0
 
-    reinspection_required: bool
+    unknown_percentage: float = 0.0
 
-    blend_evaluation_required: bool
+    # Overall status/grade fields are intentionally not used
+    # by the new rule engine. They are retained only so older
+    # frontend code that reads them does not fail.
+    sensor_status: str = "DEFECT_DRIVEN"
 
-    # -----------------------------------------------------
-    # QUALITY PROFILE
-    # -----------------------------------------------------
+    physical_status: str = "DEFECT_DRIVEN"
 
-    good_percentage: float
-
-    broken_percentage: float
-
-    severe_defect_percentage: float
-
-    unknown_percentage: float
-
-    sensor_status: str
-
-    physical_status: str
-
-    final_grade: str
-
-    # -----------------------------------------------------
-    # RESTRICTIONS
-    # -----------------------------------------------------
-
-    restrictions: List[str]
+    final_grade: str = "NOT_USED"
 
     methodology_note: str

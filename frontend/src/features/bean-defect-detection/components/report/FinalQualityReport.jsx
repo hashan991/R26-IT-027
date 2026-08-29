@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import QualityScore from "./QualityScore";
 import QualityFindings from "./QualityFindings";
@@ -8,9 +8,15 @@ import SensorAssessmentCard from "./SensorAssessmentCard";
 import PhysicalAssessmentCard from "./PhysicalAssessmentCard";
 import BeanWeightAssessment from "./BeanWeightAssessment";
 
-import { generateBeanQualityReport } from "../../services/qualityService";
+import {
+  generateBeanQualityReport,
+  saveBeanQualityReport,
+} from "../../services/qualityService";
 
 import ProcessingIntelligence from "./processing/ProcessingIntelligence";
+
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 function FinalQualityReport({
   sensorResult,
@@ -35,6 +41,19 @@ function FinalQualityReport({
   // =========================================================
 
   const [error, setError] = useState("");
+
+  // =========================================================
+  // PDF EXPORT
+  // =========================================================
+
+  const reportRef = useRef(null);
+
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+
+//save repoart
+  const [savingReport, setSavingReport] = useState(false);
+
+  const [reportSaved, setReportSaved] = useState(false);
 
   // =========================================================
   // GENERATE REPORT FROM BACKEND
@@ -511,24 +530,665 @@ const generateReport = async () => {
   //
   // =========================================================
 
-  const handleSave = () => {
-    console.log("FINAL QUALITY REPORT", report);
+const handleSave = async () => {
+  if (!report) {
+    alert("No report is available to save.");
+
+    return;
+  }
+
+  if (savingReport) {
+    return;
+  }
+
+  try {
+    setSavingReport(true);
+
+    const response = await saveBeanQualityReport(report);
+
+    console.log("REPORT SAVED:", response);
+
+    setReportSaved(true);
+
+    alert(`Report ${response.report_id} saved successfully.`);
+  } catch (saveError) {
+    console.error("Report save failed:", saveError);
 
     alert(
-      "Report generation is complete. MongoDB save will be connected next.",
+      saveError.response?.data?.detail ||
+        "Unable to save the report. Please try again.",
     );
-  };
+  } finally {
+    setSavingReport(false);
+  }
+};
 
   // =========================================================
-  // DOWNLOAD PDF
+  // DOWNLOAD FULL REPORT AS PDF
   // =========================================================
   //
-  // PDF endpoint will be connected later.
+  // The report is rendered in smaller logical blocks instead of
+  // capturing one extremely tall canvas. This is safer for long
+  // reports containing all 7 Processing Intelligence modules.
   //
   // =========================================================
 
-  const handleDownload = () => {
-    alert("PDF report generation will be connected next.");
+  const handleDownload = async () => {
+    if (pdfGenerating) {
+      return;
+    }
+
+    if (!reportRef.current) {
+      alert("Report content is not available.");
+      return;
+    }
+
+    try {
+      setPdfGenerating(true);
+
+      // Wait until web fonts have finished loading so the PDF
+      // closely matches the report shown in the browser.
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
+      const reportElement = reportRef.current;
+
+      // -----------------------------------------------------
+      // PDF SETTINGS
+      // -----------------------------------------------------
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+        compress: true,
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const marginX = 7;
+      const marginTop = 7;
+      const marginBottom = 10;
+      const blockGap = 3;
+
+      const printableWidth = pageWidth - marginX * 2;
+      const printableHeight =
+        pageHeight - marginTop - marginBottom;
+
+      const pageBackground = {
+        r: 33,
+        g: 21,
+        b: 15,
+      };
+
+      let currentY = marginTop;
+
+      const paintPageBackground = () => {
+        pdf.setFillColor(
+          pageBackground.r,
+          pageBackground.g,
+          pageBackground.b,
+        );
+
+        pdf.rect(
+          0,
+          0,
+          pageWidth,
+          pageHeight,
+          "F",
+        );
+      };
+
+      const createNewPage = () => {
+        pdf.addPage();
+        paintPageBackground();
+        currentY = marginTop;
+      };
+
+      paintPageBackground();
+
+      // -----------------------------------------------------
+      // COLLECT PDF BLOCKS
+      // -----------------------------------------------------
+      //
+      // Processing Intelligence is expanded into its internal
+      // sections so the browser does not need to create one huge
+      // canvas for all seven modules.
+      //
+      // -----------------------------------------------------
+
+      const pdfBlocks = [];
+
+      const addProcessingIntelligenceBlocks = (root) => {
+        const children = Array.from(root.children);
+
+        children.forEach((child) => {
+          if (child.tagName === "STYLE") {
+            return;
+          }
+
+          if (child.classList.contains("pdf-exclude")) {
+            return;
+          }
+
+          if (child.classList.contains("pi-grid")) {
+            const moduleSections = Array.from(
+              child.querySelectorAll(
+                ":scope > .pi-module-section",
+              ),
+            );
+
+            if (moduleSections.length > 0) {
+              moduleSections.forEach((section) => {
+                pdfBlocks.push(section);
+              });
+
+              return;
+            }
+          }
+
+          pdfBlocks.push(child);
+        });
+      };
+
+      Array.from(reportElement.children).forEach(
+        (child) => {
+          if (child.tagName === "STYLE") {
+            return;
+          }
+
+          if (child.classList.contains("pdf-exclude")) {
+            return;
+          }
+
+          if (
+            child.classList.contains(
+              "processing-intelligence",
+            )
+          ) {
+            addProcessingIntelligenceBlocks(child);
+            return;
+          }
+
+          pdfBlocks.push(child);
+        },
+      );
+
+      // -----------------------------------------------------
+      // CANVAS -> JPEG
+      // -----------------------------------------------------
+
+      const canvasToJpeg = (canvas) =>
+        canvas.toDataURL(
+          "image/jpeg",
+          0.94,
+        );
+
+      // -----------------------------------------------------
+      // SAFE PAGE-BREAK POINTS
+      // -----------------------------------------------------
+      //
+      // html2canvas produces a bitmap. If a tall bitmap is cut at
+      // a fixed pixel height, cards/text can be sliced in half.
+      // These selectors identify logical UI boundaries. Their top
+      // and bottom Y positions are converted to canvas coordinates
+      // and used as preferred PDF page-break positions.
+      //
+      // -----------------------------------------------------
+
+      const SAFE_BREAK_SELECTORS = [
+        ".pi-module-heading",
+
+        // Module 1
+        ".roasting-hero",
+        ".roasting-section",
+        ".roasting-trigger",
+        ".roasting-direction-card",
+        ".roasting-info-card",
+        ".roasting-list-card",
+        ".roasting-methodology",
+
+        // Module 2
+        ".pre-roast-hero",
+        ".pre-roast-section",
+        ".pre-roast-action",
+        ".pre-roast-control",
+        ".pre-roast-summary-card",
+        ".pre-roast-methodology",
+
+        // Module 3
+        ".roast-risk-hero",
+        ".roast-risk-section",
+        ".roast-risk-item",
+        ".roast-risk-summary-card",
+        ".roast-risk-control-item",
+        ".roast-risk-methodology",
+
+        // Module 4
+        ".batch-usage-hero",
+        ".batch-usage-section",
+        ".batch-usage-item",
+        ".batch-usage-control",
+        ".batch-usage-summary-card",
+        ".batch-usage-option",
+        ".batch-usage-restriction",
+        ".batch-usage-methodology",
+
+        // Module 5
+        ".yield-hero",
+        ".yield-section",
+        ".yield-outcome-card",
+        ".yield-category",
+        ".yield-control",
+        ".yield-summary-card",
+        ".yield-weight-card",
+        ".yield-interpretation",
+        ".yield-methodology",
+
+        // Module 6
+        ".storage-hero",
+        ".storage-section",
+        ".storage-control",
+        ".storage-recommendation",
+        ".storage-recommendation-card",
+        ".storage-item",
+        ".storage-methodology",
+
+        // Module 7
+        ".preventive-guidance-header",
+        ".preventive-guidance-metrics",
+        ".preventive-guidance-card",
+        ".preventive-guidance-item",
+        ".preventive-empty-state",
+        ".preventive-methodology",
+
+        // General top-level report blocks
+        ".final-report-header",
+        ".batch-information",
+        ".report-section-block",
+        ".assessment-summary-card",
+        ".methodology-card",
+      ];
+
+      const getSafeBreakpoints = (sourceElement, canvas) => {
+        if (!sourceElement || !canvas?.height) {
+          return [];
+        }
+
+        const sourceRect =
+          sourceElement.getBoundingClientRect();
+
+        if (sourceRect.height <= 0) {
+          return [];
+        }
+
+        const canvasScaleY =
+          canvas.height / sourceRect.height;
+
+        const points = [];
+
+        sourceElement
+          .querySelectorAll(
+            SAFE_BREAK_SELECTORS.join(","),
+          )
+          .forEach((element) => {
+            const rect =
+              element.getBoundingClientRect();
+
+            const top =
+              (rect.top - sourceRect.top) *
+              canvasScaleY;
+
+            const bottom =
+              (rect.bottom - sourceRect.top) *
+              canvasScaleY;
+
+            if (
+              top > 2 &&
+              top < canvas.height - 2
+            ) {
+              points.push(top);
+            }
+
+            if (
+              bottom > 2 &&
+              bottom < canvas.height - 2
+            ) {
+              points.push(bottom);
+            }
+          });
+
+        return Array.from(
+          new Set(
+            points.map((point) =>
+              Math.round(point),
+            ),
+          ),
+        ).sort((a, b) => a - b);
+      };
+
+      // -----------------------------------------------------
+      // ADD ONE CANVAS TO PDF
+      // -----------------------------------------------------
+      //
+      // Small blocks stay together where possible. For a block
+      // taller than one page, we prefer semantic DOM boundaries
+      // instead of cutting at an arbitrary pixel row.
+      //
+      // -----------------------------------------------------
+
+      const addCanvasToPdf = (canvas, sourceElement) => {
+        if (!canvas.width || !canvas.height) {
+          return;
+        }
+
+        const pxPerMm =
+          canvas.width / printableWidth;
+
+        const fullHeightMm =
+          canvas.height / pxPerMm;
+
+        const remainingHeight =
+          pageHeight -
+          marginBottom -
+          currentY;
+
+        // Entire block fits in the current page.
+        if (
+          fullHeightMm <= remainingHeight
+        ) {
+          pdf.addImage(
+            canvasToJpeg(canvas),
+            "JPEG",
+            marginX,
+            currentY,
+            printableWidth,
+            fullHeightMm,
+            undefined,
+            "FAST",
+          );
+
+          currentY +=
+            fullHeightMm + blockGap;
+
+          return;
+        }
+
+        // Entire block fits on one fresh page.
+        if (
+          fullHeightMm <= printableHeight
+        ) {
+          createNewPage();
+
+          pdf.addImage(
+            canvasToJpeg(canvas),
+            "JPEG",
+            marginX,
+            currentY,
+            printableWidth,
+            fullHeightMm,
+            undefined,
+            "FAST",
+          );
+
+          currentY +=
+            fullHeightMm + blockGap;
+
+          return;
+        }
+
+        // The block itself is taller than one A4 page.
+        // Start it on a new page when some previous content
+        // already occupies the current page.
+        if (currentY > marginTop + 0.5) {
+          createNewPage();
+        }
+
+        const maxSliceHeightPx =
+          Math.max(
+            1,
+            Math.floor(
+              printableHeight * pxPerMm,
+            ),
+          );
+
+        const safeBreakpoints =
+          getSafeBreakpoints(
+            sourceElement,
+            canvas,
+          );
+
+        const chooseSafeSliceEnd = (
+          startY,
+          desiredEndY,
+        ) => {
+          if (desiredEndY >= canvas.height) {
+            return canvas.height;
+          }
+
+          // Avoid creating tiny fragments. Prefer a semantic
+          // breakpoint in roughly the last 65% of the page.
+          const minimumUsefulEnd =
+            startY +
+            maxSliceHeightPx * 0.35;
+
+          const candidates =
+            safeBreakpoints.filter(
+              (point) =>
+                point > minimumUsefulEnd &&
+                point <= desiredEndY - 8,
+            );
+
+          if (candidates.length > 0) {
+            return candidates[
+              candidates.length - 1
+            ];
+          }
+
+          // If no preferred boundary exists before the page
+          // limit, use the regular page limit as a fallback.
+          // This should only happen when one individual card is
+          // itself taller than a full A4 content area.
+          return desiredEndY;
+        };
+
+        let sourceY = 0;
+
+        while (sourceY < canvas.height) {
+          const desiredEndY =
+            Math.min(
+              sourceY + maxSliceHeightPx,
+              canvas.height,
+            );
+
+          const sliceEndY =
+            chooseSafeSliceEnd(
+              sourceY,
+              desiredEndY,
+            );
+
+          const sliceHeightPx =
+            Math.max(
+              1,
+              sliceEndY - sourceY,
+            );
+
+          const sliceCanvas =
+            document.createElement("canvas");
+
+          sliceCanvas.width =
+            canvas.width;
+
+          sliceCanvas.height =
+            sliceHeightPx;
+
+          const sliceContext =
+            sliceCanvas.getContext("2d");
+
+          sliceContext.fillStyle =
+            "#21150f";
+
+          sliceContext.fillRect(
+            0,
+            0,
+            sliceCanvas.width,
+            sliceCanvas.height,
+          );
+
+          sliceContext.drawImage(
+            canvas,
+            0,
+            sourceY,
+            canvas.width,
+            sliceHeightPx,
+            0,
+            0,
+            canvas.width,
+            sliceHeightPx,
+          );
+
+          const sliceHeightMm =
+            sliceHeightPx / pxPerMm;
+
+          pdf.addImage(
+            canvasToJpeg(sliceCanvas),
+            "JPEG",
+            marginX,
+            currentY,
+            printableWidth,
+            sliceHeightMm,
+            undefined,
+            "FAST",
+          );
+
+          sourceY = sliceEndY;
+
+          if (sourceY < canvas.height) {
+            createNewPage();
+          } else {
+            currentY +=
+              sliceHeightMm +
+              blockGap;
+          }
+        }
+      };
+
+      // -----------------------------------------------------
+      // RENDER EACH REPORT BLOCK
+      // -----------------------------------------------------
+
+      for (const block of pdfBlocks) {
+        const blockRect =
+          block.getBoundingClientRect();
+
+        if (
+          blockRect.width <= 0 ||
+          blockRect.height <= 0
+        ) {
+          continue;
+        }
+
+        const canvas =
+          await html2canvas(block, {
+            scale: 1.5,
+            useCORS: true,
+            allowTaint: false,
+            logging: false,
+            backgroundColor: "#21150f",
+            scrollX: 0,
+            scrollY: -window.scrollY,
+            windowWidth: Math.max(
+              document.documentElement.clientWidth,
+              1200,
+            ),
+            onclone: (clonedDocument) => {
+              clonedDocument
+                .querySelectorAll(".pdf-exclude")
+                .forEach((element) => {
+                  element.style.display = "none";
+                });
+            },
+          });
+
+        addCanvasToPdf(canvas, block);
+      }
+
+      // -----------------------------------------------------
+      // PAGE NUMBERS
+      // -----------------------------------------------------
+
+      const totalPages =
+        pdf.getNumberOfPages();
+
+      for (
+        let pageNumber = 1;
+        pageNumber <= totalPages;
+        pageNumber += 1
+      ) {
+        pdf.setPage(pageNumber);
+
+        pdf.setTextColor(
+          211,
+          183,
+          151,
+        );
+
+        pdf.setFontSize(7.5);
+
+        pdf.text(
+          `Coffee Bean Quality Report  |  Page ${pageNumber} of ${totalPages}`,
+          pageWidth - marginX,
+          pageHeight - 4,
+          {
+            align: "right",
+          },
+        );
+      }
+
+      // -----------------------------------------------------
+      // PDF METADATA + FILE NAME
+      // -----------------------------------------------------
+
+      const rawReportId =
+        report?.report_id ||
+        "coffee-bean-quality-report";
+
+      const safeReportId =
+        String(rawReportId)
+          .replace(
+            /[<>:"/\\|?*\u0000-\u001F]/g,
+            "-",
+          )
+          .trim();
+
+      pdf.setProperties({
+        title:
+          `Coffee Bean Quality Report - ${rawReportId}`,
+        subject:
+          "Coffee bean sensor and physical AI quality assessment report",
+        author:
+          "Coffee Quality AI Platform",
+        creator:
+          "Coffee Quality AI Platform",
+      });
+
+      pdf.save(
+        `${safeReportId || "coffee-bean-quality-report"}.pdf`,
+      );
+    } catch (downloadError) {
+      console.error(
+        "PDF generation failed:",
+        downloadError,
+      );
+
+      alert(
+        "Unable to generate the PDF report. Please try again.",
+      );
+    } finally {
+      setPdfGenerating(false);
+    }
   };
 
   // =========================================================
@@ -537,7 +1197,7 @@ const generateReport = async () => {
 
   return (
     <section className="final-report">
-      <div className="final-report-card">
+      <div className="final-report-card" ref={reportRef}>
         {/* =================================================
             HEADER
         ================================================= */}
@@ -682,12 +1342,14 @@ const generateReport = async () => {
             ACTIONS
         ================================================= */}
 
-        <ReportActions
-          onBack={onBack}
-          onNewAnalysis={onNewAnalysis}
-          onSave={handleSave}
-          onDownload={handleDownload}
-        />
+        <div className="pdf-exclude">
+          <ReportActions
+            onBack={onBack}
+            onNewAnalysis={onNewAnalysis}
+            onSave={handleSave}
+            onDownload={handleDownload}
+          />
+        </div>
       </div>
 
       {/* ===================================================
@@ -698,6 +1360,11 @@ const generateReport = async () => {
 
         .final-report {
           margin-top: 30px;
+        }
+
+
+        .pdf-exclude {
+          width: 100%;
         }
 
 
