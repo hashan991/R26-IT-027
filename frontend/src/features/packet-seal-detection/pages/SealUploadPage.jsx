@@ -216,6 +216,20 @@ const styles = `
     background: var(--accent-gradient);
   }
 
+  .mode-tab:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  color: #a99a91;
+  background: #f1ebe5;
+  box-shadow: none;
+}
+
+.mode-tab:disabled:hover {
+  color: #a99a91;
+  background: #f1ebe5;
+  box-shadow: none;
+}
+
   /* ---------- Hero / upload ---------- */
 
   .hero-layout {
@@ -2425,54 +2439,374 @@ const styles = `
   }
 
   @media (max-width: 760px) {
-    .seal-shell {
-      padding: 16px 13px 38px;
-    }
 
-    .top-nav {
-      padding: 16px;
-    }
+  .seal-shell {
+    padding: 16px 13px 38px;
+  }
 
-    .brand-title {
-      font-size: 16px;
-    }
+  .top-nav {
+    padding: 16px;
+  }
 
-    .brand-subtitle {
-      white-space: normal;
-    }
+  .brand-title {
+    font-size: 16px;
+  }
 
-    .mode-tab {
-      font-size: 13px;
-    }
+  .brand-subtitle {
+    white-space: normal;
+  }
 
-    .hero-left,
-    .device-info-card,
-    .device-control-card,
-    .realtime-camera-card,
-    .realtime-info-card,
-    .report-card {
-      padding: 20px;
-    }
+  .mode-tab {
+    font-size: 13px;
+  }
 
-    .seal-title {
-      font-size: 36px;
-    }
+  .hero-left,
+  .device-info-card,
+  .device-control-card,
+  .realtime-camera-card,
+  .realtime-info-card,
+  .report-card {
+    padding: 20px;
+  }
 
-    .device-title {
-      font-size: 31px;
-    }
+  .seal-title {
+    font-size: 36px;
+  }
 
-    .report-title {
-      font-size: 27px;
-    }
+  .device-title {
+    font-size: 31px;
+  }
 
-    .session-right {
-      width: 100%;
-    }
+  .report-title {
+    font-size: 27px;
+  }
 
-    .session-start-btn {
-      width: 100%;
-    }
+  .session-right {
+    width: 100%;
+  }
+
+  .session-start-btn {
+    width: 100%;
+  }
+
+}
+
+
+    /* =====================================================
+   INSPECTION WORKFLOW
+===================================================== */
+
+.workflow-panel {
+  width: 100%;
+  margin-top: 16px;
+  padding: 20px;
+
+  border: 1px solid #eadfd6;
+  border-radius: 18px;
+
+  background: rgba(255, 253, 249, 0.97);
+
+  box-shadow:
+    0 10px 30px rgba(43, 24, 18, 0.06);
+}
+
+
+.workflow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+
+.workflow-kicker {
+  font-size: 10px;
+  font-weight: 800;
+
+  letter-spacing: 0.1em;
+
+  color: #9a694c;
+
+  margin-bottom: 4px;
+}
+
+
+.workflow-title {
+  font-family: 'Space Grotesk', sans-serif;
+
+  font-size: 19px;
+  font-weight: 700;
+
+  color: #39251c;
+}
+
+
+.workflow-current-badge {
+  padding: 8px 12px;
+
+  border-radius: 999px;
+
+  border: 1px solid #ded3cb;
+
+  background: #f7f1ec;
+
+  color: #806f65;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+
+.workflow-current-badge.running {
+  border-color: #dfb98d;
+
+  background: #fff3e4;
+
+  color: #8b572f;
+}
+
+
+.workflow-current-badge.completed {
+  border-color: #b7d9bd;
+
+  background: #eef8f0;
+
+  color: #347542;
+}
+
+
+.workflow-steps {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    32px
+    minmax(0, 1fr)
+    32px
+    minmax(0, 1fr);
+
+  align-items: center;
+
+  gap: 8px;
+}
+
+
+.workflow-step {
+  min-height: 126px;
+
+  padding: 15px;
+
+  border-radius: 14px;
+
+  border: 1px solid #e8ddd4;
+
+  background: #faf7f3;
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.workflow-step-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  margin-bottom: 13px;
+}
+
+
+.workflow-step-number {
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: 0.08em;
+
+  color: #aa978a;
+}
+
+
+.workflow-step-icon {
+  width: 31px;
+  height: 31px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 9px;
+
+  background: #f1e9e2;
+
+  font-size: 14px;
+}
+
+
+.workflow-step-title {
+  color: #4b3328;
+
+  font-family: 'Space Grotesk', sans-serif;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  margin-bottom: 7px;
+}
+
+
+.workflow-step-status {
+  font-size: 11px;
+  font-weight: 700;
+
+  color: #99877b;
+}
+
+
+/* ACTIVE */
+
+.workflow-step.active {
+  border-color: #c99364;
+
+  background:
+    linear-gradient(
+      145deg,
+      #fff8ef,
+      #f8e9d9
+    );
+
+  box-shadow:
+    0 8px 22px rgba(125, 72, 38, 0.10);
+}
+
+
+.workflow-step.active .workflow-step-status {
+  color: #955a30;
+}
+
+
+/* COMPLETED */
+
+.workflow-step.done {
+  border-color: #afd3b5;
+
+  background: #f0f8f1;
+}
+
+
+.workflow-step.done .workflow-step-status {
+  color: #3a8048;
+}
+
+
+/* LOCKED */
+
+.workflow-step.locked {
+  opacity: 0.48;
+
+  background: #f4f1ee;
+}
+
+
+.workflow-step.locked .workflow-step-status {
+  color: #998b83;
+}
+
+
+/* WAITING */
+
+.workflow-step.waiting {
+  background: #faf7f3;
+}
+
+
+.workflow-arrow {
+  text-align: center;
+
+  color: #bba99c;
+
+  font-size: 20px;
+  font-weight: 700;
+}
+
+
+/* CURRENT STATE */
+
+.workflow-current-state {
+  margin-top: 14px;
+
+  padding: 12px 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 16px;
+
+  border-radius: 12px;
+
+  border: 1px solid #e9ddd4;
+
+  background: #f8f3ee;
+}
+
+
+.workflow-current-label {
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: 0.08em;
+
+  color: #a18d80;
+
+  margin-bottom: 3px;
+}
+
+
+.workflow-current-value {
+  color: #563a2d;
+
+  font-family: 'IBM Plex Mono', monospace;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+
+.workflow-current-description {
+  color: #7c695e;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  text-align: right;
+}
+
+
+@media (max-width: 850px) {
+
+  .workflow-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-arrow {
+    transform: rotate(90deg);
+  }
+
+  .workflow-header,
+  .workflow-current-state {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .workflow-current-description {
+    text-align: left;
+  }
+
   }
 
 `;
@@ -2491,6 +2825,8 @@ function SealUploadPage() {
   const [sessionError, setSessionError] = useState("");
   const [visionStageDone, setVisionStageDone] = useState(false);
   const [leakStageDone, setLeakStageDone] = useState(false);
+
+  const [stageError, setStageError] = useState("");
 
   // Main page tabs
   const [activeTab, setActiveTab] = useState("realtime");
@@ -2528,37 +2864,143 @@ function SealUploadPage() {
   const [reportError, setReportError] = useState("");
 
     const refreshSessionStatus = async () => {
-    try {
-      const data = await getCurrentInspectionSession();
+      try {
+        const data = await getCurrentInspectionSession();
 
-      if (data?.active && data?.inspection) {
-        setActivePacketId(data.inspection.packet_id);
-        setVisionStageDone(Boolean(data.inspection.vision_result));
-        setLeakStageDone(Boolean(data.inspection.leak_result));
-      } else {
-        setActivePacketId(null);
-        setVisionStageDone(false);
-        setLeakStageDone(false);
+        if (data?.active && data?.inspection) {
+          const inspection = data.inspection;
+
+          const packetId =
+            inspection.packet_id || null;
+
+          const visionDone = Boolean(
+            inspection.vision_result ||
+            inspection.realtime_result ||
+            inspection.seal_result
+          );
+
+          const leakDone = Boolean(
+            inspection.leak_result ||
+            inspection.leak_test_result
+          );
+
+          // Restore active inspection state
+          setActivePacketId(packetId);
+          setVisionStageDone(visionDone);
+          setLeakStageDone(leakDone);
+
+          // ==========================================
+          // RESTORE CORRECT WORKFLOW PAGE
+          // ==========================================
+
+          if (!visionDone) {
+            // Stage 1 still needs to be completed
+            setActiveTab("realtime");
+
+          } else if (!leakDone) {
+            // Stage 1 completed.
+            // Continue from Leak Detection.
+            setActiveTab("device");
+
+          } else {
+            // Both inspection stages completed.
+            // Continue from Final Report.
+            setActiveTab("report");
+          }
+
+        } else {
+          // ==========================================
+          // NO ACTIVE INSPECTION
+          // Normal browsing mode
+          // ==========================================
+
+          setActivePacketId(null);
+          setVisionStageDone(false);
+          setLeakStageDone(false);
+
+          // Do NOT force navigation here.
+          // User can normally browse all 3 tabs.
+        }
+
+      } catch (error) {
+        console.error(
+          "Failed to refresh inspection session:",
+          error
+        );
       }
-    } catch (error) {
-      console.error(error);
-    }
-  };
+    };
 
   const handleStartInspectionSession = async () => {
-    try {
-      setSessionStarting(true);
-      setSessionError("");
+  if (sessionStarting) {
+    return;
+  }
 
-      const data = await startInspectionSession();
+  try {
+    setSessionStarting(true);
+    setSessionError("");
+    setStageError("");
 
+    // Safety check:
+    // Never create another packet while one inspection is active.
+    const current = await getCurrentInspectionSession();
+
+    if (current?.active && current?.inspection?.packet_id) {
+      setActivePacketId(current.inspection.packet_id);
+
+      setVisionStageDone(
+        Boolean(
+          current.inspection.vision_result ||
+          current.inspection.realtime_result ||
+          current.inspection.seal_result
+        )
+      );
+
+      setLeakStageDone(
+        Boolean(
+          current.inspection.leak_result ||
+          current.inspection.leak_test_result
+        )
+      );
+
+      setSessionError(
+        `Inspection ${current.inspection.packet_id} is already active.`
+      );
+
+      return;
+    }
+
+    const data = await startInspectionSession();
+
+      if (!data?.packet_id) {
+        throw new Error("Backend did not return a Packet ID.");
+      }
+
+      // New packet = completely fresh workflow.
       setActivePacketId(data.packet_id);
       setVisionStageDone(false);
       setLeakStageDone(false);
+
+      // Clear old results from previous packet.
+      setRealtimeResult(null);
+      setRealtimeError("");
+      setDeviceResult(null);
+      setDeviceError("");
+
+      setReportStatus(null);
+      setGeneratedReport(null);
+      setReportError("");
+
+      setFinalInspectionImage(null);
+
+      // Always start at the first inspection stage.
+      setActiveTab("realtime");
+
     } catch (error) {
-      console.error(error);
+      console.error("Could not start inspection session:", error);
+
       setSessionError(
         error?.response?.data?.detail ||
+          error?.message ||
           "Could not start a new inspection session."
       );
     } finally {
@@ -2622,23 +3064,66 @@ function SealUploadPage() {
   };
 
   const handleGenerateReport = async () => {
+    if (!activePacketId) {
+      setReportError("No active inspection packet.");
+      return;
+    }
+
+    if (!visionStageDone) {
+      setReportError(
+        "Complete the Real-Time AI Seal Inspection first."
+      );
+      return;
+    }
+
+    if (!leakStageDone) {
+      setReportError(
+        "Complete the Packet Leak Detection first."
+      );
+      return;
+    }
+
     try {
       setReportLoading(true);
       setReportError("");
       setGeneratedReport(null);
 
+      const status = await getInspectionReportStatus();
+
+      setReportStatus(status);
+
+      if (!status?.ready) {
+        setReportError(
+          "The final inspection report is not ready yet. Please verify both inspection stages are completed."
+        );
+        return;
+      }
+
       const data = await generateInspectionReport();
 
       setGeneratedReport(data);
 
+      // Refresh final report status
       await checkReportStatus();
+
+      // Final report is the last workflow stage.
+      // Re-sync the inspection session with backend.
+      // If backend has completed/closed this packet,
+      // activePacketId will become null and
+      // "Start New Inspection" becomes available again.
+      await refreshSessionStatus();
+
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Final report generation error:",
+        error
+      );
 
       setReportError(
         error?.response?.data?.detail ||
           "Could not generate the final inspection report."
       );
+
     } finally {
       setReportLoading(false);
     }
@@ -2875,122 +3360,433 @@ const refreshRealtimeHistory = async () => {
 };
 
 
-      const handleLeakDeviceTest = async () => {
-    if (!activePacketId) {
-      setDeviceError("Please start a new inspection (Packet ID) first.");
-      return;
-    }
+const handleLeakDeviceTest = async () => {
+  if (!activePacketId) {
 
-    if (!deviceStatus?.connected) {
+  setDeviceError("");
+
+}
+
+  if (activePacketId && !visionStageDone) {
+    setDeviceError(
+      "Complete the Real-Time AI Seal Inspection before running the Packet Leak Detection."
+    );
+    return;
+  }
+
+  if (leakStageDone) {
+    setDeviceError(
+      "Packet Leak Detection is already completed for this packet."
+    );
+    return;
+  }
+
+  if (!deviceStatus?.connected) {
+    setDeviceError(
+      "Device is not connected. Connect the Arduino and refresh the device status first."
+    );
+    return;
+  }
+
+  if (deviceLoading) {
+    return;
+  }
+
+  try {
+    setDeviceLoading(true);
+    setDeviceError("");
+    setStageError("");
+    setDeviceResult(null);
+
+    // Run physical packet leak test
+    const data = await runLeakDeviceTest();
+
+    const result = data?.result || null;
+
+    setDeviceResult(result);
+
+    // Explicit device/backend error
+    if (result?.error) {
       setDeviceError(
-        "Device is not connected. Connect the Arduino and refresh the device status first."
+        `Device error: ${result.error}`
       );
       return;
     }
 
-    try {
-      setDeviceLoading(true);
-      setDeviceError("");
-      setDeviceResult(null);
-
-      const data = await runLeakDeviceTest();
-
-      setDeviceResult(data.result || null);
-
-      await loadLeakHistory();
-
-      if (data?.result?.error) {
-        setDeviceError(`Device error: ${data.result.error}`);
-      }
-    } catch (error) {
-      console.error(error);
-      const apiMessage =
-        error?.response?.data?.detail ||
-        "Packet leak test failed. Check the Arduino connection, HX711, and backend.";
-      setDeviceError(apiMessage);
-    } finally {
-      setDeviceLoading(false);
-      refreshSessionStatus();
+    if (!result) {
+      setDeviceError(
+        "Leak test finished without a valid result."
+      );
+      return;
     }
-  };
+
+    // Refresh history only for UI display
+    await loadLeakHistory();
+
+    let leakCompleted = false;
+
+    // Verify that the CURRENT packet leak result
+    // has actually been saved in the backend.
+    for (let attempt = 0; attempt < 6; attempt++) {
+      try {
+        const current =
+          await getCurrentInspectionSession();
+
+        const inspection =
+          current?.inspection;
+
+        const samePacket =
+          current?.active &&
+          (
+            !activePacketId ||
+            inspection?.packet_id === activePacketId
+          );
+
+        const hasLeakResult = Boolean(
+          inspection?.leak_result ||
+          inspection?.leak_test_result
+        );
+
+        if (samePacket && hasLeakResult) {
+          leakCompleted = true;
+          break;
+        }
+
+      } catch (error) {
+        console.error(
+          "Could not verify Leak Test stage:",
+          error
+        );
+      }
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, 500)
+      );
+    }
+
+    if (leakCompleted) {
+      // CURRENT packet leak test really completed
+      setLeakStageDone(true);
+
+      setStageError("");
+      setDeviceError("");
+
+    } else {
+      setLeakStageDone(false);
+
+      setDeviceError(
+        "The leak test completed, but the result has not been saved for this packet yet."
+      );
+    }
+
+    // Final backend sync
+    await refreshSessionStatus();
+
+  } catch (error) {
+    console.error(
+      "Packet leak test error:",
+      error
+    );
+
+    const apiMessage =
+      error?.response?.data?.detail ||
+      "Packet leak test failed. Check the Arduino connection, HX711, and backend.";
+
+    setDeviceError(apiMessage);
+
+  } finally {
+    setDeviceLoading(false);
+  }
+};
 
   
 
       const handleStartRealtime = async () => {
-    if (!activePacketId) {
-      setRealtimeError("Please start a new inspection (Packet ID) first.");
+
+        if (visionStageDone) {
+          setRealtimeError(
+            "AI Vision inspection is already completed for this packet."
+          );
+          return;
+        }
+
+        if (realtimeRunning || realtimeStarting) {
+          return;
+        }
+
+        try {
+          setRealtimeStarting(true);
+          setRealtimeError("");
+          setStageError("");
+
+          setRealtimeResult(null);
+          latestRealtimeResultRef.current = null;
+
+          const data = await startRealtimeSealInspection();
+
+          if (!data?.started) {
+            setRealtimeRunning(false);
+
+            setRealtimeError(
+              data?.message ||
+                "Could not start real-time seal inspection."
+            );
+
+            return;
+          }
+
+          setRealtimeRunning(true);
+          setRealtimeElapsed(0);
+          setRealtimeCycle(1);
+
+          latestRealtimeResultRef.current = null;
+
+          setRealtimeResult(null);
+
+          setRealtimeVideoUrl(
+            `${getRealtimeVideoUrl()}?t=${Date.now()}`
+          );
+
+        } catch (error) {
+          console.error("Real-time start error:", error);
+
+          setRealtimeRunning(false);
+
+          setRealtimeError(
+            error?.response?.data?.detail ||
+              "Could not start the IP Webcam real-time inspection."
+          );
+
+        } finally {
+          setRealtimeStarting(false);
+        }
+      };
+
+  const handleStopRealtime = async () => {
+    if (!realtimeRunning) {
       return;
     }
 
     try {
-      setRealtimeStarting(true);
       setRealtimeError("");
-      setRealtimeResult(null);
 
-      const data = await startRealtimeSealInspection();
-
-      if (!data?.started) {
-        setRealtimeRunning(false);
-        setRealtimeError(
-          data?.message || "Could not start real-time seal inspection."
-        );
-        return;
-      }
-
-      setRealtimeRunning(true);
-      setRealtimeElapsed(0);
-      setRealtimeCycle(1);
-      latestRealtimeResultRef.current = null;
-      setRealtimeResult(null);
-      setRealtimeVideoUrl(`${getRealtimeVideoUrl()}?t=${Date.now()}`);
-    } catch (error) {
-      console.error(error);
-      setRealtimeRunning(false);
-      setRealtimeError(
-        error?.response?.data?.detail ||
-          "Could not start the IP Webcam real-time inspection."
-      );
-    } finally {
-      setRealtimeStarting(false);
-      refreshSessionStatus();
-    }
-  };
-
-  const handleStopRealtime = async () => {
-    try {
-      setRealtimeError("");
       await stopRealtimeSealInspection();
+
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Real-time stop error:",
+        error
+      );
+
       setRealtimeError(
         error?.response?.data?.detail ||
           "Could not stop the real-time inspection cleanly."
       );
+
     } finally {
+      setRealtimeRunning(false);
 
-        setRealtimeRunning(false);
+      setRealtimeVideoUrl("");
+      setRealtimeElapsed(0);
+      setRealtimeCycle(1);
 
-        setRealtimeVideoUrl("");
-        setRealtimeElapsed(0);
-        setRealtimeCycle(1);
-        latestRealtimeResultRef.current = null;
+      latestRealtimeResultRef.current = null;
 
+      // Refresh history only for UI display.
+      // Do NOT use old history to complete the current packet.
+      await refreshRealtimeHistory();
 
-        // Get the latest completed inspection history after stopping.
-        await refreshRealtimeHistory();
+      let visionCompleted = false;
 
+      // Give the backend a short time to save
+      // the FINAL result for the CURRENT packet.
+      for (let attempt = 0; attempt < 6; attempt++) {
+        try {
+          const current =
+            await getCurrentInspectionSession();
+
+          const inspection =
+            current?.inspection;
+
+          const samePacket =
+            current?.active &&
+            inspection?.packet_id === activePacketId;
+
+          const hasVisionResult = Boolean(
+            inspection?.vision_result ||
+            inspection?.realtime_result ||
+            inspection?.seal_result
+          );
+
+          if (samePacket && hasVisionResult) {
+            visionCompleted = true;
+            break;
+          }
+
+        } catch (error) {
+          console.error(
+            "Could not verify AI stage:",
+            error
+          );
+        }
+
+        // Wait before checking backend again
+        await new Promise((resolve) =>
+          setTimeout(resolve, 500)
+        );
       }
+
+      if (visionCompleted) {
+        // CURRENT packet AI stage is really completed.
+        setVisionStageDone(true);
+
+        setStageError("");
+
+      } else {
+        setVisionStageDone(false);
+
+        setRealtimeError(
+          "The AI inspection stopped, but a completed result has not been saved for this packet yet."
+        );
+      }
+
+      // Final sync with backend
+      await refreshSessionStatus();
+    }
   };
 
-  const handleTabChange = async (nextTab) => {
-    if (activeTab === "realtime" && nextTab !== "realtime" && realtimeRunning) {
-      await handleStopRealtime();
+
+   const goToLeakTest = () => {
+    if (!activePacketId) {
+      setStageError(
+        "Please start a new inspection first."
+      );
+      return;
     }
 
-    setActiveTab(nextTab);
+    if (!visionStageDone) {
+      setStageError(
+        "Complete the Real-Time AI Seal Inspection first."
+      );
+      return;
+    }
+
+    setStageError("");
+    setActiveTab("device");
   };
 
-  
+
+  const goToFinalReport = async () => {
+    if (!activePacketId) {
+      setStageError(
+        "No active inspection packet."
+      );
+      return;
+    }
+
+    if (!visionStageDone) {
+      setStageError(
+        "Complete the Real-Time AI Seal Inspection first."
+      );
+      return;
+    }
+
+    if (!leakStageDone) {
+      setStageError(
+        "Complete the Packet Leak Detection first."
+      );
+      return;
+    }
+
+    setStageError("");
+
+    setActiveTab("report");
+
+    await checkReportStatus();
+  };
+
+
+      const handleTabChange = async (nextTab) => {
+        setStageError("");
+
+        // ==================================================
+        // NO ACTIVE INSPECTION
+        // Normal browsing mode.
+        // User can freely open all 3 pages.
+        // ==================================================
+        if (!activePacketId) {
+          setActiveTab(nextTab);
+          return;
+        }
+
+        // ==================================================
+        // ACTIVE INSPECTION WORKFLOW
+        // From here, strict stage order is enforced.
+        // ==================================================
+
+        // Stop live inspection before leaving realtime tab
+        if (
+          activeTab === "realtime" &&
+          nextTab !== "realtime" &&
+          realtimeRunning
+        ) {
+          await handleStopRealtime();
+        }
+
+        // ----------------------------------------------
+        // REAL-TIME AI STAGE
+        // ----------------------------------------------
+        if (nextTab === "realtime") {
+          // Once AI stage is completed,
+          // do not allow returning to it during this packet.
+          if (visionStageDone) {
+            setStageError(
+              "Real-Time AI Seal Inspection is already completed."
+            );
+            return;
+          }
+        }
+
+        // ----------------------------------------------
+        // LEAK TEST STAGE
+        // ----------------------------------------------
+        if (nextTab === "device") {
+          if (!visionStageDone) {
+            setStageError(
+              "Complete the Real-Time AI Seal Inspection first."
+            );
+            return;
+          }
+
+          if (leakStageDone) {
+            setStageError(
+              "Packet Leak Detection is already completed."
+            );
+            return;
+          }
+        }
+
+        // ----------------------------------------------
+        // FINAL REPORT STAGE
+        // ----------------------------------------------
+        if (nextTab === "report") {
+          if (!visionStageDone) {
+            setStageError(
+              "Complete the Real-Time AI Seal Inspection first."
+            );
+            return;
+          }
+
+          if (!leakStageDone) {
+            setStageError(
+              "Complete the Packet Leak Detection first."
+            );
+            return;
+          }
+        }
+
+        setActiveTab(nextTab);
+      };
 
   // ==================================================
   // REAL-TIME 3-SECOND INSPECTION CYCLE
@@ -3045,17 +3841,17 @@ const refreshRealtimeHistory = async () => {
       const newestResult = latestRealtimeResultRef.current;
 
       if (newestResult) {
-        setRealtimeResult(newestResult);
-        setRealtimeError("");
+      setRealtimeResult(newestResult);
+      setRealtimeError("");
 
-        // Show the exact annotated image returned by the completed
-        // inspection in the Inspection Summary.
-        if (newestResult.inspection_image) {
-          setFinalInspectionImage(
-            `${buildImageUrl(newestResult.inspection_image)}?cycle=${Date.now()}`
-          );
-        }
+      if (newestResult.inspection_image) {
+        setFinalInspectionImage(
+          `${buildImageUrl(
+            newestResult.inspection_image
+          )}?cycle=${Date.now()}`
+        );
       }
+    }
 
       setRealtimeElapsed(0);
       setRealtimeCycle((previous) => previous + 1);
@@ -3158,6 +3954,141 @@ const refreshRealtimeHistory = async () => {
           ? "VALIDATING RESULT"
           : "FINALISING INSPECTION";
 
+  const normalizedWorkflowState = useMemo(() => {
+  // No inspection running
+  if (!activePacketId) {
+    return "NOT_STARTED";
+  }
+
+  // STEP 01
+  if (!visionStageDone) {
+    if (realtimeRunning) {
+      return "CAMERA_RUNNING";
+    }
+
+    return "CAMERA_READY";
+  }
+
+  // STEP 02
+  if (!leakStageDone) {
+    if (deviceLoading) {
+      return "LEAK_RUNNING";
+    }
+
+    return "LEAK_READY";
+  }
+
+  // STEP 03
+  if (reportLoading) {
+    return "REPORT_GENERATING";
+  }
+
+  if (generatedReport) {
+    return "COMPLETED";
+  }
+
+  return "REPORT_READY";
+
+}, [
+  activePacketId,
+  visionStageDone,
+  leakStageDone,
+  realtimeRunning,
+  deviceLoading,
+  reportLoading,
+  generatedReport
+]);
+
+
+const workflowLabel = useMemo(() => {
+  switch (normalizedWorkflowState) {
+    case "NOT_STARTED":
+      return "Start a new inspection to begin";
+
+    case "CAMERA_READY":
+      return "Ready for AI Seal Inspection";
+
+    case "CAMERA_RUNNING":
+      return "AI Seal Inspection is running";
+
+    case "LEAK_READY":
+      return "Ready for Physical Leak Test";
+
+    case "LEAK_RUNNING":
+      return "Physical Leak Test is running";
+
+    case "REPORT_READY":
+      return "Ready to generate Final Report";
+
+    case "REPORT_GENERATING":
+      return "Generating Final Inspection Report";
+
+    case "COMPLETED":
+      return "Inspection workflow completed";
+
+    default:
+      return "Waiting";
+  }
+}, [normalizedWorkflowState]);
+
+
+const workflowStepClass = (step) => {
+
+  // No workflow currently running
+  if (!activePacketId) {
+    return "waiting";
+  }
+
+  // ==========================================
+  // STEP 01 — AI Seal Inspection
+  // ==========================================
+  if (step === "camera") {
+
+    if (visionStageDone) {
+      return "done";
+    }
+
+    return "active";
+  }
+
+  // ==========================================
+  // STEP 02 — Leak Test
+  // ==========================================
+  if (step === "leak") {
+
+    if (leakStageDone) {
+      return "done";
+    }
+
+    if (visionStageDone) {
+      return "active";
+    }
+
+    return "locked";
+  }
+
+  // ==========================================
+  // STEP 03 — Final Report
+  // ==========================================
+  if (step === "report") {
+
+    if (generatedReport) {
+      return "done";
+    }
+
+    if (
+      visionStageDone &&
+      leakStageDone
+    ) {
+      return "active";
+    }
+
+    return "locked";
+  }
+
+  return "waiting";
+};
+
   return (
     <>
       <style>{styles}</style>
@@ -3209,16 +4140,238 @@ const refreshRealtimeHistory = async () => {
                 type="button"
                 className="session-start-btn"
                 onClick={handleStartInspectionSession}
-                disabled={sessionStarting}
+                disabled={sessionStarting || !!activePacketId}
               >
-                {sessionStarting ? "Starting..." : "＋ Start New Inspection"}
+                {sessionStarting
+                  ? "Starting..."
+                  : activePacketId
+                    ? "Inspection In Progress"
+                    : "＋ Start New Inspection"}
               </button>
             </div>
 
             {sessionError && (
               <div className="session-error">⚠️ {sessionError}</div>
             )}
+
+            {stageError && (
+              <div className="session-error">
+                ⚠️ {stageError}
+              </div>
+            )}
           </div>
+
+          {/* =================================================
+              INSPECTION WORKFLOW STATUS
+          ================================================= */}
+
+          <section className="workflow-panel">
+
+            <div className="workflow-header">
+
+              <div>
+                <div className="workflow-kicker">
+                  PACKET INSPECTION PROCESS
+                </div>
+
+                <div className="workflow-title">
+                  Inspection Workflow
+                </div>
+              </div>
+
+              <div
+                className={`workflow-current-badge ${
+                  normalizedWorkflowState === "COMPLETED"
+                    ? "completed"
+                    : activePacketId
+                      ? "running"
+                      : ""
+                }`}
+              >
+                {activePacketId
+                  ? workflowLabel
+                  : "No Active Inspection"}
+              </div>
+
+            </div>
+
+
+            <div className="workflow-steps">
+
+              {/* ==============================
+                  STEP 01
+              ============================== */}
+
+              <div
+                className={`workflow-step ${workflowStepClass(
+                  "camera"
+                )}`}
+              >
+
+                <div className="workflow-step-top">
+
+                  <div className="workflow-step-number">
+                    STEP 01
+                  </div>
+
+                  <div className="workflow-step-icon">
+                    📹
+                  </div>
+
+                </div>
+
+                <div className="workflow-step-title">
+                  AI Seal Inspection
+                </div>
+
+                <div className="workflow-step-status">
+
+                  {!activePacketId
+                    ? "Available"
+
+                    : visionStageDone
+                      ? "✓ Completed"
+
+                      : realtimeRunning
+                        ? "● Running"
+
+                        : "Ready"}
+
+                </div>
+
+              </div>
+
+
+              <div className="workflow-arrow">
+                →
+              </div>
+
+
+              {/* ==============================
+                  STEP 02
+              ============================== */}
+
+              <div
+                className={`workflow-step ${workflowStepClass(
+                  "leak"
+                )}`}
+              >
+
+                <div className="workflow-step-top">
+
+                  <div className="workflow-step-number">
+                    STEP 02
+                  </div>
+
+                  <div className="workflow-step-icon">
+                    ⚙️
+                  </div>
+
+                </div>
+
+                <div className="workflow-step-title">
+                  Physical Leak Test
+                </div>
+
+                <div className="workflow-step-status">
+
+                  {!activePacketId
+                    ? "Available"
+
+                    : leakStageDone
+                      ? "✓ Completed"
+
+                      : deviceLoading
+                        ? "● Running"
+
+                        : visionStageDone
+                          ? "Ready"
+
+                          : "🔒 Locked"}
+
+                </div>
+
+              </div>
+
+
+              <div className="workflow-arrow">
+                →
+              </div>
+
+
+              {/* ==============================
+                  STEP 03
+              ============================== */}
+
+              <div
+                className={`workflow-step ${workflowStepClass(
+                  "report"
+                )}`}
+              >
+
+                <div className="workflow-step-top">
+
+                  <div className="workflow-step-number">
+                    STEP 03
+                  </div>
+
+                  <div className="workflow-step-icon">
+                    📄
+                  </div>
+
+                </div>
+
+                <div className="workflow-step-title">
+                  Final Report
+                </div>
+
+                <div className="workflow-step-status">
+
+                  {!activePacketId
+                    ? "Available"
+
+                    : generatedReport
+                      ? "✓ Completed"
+
+                      : reportLoading
+                        ? "● Generating"
+
+                        : visionStageDone &&
+                          leakStageDone
+                          ? "Ready"
+
+                          : "🔒 Locked"}
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            {/* CURRENT WORKFLOW STATE */}
+
+            <div className="workflow-current-state">
+
+              <div>
+
+                <div className="workflow-current-label">
+                  CURRENT WORKFLOW STATE
+                </div>
+
+                <div className="workflow-current-value">
+                  {normalizedWorkflowState}
+                </div>
+
+              </div>
+
+              <div className="workflow-current-description">
+                {workflowLabel}
+              </div>
+
+            </div>
+
+          </section>
 
           <div className="mode-tabs">
             <div className="mode-tabs-inner">
@@ -3234,6 +4387,10 @@ const refreshRealtimeHistory = async () => {
                 type="button"
                 className={`mode-tab ${activeTab === "realtime" ? "active" : ""}`}
                 onClick={() => handleTabChange("realtime")}
+                disabled={
+                  !!activePacketId &&
+                  visionStageDone
+                }
               >
                 📹 Real-Time Seal Inspection
               </button>
@@ -3242,6 +4399,13 @@ const refreshRealtimeHistory = async () => {
                 type="button"
                 className={`mode-tab ${activeTab === "device" ? "active" : ""}`}
                 onClick={() => handleTabChange("device")}
+                disabled={
+                  !!activePacketId &&
+                  (
+                    !visionStageDone ||
+                    leakStageDone
+                  )
+                }
               >
                 ⚙️ Packet Leak Detection
               </button>
@@ -3250,6 +4414,13 @@ const refreshRealtimeHistory = async () => {
                 type="button"
                 className={`mode-tab ${activeTab === "report" ? "active" : ""}`}
                 onClick={() => handleTabChange("report")}
+                disabled={
+                  !!activePacketId &&
+                  (
+                    !visionStageDone ||
+                    !leakStageDone
+                  )
+                }
               >
                 📄 Final Inspection Report
               </button>
@@ -3732,9 +4903,19 @@ const refreshRealtimeHistory = async () => {
                       type="button"
                       className="realtime-btn start"
                       onClick={handleStartRealtime}
-                      disabled={realtimeRunning || realtimeStarting}
+                      disabled={ 
+                        visionStageDone || 
+                        realtimeRunning || 
+                        realtimeStarting 
+                      }
                     >
-                      {realtimeStarting ? "Connecting Camera..." : "▶ Start Live Inspection"}
+                      {realtimeStarting
+                        ? "Connecting Camera..."
+                        : visionStageDone
+                          ? "✓ AI Vision Completed"
+                          : !activePacketId
+                            ? "Start New Inspection First"
+                            : "▶ Start Live Inspection"}
                     </button>
 
                     <button
@@ -3746,6 +4927,17 @@ const refreshRealtimeHistory = async () => {
                       ■ Stop Live Inspection
                     </button>
                   </div>
+
+                  {visionStageDone && !realtimeRunning && (
+                    <button
+                      type="button"
+                      className="realtime-btn start"
+                      onClick={goToLeakTest}
+                      style={{ marginTop: "10px" }}
+                    >
+                      Next Step → Packet Leak Detection
+                    </button>
+                  )}
 
                   {realtimeError && (
                     <div className="realtime-error">⚠️ {realtimeError}</div>
@@ -4248,16 +5440,23 @@ sealHistoryLoading
                     type="button"
                     className="device-test-btn"
                     onClick={handleLeakDeviceTest}
-                    disabled={deviceLoading || !deviceStatus?.connected}
+                    disabled={ 
+                      deviceLoading || 
+                      !deviceStatus?.connected || 
+                      (activePacketId && !visionStageDone) || 
+                      leakStageDone 
+                    }
                   >
                     <span className="device-test-btn-content">
                       {deviceLoading ? (
                         <>
                           <span className="spinner" />
-                          Running Physical Leak Test...
+                          Running Leak Test...
                         </>
+                      ) : leakStageDone ? (
+                        <>✓ Leak Test Completed</>
                       ) : (
-                        <>▶ Start Leak Test</>
+                        <>▶ Run Packet Leak Test</>
                       )}
                     </span>
                   </button>
@@ -4373,6 +5572,17 @@ sealHistoryLoading
                           </div>
                         )}
                     </div>
+                  )}
+
+                  {leakStageDone && (
+                    <button
+                      type="button"
+                      className="device-test-btn"
+                      onClick={goToFinalReport}
+                      style={{ marginTop: "12px" }}
+                    >
+                      Next Step → Final Inspection Report
+                    </button>
                   )}
 
                   {/* ======================================
@@ -4559,6 +5769,9 @@ item.status === "GOOD"
                     onClick={handleGenerateReport}
                     disabled={
                       reportLoading ||
+                      !activePacketId ||
+                      !visionStageDone ||
+                      !leakStageDone ||
                       !reportStatus?.ready
                     }
                   >
