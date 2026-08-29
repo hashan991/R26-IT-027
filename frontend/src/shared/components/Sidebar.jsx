@@ -1,4 +1,6 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../auth/context/AuthContext";
 
@@ -75,6 +77,15 @@ function Icon({ name, size = 22, strokeWidth = 1.8 }) {
         <path d="m7 15 4-4 3 2 5-6" />
       </>
     ),
+    report: (
+      <>
+        <path d="M6 3h9l3 3v15H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+        <path d="M15 3v4h4" />
+        <path d="M8 11h6" />
+        <path d="M8 15h7" />
+        <path d="M8 19h5" />
+      </>
+    ),
     shield: (
       <>
         <path d="M12 3 19 6v5c0 4.5-2.8 7.6-7 10-4.2-2.4-7-5.5-7-10V6l7-3Z" />
@@ -102,7 +113,21 @@ function Icon({ name, size = 22, strokeWidth = 1.8 }) {
 
 function Sidebar() {
   const navigate = useNavigate();
+
+  const location = useLocation();
+
   const { user, logout } = useAuth();
+
+  const beanSectionActive =
+    location.pathname === "/beans" || location.pathname.startsWith("/beans/");
+
+  const [beanMenuOpen, setBeanMenuOpen] = useState(beanSectionActive);
+
+  useEffect(() => {
+    if (beanSectionActive) {
+      setBeanMenuOpen(true);
+    }
+  }, [beanSectionActive]);
 
   if (!user) {
     return null;
@@ -152,8 +177,22 @@ function Sidebar() {
         },
         {
           label: "Bean Quality",
-          path: "/beans",
           icon: "bean",
+          type: "group",
+          key: "bean-quality",
+          children: [
+            {
+              label: "Analysis",
+              path: "/beans",
+              icon: "bean",
+              end: true,
+            },
+            {
+              label: "Report History",
+              path: "/beans/reports",
+              icon: "report",
+            },
+          ],
         },
         {
           label: "Powder Quality",
@@ -187,8 +226,22 @@ function Sidebar() {
         },
         {
           label: "Bean Quality",
-          path: "/beans",
           icon: "bean",
+          type: "group",
+          key: "bean-quality",
+          children: [
+            {
+              label: "Analysis",
+              path: "/beans",
+              icon: "bean",
+              end: true,
+            },
+            {
+              label: "Report History",
+              path: "/beans/reports",
+              icon: "report",
+            },
+          ],
         },
       ];
     }
@@ -309,7 +362,7 @@ function Sidebar() {
         }
 
         .sidebar {
-          width: 310px;
+          width: 300px;
           height: 100vh;
           min-height: 100vh;
           position: sticky;
@@ -318,7 +371,7 @@ function Sidebar() {
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          padding: 26px 20px 22px;
+          padding: 14px 16px 12px;
           color: #fff6e9;
           font-family:
             Inter,
@@ -371,17 +424,35 @@ function Sidebar() {
         .sidebar-brand {
           position: relative;
           z-index: 2;
-          text-align: center;
-          padding: 6px 8px 23px;
+
+          display: grid;
+          grid-template-columns: 54px minmax(0, 1fr);
+          grid-template-rows: auto auto;
+          column-gap: 12px;
+          row-gap: 3px;
+
+          align-items: center;
+
+          text-align: left;
+
+          padding: 3px 4px 13px;
         }
 
         .sidebar-brand-mark {
-          width: 76px;
-          height: 76px;
+          width: 54px;
+          height: 54px;
+
           position: relative;
+
+          grid-column: 1;
+          grid-row: 1 / 3;
+
           display: grid;
           place-items: center;
-          margin: 0 auto;
+
+          margin: 0;
+
+          border-radius: 16px;
           border-radius: 22px;
           color: white;
           background:
@@ -399,10 +470,10 @@ function Sidebar() {
 
         .sidebar-brand-steam {
           position: absolute;
-          top: 14px;
+          top: 8px;
           left: 50%;
-          width: 30px;
-          height: 18px;
+          width: 24px;
+          height: 14px;
           transform: translateX(-50%);
           pointer-events: none;
         }
@@ -411,7 +482,7 @@ function Sidebar() {
           position: absolute;
           bottom: 0;
           width: 2px;
-          height: 11px;
+          height: 8px;
           border-radius: 99px;
           background:
             linear-gradient(
@@ -437,26 +508,39 @@ function Sidebar() {
         }
 
         .sidebar-brand-title {
-          margin-top: 22px;
+          grid-column: 2;
+          grid-row: 1;
+
+          margin-top: 0;
+
+          align-self: end;
+
           color: #fff7e8;
           font-family:
             Georgia,
             "Times New Roman",
             serif;
-          font-size: 32px;
+          font-size: 24px;
           font-weight: 700;
           line-height: 1;
-          letter-spacing: -1.4px;
+          letter-spacing: -0.8px;
         }
 
         .sidebar-brand-subtitle {
-          margin-top: 17px;
+          grid-column: 2;
+          grid-row: 2;
+
+          margin-top: 2px;
+
           display: inline-flex;
           align-items: center;
-          justify-content: center;
-          gap: 8px;
+          justify-content: flex-start;
+          gap: 6px;
+
+          align-self: start;
+
           color: #e8bd82;
-          font-size: 13px;
+          font-size: 11px;
           font-weight: 700;
         }
 
@@ -471,12 +555,14 @@ function Sidebar() {
         .sidebar-user {
           position: relative;
           z-index: 2;
+
           display: grid;
-          grid-template-columns: 43px minmax(0, 1fr) 18px;
+          grid-template-columns: 38px minmax(0, 1fr) 16px;
           align-items: center;
-          gap: 11px;
-          margin: 0 2px 18px;
-          padding: 12px 13px;
+          gap: 9px;
+
+          margin: 0 2px 11px;
+          padding: 9px 10px;
           border-radius: 15px;
           color: #f7e9da;
           background: rgba(255,255,255,.035);
@@ -495,11 +581,11 @@ function Sidebar() {
         }
 
         .sidebar-user-avatar {
-          width: 43px;
-          height: 43px;
+          width: 38px;
+          height: 38px;
           display: grid;
           place-items: center;
-          border-radius: 12px;
+          border-radius: 10px;
           color: #35180a;
           background:
             linear-gradient(
@@ -507,7 +593,7 @@ function Sidebar() {
               #f0c059,
               #c97a20
             );
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 900;
         }
 
@@ -520,8 +606,8 @@ function Sidebar() {
           white-space: nowrap;
           text-overflow: ellipsis;
           color: #fff5e8;
-          font-size: 14px;
-          font-weight: 750;
+          font-size: 13px;
+          font-weight: 800;
         }
 
         .sidebar-user-role {
@@ -530,7 +616,7 @@ function Sidebar() {
           white-space: nowrap;
           text-overflow: ellipsis;
           color: #cba98e;
-          font-size: 11px;
+          font-size: 10.5px;
         }
 
         .sidebar-user-arrow {
@@ -550,10 +636,13 @@ function Sidebar() {
         .sidebar-menu {
           position: relative;
           z-index: 2;
+
           min-height: 0;
           flex: 1;
+
           overflow-y: auto;
-          padding: 1px 2px 12px;
+
+          padding: 1px 2px 7px;
           scrollbar-width: thin;
           scrollbar-color: rgba(255,255,255,.09) transparent;
         }
@@ -568,7 +657,7 @@ function Sidebar() {
         }
 
         .sidebar-menu-title {
-          margin: 0 0 9px 4px;
+          margin: 0 0 6px 4px;
           color: #b58b6f;
           font-size: 10px;
           font-weight: 850;
@@ -578,22 +667,22 @@ function Sidebar() {
 
         .sidebar-menu-list {
           display: grid;
-          gap: 11px;
+          gap: 7px;
         }
 
         .sidebar-link {
-          min-height: 58px;
+          min-height: 48px;
           position: relative;
           display: grid;
-          grid-template-columns: 38px minmax(0, 1fr) 24px;
+          grid-template-columns: 32px minmax(0, 1fr) 18px;
           align-items: center;
-          gap: 9px;
-          padding: 8px 12px;
-          border-radius: 16px;
+          gap: 8px;
+          padding: 6px 10px;
+          border-radius: 13px;
           color: #d8c5b8;
           text-decoration: none;
           font-size: 14px;
-          font-weight: 750;
+          font-weight: 800;
           border: 1px solid rgba(199, 128, 51, .19);
           background:
             linear-gradient(
@@ -637,8 +726,8 @@ function Sidebar() {
         }
 
         .sidebar-link-icon {
-          width: 38px;
-          height: 38px;
+          width: 32px;
+          height: 32px;
           display: grid;
           place-items: center;
           border-radius: 11px;
@@ -668,6 +757,363 @@ function Sidebar() {
             0 3px 8px rgba(72,33,7,.12);
         }
 
+
+        /* =========================
+           NESTED BEAN QUALITY MENU
+        ========================= */
+
+        .sidebar-group {
+          display: grid;
+          gap: 7px;
+        }
+
+        .sidebar-parent-link {
+          width: 100%;
+          min-height: 48px;
+          position: relative;
+          display: grid;
+          grid-template-columns:
+            32px
+            minmax(0, 1fr)
+            18px;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 10px;
+          border-radius: 13px;
+          color: #d8c5b8;
+          text-align: left;
+          font: inherit;
+          font-size: 14px;
+          font-weight: 800;
+          border:
+            1px solid
+            rgba(
+              199,
+              128,
+              51,
+              .19
+            );
+          background:
+            linear-gradient(
+              135deg,
+              rgba(
+                255,
+                255,
+                255,
+                .018
+              ),
+              rgba(
+                151,
+                73,
+                19,
+                .035
+              )
+            );
+          cursor: pointer;
+          transition:
+            transform .18s ease,
+            color .18s ease,
+            background .18s ease,
+            border-color .18s ease,
+            box-shadow .18s ease;
+        }
+
+        .sidebar-parent-link:hover {
+          transform:
+            translateY(-1px);
+          color: #fff6e9;
+          border-color:
+            rgba(
+              222,
+              153,
+              66,
+              .30
+            );
+          background:
+            linear-gradient(
+              135deg,
+              rgba(
+                220,
+                144,
+                46,
+                .08
+              ),
+              rgba(
+                255,
+                255,
+                255,
+                .025
+              )
+            );
+        }
+
+        .sidebar-parent-link.group-active {
+          color: #f3d7b5;
+          border-color:
+            rgba(
+              232,
+              163,
+              72,
+              .34
+            );
+          background:
+            linear-gradient(
+              135deg,
+              rgba(
+                211,
+                131,
+                38,
+                .10
+              ),
+              rgba(
+                255,
+                255,
+                255,
+                .025
+              )
+            );
+          box-shadow:
+            inset
+            0 1px 0
+            rgba(
+              255,
+              255,
+              255,
+              .025
+            );
+        }
+
+        .sidebar-parent-link.group-active
+        .sidebar-link-icon {
+          color: #efbc7a;
+          background:
+            rgba(
+              225,
+              150,
+              61,
+              .10
+            );
+        }
+
+        .sidebar-parent-chevron {
+          width: 24px;
+          height: 24px;
+          display: grid;
+          place-items: center;
+          justify-self: center;
+          color: #a9856c;
+          transition:
+            transform .20s ease,
+            color .20s ease;
+        }
+
+        .sidebar-parent-chevron.open {
+          transform:
+            rotate(90deg);
+          color: #e7b06f;
+        }
+
+        .sidebar-submenu {
+          position: relative;
+
+          display: grid;
+          gap: 5px;
+
+          margin-left: 14px;
+
+          padding:
+            1px
+            0
+            1px
+            16px;
+        }
+
+        .sidebar-submenu::before {
+          content: "";
+          position: absolute;
+          top: 2px;
+          bottom: 2px;
+          left: 1px;
+          width: 1px;
+          border-radius: 99px;
+          background:
+            linear-gradient(
+              to bottom,
+              rgba(
+                221,
+                151,
+                70,
+                .32
+              ),
+              rgba(
+                221,
+                151,
+                70,
+                .08
+              )
+            );
+        }
+
+        .sidebar-sublink {
+          min-height: 38px;
+          position: relative;
+          display: grid;
+          grid-template-columns:
+            27px
+            minmax(0, 1fr)
+            8px;
+          align-items: center;
+          gap: 7px;
+
+          padding:
+            4px
+            8px;
+
+          border-radius: 11px;
+          color: #bfa99a;
+          text-decoration: none;
+          font-size: 12px;
+          font-weight: 800;
+          border:
+            1px solid
+            rgba(
+              207,
+              143,
+              67,
+              .08
+            );
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .018
+            );
+          transition:
+            transform .17s ease,
+            color .17s ease,
+            border-color .17s ease,
+            background .17s ease;
+        }
+
+        .sidebar-sublink::before {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: -19px;
+          width: 13px;
+          height: 1px;
+          background:
+            rgba(
+              221,
+              151,
+              70,
+              .26
+            );
+        }
+
+        .sidebar-sublink:hover {
+          transform:
+            translateX(2px);
+          color: #f6e5d5;
+          border-color:
+            rgba(
+              221,
+              151,
+              70,
+              .18
+            );
+          background:
+            rgba(
+              209,
+              128,
+              34,
+              .055
+            );
+        }
+
+        .sidebar-sublink.active {
+          color: #2c1609;
+          border-color:
+            rgba(
+              255,
+              219,
+              131,
+              .62
+            );
+          background:
+            linear-gradient(
+              100deg,
+              #f2ca62,
+              #db8f28
+            );
+          box-shadow:
+            0 8px 20px
+            rgba(
+              199,
+              111,
+              23,
+              .18
+            );
+        }
+
+        .sidebar-sublink-icon {
+          width: 27px;
+          height: 27px;
+          display: grid;
+          place-items: center;
+          border-radius: 9px;
+          color: #c8a98e;
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .025
+            );
+        }
+
+        .sidebar-sublink.active
+        .sidebar-sublink-icon {
+          color: #2c1609;
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .13
+            );
+        }
+
+        .sidebar-sublink-dot {
+          width: 7px;
+          height: 7px;
+          justify-self: center;
+          border-radius: 50%;
+          border:
+            1.2px solid
+            rgba(
+              210,
+              165,
+              121,
+              .24
+            );
+        }
+
+        .sidebar-sublink.active
+        .sidebar-sublink-dot {
+          border: none;
+          background: #fff;
+          box-shadow:
+            0 0 0 2px
+            rgba(
+              255,
+              255,
+              255,
+              .13
+            );
+        }
+
         /* =========================
            SYSTEM CARD
         ========================= */
@@ -675,11 +1121,12 @@ function Sidebar() {
         .sidebar-system-card {
           position: relative;
           z-index: 2;
-          margin: 13px 2px 0;
-          padding: 18px 17px;
+
+          margin: 8px 2px 0;
+          padding: 11px 12px;
           display: grid;
-          grid-template-columns: 16px 1fr;
-          gap: 12px;
+          grid-template-columns: 12px 1fr;
+          gap: 9px;
           align-items: center;
           border-radius: 18px;
           background:
@@ -693,8 +1140,8 @@ function Sidebar() {
         }
 
         .sidebar-system-dot {
-          width: 11px;
-          height: 11px;
+          width: 9px;
+          height: 9px;
           border-radius: 50%;
           background: #21c565;
           box-shadow: 0 0 16px rgba(33,197,101,.45);
@@ -703,14 +1150,14 @@ function Sidebar() {
 
         .sidebar-system-title {
           color: #39e17e;
-          font-size: 14px;
-          font-weight: 800;
+          font-size: 12.5px;
+          font-weight: 850;
         }
 
         .sidebar-system-text {
-          margin-top: 3px;
+          margin-top: 2px;
           color: #cfb9aa;
-          font-size: 11px;
+          font-size: 10.5px;
           line-height: 1.45;
         }
 
@@ -721,32 +1168,33 @@ function Sidebar() {
         .sidebar-footer {
           position: relative;
           z-index: 2;
-          margin-top: 16px;
-          padding-top: 17px;
+
+          margin-top: 9px;
+          padding-top: 9px;
           border-top: 1px solid rgba(226, 159, 79, .10);
         }
 
         .sidebar-footer-brand {
-          margin-bottom: 13px;
+          margin-bottom: 7px;
         }
 
         .sidebar-footer-brand strong {
           display: block;
           color: #fff5e8;
-          font-size: 14px;
+          font-size: 12.5px;
         }
 
         .sidebar-footer-brand span {
           display: block;
-          margin-top: 4px;
+          margin-top: 2px;
           color: #a98c79;
-          font-size: 10px;
+          font-size: 9.5px;
           line-height: 1.45;
         }
 
         .sidebar-logout {
           width: 100%;
-          min-height: 44px;
+          min-height: 38px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -757,7 +1205,7 @@ function Sidebar() {
           background: rgba(255,255,255,.035);
           font: inherit;
           font-size: 12px;
-          font-weight: 750;
+          font-weight: 800;
           cursor: pointer;
           transition:
             transform .18s ease,
@@ -771,6 +1219,112 @@ function Sidebar() {
           color: #fff1eb;
           background: rgba(145, 49, 38, .30);
           border-color: rgba(218, 102, 83, .22);
+        }
+
+
+        /* =========================
+           VIEWPORT HEIGHT ADAPTATION
+           Keeps more navigation items visible on laptops.
+        ========================= */
+
+        @media (max-height: 850px) {
+          .sidebar {
+            padding-top: 9px;
+            padding-bottom: 8px;
+          }
+
+          .sidebar-brand {
+            padding-bottom: 8px;
+          }
+
+          .sidebar-brand-mark {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+          }
+
+          .sidebar-brand-title {
+            font-size: 22px;
+          }
+
+          .sidebar-brand-subtitle {
+            margin-top: 0;
+            font-size: 10px;
+          }
+
+          .sidebar-user {
+            margin-bottom: 8px;
+            padding-top: 7px;
+            padding-bottom: 7px;
+          }
+
+          .sidebar-menu-list {
+            gap: 5px;
+          }
+
+          .sidebar-link,
+          .sidebar-parent-link {
+            min-height: 43px;
+          }
+
+          .sidebar-submenu {
+            gap: 4px;
+          }
+
+          .sidebar-sublink {
+            min-height: 34px;
+            font-size: 11.5px;
+          }
+
+          .sidebar-system-card {
+            margin-top: 6px;
+            padding-top: 8px;
+            padding-bottom: 8px;
+          }
+
+          .sidebar-footer {
+            margin-top: 6px;
+            padding-top: 7px;
+          }
+
+          .sidebar-footer-brand {
+            margin-bottom: 5px;
+          }
+
+          .sidebar-logout {
+            min-height: 34px;
+          }
+        }
+
+
+        @media (max-height: 720px) {
+          .sidebar-brand-subtitle,
+          .sidebar-system-text,
+          .sidebar-footer-brand span {
+            display: none;
+          }
+
+          .sidebar-brand {
+            grid-template-rows: 1fr;
+            padding-bottom: 6px;
+          }
+
+          .sidebar-brand-mark {
+            grid-row: 1;
+          }
+
+          .sidebar-brand-title {
+            grid-row: 1;
+            align-self: center;
+          }
+
+          .sidebar-system-card {
+            padding: 7px 10px;
+          }
+
+          .sidebar-footer-brand {
+            margin-bottom: 4px;
+          }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -799,9 +1353,25 @@ function Sidebar() {
             font-size: 28px;
           }
 
-          .sidebar-link {
+          .sidebar-link,
+          .sidebar-parent-link {
             min-height: 54px;
             font-size: 13px;
+          }
+
+          .sidebar-submenu {
+            margin-left: 15px;
+            padding-left: 16px;
+          }
+
+          .sidebar-sublink {
+            min-height: 43px;
+            font-size: 11px;
+          }
+
+          .sidebar-sublink::before {
+            left: -16px;
+            width: 11px;
           }
         }
       `}</style>
@@ -859,23 +1429,90 @@ function Sidebar() {
           <div className="sidebar-menu-title">Workspace</div>
 
           <div className="sidebar-menu-list">
-            {menuItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  isActive ? "sidebar-link active" : "sidebar-link"
-                }
-              >
-                <span className="sidebar-link-icon">
-                  <Icon name={item.icon} size={19} />
-                </span>
+            {menuItems.map((item) => {
+              if (item.type === "group") {
+                const isBeanGroup = item.key === "bean-quality";
 
-                <span>{item.label}</span>
+                const groupOpen = isBeanGroup ? beanMenuOpen : false;
 
-                <span className="sidebar-link-dot" />
-              </NavLink>
-            ))}
+                const groupActive = isBeanGroup ? beanSectionActive : false;
+
+                return (
+                  <div className="sidebar-group" key={item.key}>
+                    <button
+                      type="button"
+                      className={`sidebar-parent-link ${
+                        groupActive ? "group-active" : ""
+                      }`}
+                      onClick={() => {
+                        if (isBeanGroup) {
+                          setBeanMenuOpen((previous) => !previous);
+                        }
+                      }}
+                      aria-expanded={groupOpen}
+                    >
+                      <span className="sidebar-link-icon">
+                        <Icon name={item.icon} size={19} />
+                      </span>
+
+                      <span>{item.label}</span>
+
+                      <span
+                        className={`sidebar-parent-chevron ${
+                          groupOpen ? "open" : ""
+                        }`}
+                      >
+                        <Icon name="chevron" size={15} />
+                      </span>
+                    </button>
+
+                    {groupOpen && (
+                      <div className="sidebar-submenu">
+                        {item.children.map((child) => (
+                          <NavLink
+                            key={child.path}
+                            to={child.path}
+                            end={child.end || false}
+                            className={({ isActive }) =>
+                              isActive
+                                ? "sidebar-sublink active"
+                                : "sidebar-sublink"
+                            }
+                          >
+                            <span className="sidebar-sublink-icon">
+                              <Icon name={child.icon} size={16} />
+                            </span>
+
+                            <span>{child.label}</span>
+
+                            <span className="sidebar-sublink-dot" />
+                          </NavLink>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.end || false}
+                  className={({ isActive }) =>
+                    isActive ? "sidebar-link active" : "sidebar-link"
+                  }
+                >
+                  <span className="sidebar-link-icon">
+                    <Icon name={item.icon} size={19} />
+                  </span>
+
+                  <span>{item.label}</span>
+
+                  <span className="sidebar-link-dot" />
+                </NavLink>
+              );
+            })}
           </div>
         </nav>
 

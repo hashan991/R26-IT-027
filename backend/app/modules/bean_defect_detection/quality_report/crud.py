@@ -136,3 +136,26 @@ async def get_quality_report_history(
     )
 
     return reports
+
+
+# =========================================================
+# DELETE SAVED QUALITY REPORT
+# =========================================================
+
+async def delete_quality_report(
+    report_id: str,
+) -> bool:
+
+    database = get_database()
+
+    collection = database[
+        COLLECTION_NAME
+    ]
+
+    result = await collection.delete_one(
+        {
+            "report_id": report_id
+        }
+    )
+
+    return result.deleted_count > 0

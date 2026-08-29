@@ -3,6 +3,8 @@ from fastapi import (
     UploadFile,
     File,
     Depends,
+    HTTPException,
+    Query,
 )
 
 from pathlib import Path
@@ -33,6 +35,7 @@ from app.modules.bean_defect_detection.sensor.schema import (
     WeightReading,
 )
 
+
 from app.modules.bean_defect_detection.phone_camera.routes import (
     router as phone_camera_router,
 )
@@ -48,12 +51,13 @@ from .quality_report.schema import (
     SaveQualityReportResponse,
 )
 
+
 from .quality_report.crud import (
     save_quality_report,
     get_saved_quality_report,
     get_quality_report_history,
+    delete_quality_report,
 )
-
 
 
 # =========================================================
@@ -94,18 +98,37 @@ UPLOAD_DIR.mkdir(
 # GET /api/beans/sensors/status
 # GET /api/beans/sensors/latest
 #
+# =========================================================
 
 router.include_router(
     sensor_router
 )
 
+
+# =========================================================
+# PHONE CAMERA ROUTES
+# =========================================================
+
 router.include_router(
     phone_camera_router
 )
 
+
+# =========================================================
+# QUALITY REPORT ROUTES
+# =========================================================
+#
+# Existing quality-report module routes such as:
+#
+# GET  /quality-report/status
+# POST /quality-report/generate
+#
+# =========================================================
+
 router.include_router(
     quality_report_router
 )
+
 
 # =========================================================
 # BEAN MODULE HOME
@@ -255,20 +278,29 @@ async def predict_beans(
 async def save_final_quality_report(
     request: SaveQualityReportRequest,
 ):
+
     try:
-        saved_report = await save_quality_report(
-            request.report
+
+        saved_report = (
+            await save_quality_report(
+                request.report
+            )
         )
 
         return SaveQualityReportResponse(
             status="success",
-            message="Quality report saved successfully.",
-            report_id=saved_report.get(
-                "report_id"
+            message=(
+                "Quality report saved successfully."
+            ),
+            report_id=(
+                saved_report.get(
+                    "report_id"
+                )
             ),
         )
 
     except Exception as error:
+
         print(
             "[QUALITY REPORT] Save failed:",
             str(error),
@@ -284,7 +316,51 @@ async def save_final_quality_report(
 
 
 # =========================================================
-# GET SAVED REPORT
+# GET REPORT HISTORY
+# =========================================================
+
+@router.get(
+    "/quality-report/history"
+)
+async def get_final_quality_report_history(
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=200,
+    ),
+):
+
+    try:
+
+        reports = (
+            await get_quality_report_history(
+                limit=limit
+            )
+        )
+
+        return {
+            "count": len(reports),
+            "data": reports,
+        }
+
+    except Exception as error:
+
+        print(
+            "[QUALITY REPORT] History failed:",
+            str(error),
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Failed to load saved "
+                "quality reports."
+            ),
+        )
+
+
+# =========================================================
+# GET ONE SAVED REPORT
 # =========================================================
 
 @router.get(
@@ -293,34 +369,89 @@ async def save_final_quality_report(
 async def get_final_quality_report(
     report_id: str,
 ):
-    report = await get_saved_quality_report(
-        report_id
-    )
+
+    try:
+
+        report = (
+            await get_saved_quality_report(
+                report_id
+            )
+        )
+
+    except Exception as error:
+
+        print(
+            "[QUALITY REPORT] Read failed:",
+            str(error),
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Failed to load the saved "
+                "quality report."
+            ),
+        )
 
     if not report:
+
         raise HTTPException(
             status_code=404,
-            detail="Quality report not found.",
+            detail=(
+                "Quality report not found."
+            ),
         )
 
     return report
 
 
 # =========================================================
-# REPORT HISTORY
+# DELETE SAVED REPORT
 # =========================================================
 
-@router.get(
-    "/quality-report/history"
+@router.delete(
+    "/quality-report/saved/{report_id}"
 )
-async def get_final_quality_report_history(
-    limit: int = 50,
+async def delete_final_quality_report(
+    report_id: str,
 ):
-    reports = await get_quality_report_history(
-        limit=limit
-    )
+
+    try:
+
+        deleted = (
+            await delete_quality_report(
+                report_id
+            )
+        )
+
+    except Exception as error:
+
+        print(
+            "[QUALITY REPORT] Delete failed:",
+            str(error),
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Failed to delete the saved "
+                "quality report."
+            ),
+        )
+
+    if not deleted:
+
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Quality report not found."
+            ),
+        )
 
     return {
-        "count": len(reports),
-        "data": reports,
+        "status": "success",
+        "message": (
+            "Quality report deleted successfully."
+        ),
+        "report_id": report_id,
     }

@@ -23,18 +23,25 @@ function FinalQualityReport({
   physicalResult,
   onBack,
   onNewAnalysis,
+  initialReport = null,
+  savedMode = false,
+  autoDownload = false,
 }) {
   // =========================================================
   // REPORT STATE
   // =========================================================
 
-  const [report, setReport] = useState(null);
+  const [report, setReport] = useState(
+    initialReport || null,
+  );
 
   // =========================================================
   // LOADING
   // =========================================================
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(
+    !initialReport,
+  );
 
   // =========================================================
   // ERROR
@@ -53,73 +60,132 @@ function FinalQualityReport({
 //save repoart
   const [savingReport, setSavingReport] = useState(false);
 
-  const [reportSaved, setReportSaved] = useState(false);
+  const [reportSaved, setReportSaved] = useState(
+    Boolean(initialReport),
+  );
+
+  const autoDownloadTriggeredRef = useRef(false);
 
   // =========================================================
   // GENERATE REPORT FROM BACKEND
   // =========================================================
 
   useEffect(() => {
-const generateReport = async () => {
-  try {
-    setLoading(true);
-    setError("");
-    setReport(null);
+    if (initialReport) {
+      setReport(initialReport);
+      setLoading(false);
+      setError("");
+      setReportSaved(true);
+      autoDownloadTriggeredRef.current = false;
 
-    console.log("===== SENSOR RESULT RECEIVED BY FINAL REPORT =====");
-    console.log(sensorResult);
-
-    console.log("===== PHYSICAL RESULT RECEIVED BY FINAL REPORT =====");
-    console.log(physicalResult);
-
-    const data = await generateBeanQualityReport(sensorResult, physicalResult);
-
-    console.log("===== BACKEND FINAL REPORT RESPONSE =====");
-    console.log(data);
-
-    setReport(data);
-  } catch (requestError) {
-    console.error("Final report generation failed:", requestError);
-
-    if (requestError.response?.status !== 401) {
-      const message =
-        requestError.response?.data?.detail ||
-        "Failed to generate the final coffee bean quality report.";
-
-      setError(message);
+      return;
     }
-  } finally {
-    setLoading(false);
-  }
-};
+
+    const generateReport = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        setReport(null);
+        setReportSaved(false);
+
+        console.log(
+          "===== SENSOR RESULT RECEIVED BY FINAL REPORT =====",
+        );
+        console.log(sensorResult);
+
+        console.log(
+          "===== PHYSICAL RESULT RECEIVED BY FINAL REPORT =====",
+        );
+        console.log(physicalResult);
+
+        const data =
+          await generateBeanQualityReport(
+            sensorResult,
+            physicalResult,
+          );
+
+        console.log(
+          "===== BACKEND FINAL REPORT RESPONSE =====",
+        );
+        console.log(data);
+
+        if (!data) {
+          throw new Error(
+            "Backend returned an empty final report response.",
+          );
+        }
+
+        setReport(data);
+
+        console.log(
+          "===== FINAL REPORT READY FOR RENDER =====",
+          data?.report_id,
+        );
+      } catch (requestError) {
+        console.error(
+          "Final report generation failed:",
+          requestError,
+        );
+
+        if (
+          requestError.response?.status !== 401
+        ) {
+          const message =
+            requestError.response?.data
+              ?.detail ||
+            "Failed to generate the final coffee bean quality report.";
+
+          setError(message);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
 
     generateReport();
-  }, [sensorResult, physicalResult]);
+  }, [
+    initialReport,
+    sensorResult,
+    physicalResult,
+  ]);
 
   // =========================================================
   // RETRY REPORT GENERATION
   // =========================================================
 
   const handleRetry = async () => {
+    if (initialReport) {
+      setError("");
+      setReport(initialReport);
+      setLoading(false);
+
+      return;
+    }
+
     try {
       setLoading(true);
-
       setError("");
-
       setReport(null);
 
-      const data = await generateBeanQualityReport(
-        sensorResult,
-        physicalResult,
-      );
+      const data =
+        await generateBeanQualityReport(
+          sensorResult,
+          physicalResult,
+        );
 
       setReport(data);
     } catch (requestError) {
-      console.error("Report retry failed:", requestError);
+      console.error(
+        "Report retry failed:",
+        requestError,
+      );
 
-      if (requestError.response?.status !== 401) {
+      if (
+        requestError.response?.status !== 401
+      ) {
         const message =
-          requestError.response?.data?.detail ||
+          requestError.response?.data
+            ?.detail ||
           "Failed to generate the report.";
 
         setError(message);
@@ -128,6 +194,42 @@ const generateReport = async () => {
       setLoading(false);
     }
   };
+
+  // =========================================================
+  // AUTO DOWNLOAD FOR SAVED HISTORY REPORT
+  // IMPORTANT:
+  // Hooks must execute before any conditional return.
+  // =========================================================
+
+  useEffect(() => {
+    if (
+      !autoDownload ||
+      !report ||
+      loading ||
+      error ||
+      autoDownloadTriggeredRef.current
+    ) {
+      return;
+    }
+
+    autoDownloadTriggeredRef.current = true;
+
+    const timer = window.setTimeout(
+      () => {
+        handleDownload();
+      },
+      650,
+    );
+
+    return () =>
+      window.clearTimeout(timer);
+  }, [
+    autoDownload,
+    report,
+    loading,
+    error,
+  ]);
+
 
   // =========================================================
   // LOADING UI
@@ -139,11 +241,16 @@ const generateReport = async () => {
         <div className="final-report-loading-card">
           <div className="report-loader"></div>
 
-          <h2>Generating Final Quality Report</h2>
+          <h2>
+            {savedMode
+              ? "Loading Saved Quality Report"
+              : "Generating Final Quality Report"}
+          </h2>
 
           <p>
-            Combining sensor analysis and physical AI results to calculate the
-            final coffee bean quality assessment.
+            {savedMode
+              ? "Preparing the saved coffee bean quality assessment for viewing."
+              : "Combining sensor analysis and physical AI results to calculate the final coffee bean quality assessment."}
           </p>
         </div>
 
@@ -573,7 +680,7 @@ const handleSave = async () => {
   //
   // =========================================================
 
-  const handleDownload = async () => {
+  async function handleDownload() {
     if (pdfGenerating) {
       return;
     }
@@ -1189,7 +1296,7 @@ const handleSave = async () => {
     } finally {
       setPdfGenerating(false);
     }
-  };
+  }
 
   // =========================================================
   // UI
@@ -1204,17 +1311,30 @@ const handleSave = async () => {
 
         <div className="final-report-header">
           <div>
-            <span className="final-step-label">STEP 03 — FINAL ASSESSMENT</span>
+            <span className="final-step-label">
+              {savedMode
+                ? "SAVED REPORT — HISTORICAL ASSESSMENT"
+                : "STEP 03 — FINAL ASSESSMENT"}
+            </span>
 
-            <h2>Final Coffee Bean Quality Report</h2>
+            <h2>
+              Final Coffee Bean Quality Report
+            </h2>
 
             <p>
-              Final quality assessment generated by combining the sensor-based
-              assessment and physical AI inspection.
+              {savedMode
+                ? "Previously saved coffee bean quality assessment loaded from report history."
+                : "Final quality assessment generated by combining the sensor-based assessment and physical AI inspection."}
             </p>
           </div>
 
-          <span className="report-status">Report Generated</span>
+          <span className="report-status">
+            {savedMode
+              ? "Saved Report"
+              : reportSaved
+                ? "Report Saved"
+                : "Report Generated"}
+          </span>
         </div>
 
         {/* =================================================
@@ -1279,8 +1399,14 @@ const handleSave = async () => {
 
         <div className="report-section-block">
           <BeanWeightAssessment
-            physicalResult={physicalResult}
-            physicalAssessment={physicalAssessment}
+            physicalResult={
+              report.physical_result ||
+              physicalResult ||
+              {}
+            }
+            physicalAssessment={
+              physicalAssessment
+            }
           />
         </div>
 
@@ -1343,12 +1469,43 @@ const handleSave = async () => {
         ================================================= */}
 
         <div className="pdf-exclude">
-          <ReportActions
-            onBack={onBack}
-            onNewAnalysis={onNewAnalysis}
-            onSave={handleSave}
-            onDownload={handleDownload}
-          />
+          {savedMode ? (
+            <div className="saved-report-actions">
+              <button
+                type="button"
+                className="saved-report-action secondary"
+                onClick={onBack}
+              >
+                ← Back to History
+              </button>
+
+              <button
+                type="button"
+                className="saved-report-action primary"
+                onClick={handleDownload}
+                disabled={pdfGenerating}
+              >
+                {pdfGenerating
+                  ? "Generating PDF..."
+                  : "Download PDF"}
+              </button>
+
+              <button
+                type="button"
+                className="saved-report-action secondary"
+                onClick={onNewAnalysis}
+              >
+                New Analysis
+              </button>
+            </div>
+          ) : (
+            <ReportActions
+              onBack={onBack}
+              onNewAnalysis={onNewAnalysis}
+              onSave={handleSave}
+              onDownload={handleDownload}
+            />
+          )}
         </div>
       </div>
 
@@ -1365,6 +1522,106 @@ const handleSave = async () => {
 
         .pdf-exclude {
           width: 100%;
+        }
+
+
+        .saved-report-actions {
+          margin-top: 20px;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: flex-end;
+
+          gap: 10px;
+
+          flex-wrap: wrap;
+        }
+
+
+        .saved-report-action {
+          min-height: 42px;
+
+          padding:
+            0 16px;
+
+          border-radius: 12px;
+
+          cursor: pointer;
+
+          font-size: 10px;
+
+          font-weight: 900;
+
+          letter-spacing:
+            0.04em;
+
+          text-transform:
+            uppercase;
+
+          transition:
+            transform 160ms ease,
+            box-shadow 160ms ease,
+            opacity 160ms ease;
+        }
+
+
+        .saved-report-action:hover:not(:disabled) {
+          transform:
+            translateY(-1px);
+
+          box-shadow:
+            0 8px 20px
+            rgba(
+              0,
+              0,
+              0,
+              0.16
+            );
+        }
+
+
+        .saved-report-action.primary {
+          border: none;
+
+          color: #2c190f;
+
+          background:
+            linear-gradient(
+              135deg,
+              #ffe0a3,
+              #d79656
+            );
+        }
+
+
+        .saved-report-action.secondary {
+          border:
+            1px solid
+            rgba(
+              255,
+              220,
+              170,
+              0.13
+            );
+
+          color: #f3d7b2;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.045
+            );
+        }
+
+
+        .saved-report-action:disabled {
+          opacity: 0.55;
+
+          cursor: wait;
         }
 
 
@@ -2106,6 +2363,20 @@ const handleSave = async () => {
 
           .report-section-block {
             padding: 15px;
+          }
+
+
+          .saved-report-actions {
+            align-items:
+              stretch;
+
+            flex-direction:
+              column;
+          }
+
+
+          .saved-report-action {
+            width: 100%;
           }
         }
 

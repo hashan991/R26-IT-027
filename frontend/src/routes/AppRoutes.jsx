@@ -21,6 +21,9 @@ import RoleRoute from "../shared/components/RoleRoute";
 import DashboardLayout from "../layouts/DashboardLayout";
 import DashboardHomePage from "../pages/DashboardHomePage";
 
+import ReportHistoryPage from "../features/bean-defect-detection/pages/ReportHistoryPage";
+import SavedQualityReportPage from "../features/bean-defect-detection/pages/SavedQualityReportPage";
+
 // =====================================================
 // POWDER QUALITY MODULE
 // =====================================================
@@ -125,6 +128,24 @@ function AppRoutes() {
           element={
             <RoleRoute allowedRoles={["ADMIN", "BEAN_QUALITY_INSPECTOR"]}>
               <BeanQualityPage />
+            </RoleRoute>
+          }
+        />
+
+        <Route
+          path="/beans/reports"
+          element={
+            <RoleRoute allowedRoles={["ADMIN", "BEAN_QUALITY_INSPECTOR"]}>
+              <ReportHistoryPage />
+            </RoleRoute>
+          }
+        />
+
+        <Route
+          path="/beans/reports/:reportId"
+          element={
+            <RoleRoute allowedRoles={["ADMIN", "BEAN_QUALITY_INSPECTOR"]}>
+              <SavedQualityReportPage />
             </RoleRoute>
           }
         />
