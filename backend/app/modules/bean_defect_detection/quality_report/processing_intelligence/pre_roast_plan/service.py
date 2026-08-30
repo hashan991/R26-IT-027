@@ -1,74 +1,32 @@
-from typing import Any, Dict, List
+from typing import List
+
+from ..defect_profile import (
+    DefectProfile,
+)
 
 from .schema import (
-    PreRoastAction,
+    PreRoastCorrectiveAction,
     PreRoastPlan,
 )
 
 
 # =========================================================
-# PRE-ROAST PLAN SERVICE
+# PRE-ROAST CORRECTIVE ACTIONS SERVICE
+# =========================================================
+#
+# New defect-driven Module 2:
+#
+#   Detected defect
+#       -> independent corrective action
+#
+# Multiple active defects produce multiple actions.
+#
+# final_score / grade / sensor_status / physical_status
+# DO NOT trigger these corrective actions.
+#
 # =========================================================
 
 class PreRoastPlanService:
-
-    # =====================================================
-    # RESEARCH-DEFINED THRESHOLDS
-    # =====================================================
-
-    BROKEN_WARNING_PERCENTAGE = 5.0
-
-    BROKEN_HIGH_PERCENTAGE = 15.0
-
-    SEVERE_WARNING_PERCENTAGE = 5.0
-
-    SEVERE_HIGH_PERCENTAGE = 20.0
-
-    UNKNOWN_WARNING_PERCENTAGE = 3.0
-
-
-    # =====================================================
-    # SAFE INTEGER
-    # =====================================================
-
-    @staticmethod
-    def _safe_int(
-        value: Any,
-        default: int = 0,
-    ) -> int:
-
-        try:
-            return int(value)
-
-        except (
-            TypeError,
-            ValueError,
-        ):
-            return default
-
-
-    # =====================================================
-    # PERCENTAGE
-    # =====================================================
-
-    @staticmethod
-    def _percentage(
-        count: int,
-        total: int,
-    ) -> float:
-
-        if total <= 0:
-            return 0.0
-
-        return round(
-            (
-                count
-                / total
-            )
-            * 100,
-            2,
-        )
-
 
     # =====================================================
     # ADD ACTION
@@ -76,714 +34,571 @@ class PreRoastPlanService:
 
     @staticmethod
     def _add_action(
-        actions: List[PreRoastAction],
+        actions: List[
+            PreRoastCorrectiveAction
+        ],
         *,
+        defect: str,
         title: str,
         description: str,
         action_type: str,
         priority: str,
-        required: bool = True,
+        evidence_class: str,
+        detected_count=None,
     ) -> None:
 
         actions.append(
-            PreRoastAction(
+            PreRoastCorrectiveAction(
+
                 step_number=(
                     len(actions)
                     + 1
                 ),
+
+                defect=defect,
+
                 title=title,
-                description=description,
-                action_type=action_type,
+
+                description=(
+                    description
+                ),
+
+                action_type=(
+                    action_type
+                ),
+
                 priority=priority,
-                required=required,
+
+                required=True,
+
+                evidence_class=(
+                    evidence_class
+                ),
+
+                detected_count=(
+                    detected_count
+                ),
             )
         )
 
 
     # =====================================================
-    # GENERATE PRE-ROAST PLAN
+    # PREPARATION LEVEL
+    # =====================================================
+    #
+    # Priority aggregation is research-defined.
+    #
+    # CRITICAL action present -> CRITICAL
+    # HIGH action present     -> EXTENSIVE
+    # MEDIUM only             -> MODERATE
+    # No actions              -> MINIMAL
+    #
+    # =====================================================
+
+    @staticmethod
+    def _get_preparation_level(
+        actions: List[
+            PreRoastCorrectiveAction
+        ],
+    ) -> str:
+
+        priorities = {
+            action.priority
+            for action in actions
+        }
+
+        if "CRITICAL" in priorities:
+            return "CRITICAL"
+
+        if "HIGH" in priorities:
+            return "EXTENSIVE"
+
+        if "MEDIUM" in priorities:
+            return "MODERATE"
+
+        return "MINIMAL"
+
+
+    # =====================================================
+    # GENERATE MODULE 2
     # =====================================================
 
     def generate(
         self,
         *,
-        sensor_status: str,
-        physical_status: str,
-        grade: str,
-        quality_status: str,
-        counts: Dict[str, Any],
+        defect_profile: DefectProfile,
     ) -> PreRoastPlan:
 
-        # -------------------------------------------------
-        # NORMALIZE INPUTS
-        # -------------------------------------------------
-
-        sensor_status = (
-            sensor_status
-            or "SKIPPED"
-        ).upper()
-
-
-        physical_status = (
-            physical_status
-            or "NO_DATA"
-        ).upper()
-
-
-        grade = (
-            grade
-            or "Reject"
+        sensor = (
+            defect_profile.sensor
         )
 
-
-        quality_status = (
-            quality_status
-            or "Needs Review"
+        physical = (
+            defect_profile.physical
         )
 
-
-        # -------------------------------------------------
-        # COUNTS
-        # -------------------------------------------------
-
-        total = self._safe_int(
-            counts.get(
-                "total_beans",
-                0,
-            )
+        inspection = (
+            defect_profile.inspection
         )
-
-
-        good = self._safe_int(
-            counts.get(
-                "good",
-                0,
-            )
-        )
-
-
-        broken = self._safe_int(
-            counts.get(
-                "broken",
-                0,
-            )
-        )
-
-
-        black = self._safe_int(
-            counts.get(
-                "black",
-                0,
-            )
-        )
-
-
-        black_and_broken = self._safe_int(
-            counts.get(
-                "black_and_broken",
-                0,
-            )
-        )
-
-
-        unknown = self._safe_int(
-            counts.get(
-                "unknown",
-                0,
-            )
-        )
-
-
-        # -------------------------------------------------
-        # PERCENTAGES
-        # -------------------------------------------------
-
-        broken_percentage = (
-            self._percentage(
-                broken,
-                total,
-            )
-        )
-
-
-        severe_defect_count = (
-            black
-            + black_and_broken
-        )
-
-
-        severe_defect_percentage = (
-            self._percentage(
-                severe_defect_count,
-                total,
-            )
-        )
-
-
-        unknown_percentage = (
-            self._percentage(
-                unknown,
-                total,
-            )
-        )
-
-
-        # -------------------------------------------------
-        # FLAGS
-        # -------------------------------------------------
-
-        sensor_retest_required = False
-
-        physical_retest_required = False
-
-        manual_inspection_required = False
-
-        severe_defect_removal_required = False
-
-        broken_sorting_required = False
-
-        reinspection_required = False
-
 
         actions: List[
-            PreRoastAction
+            PreRoastCorrectiveAction
         ] = []
 
 
         # =================================================
-        # NO PHYSICAL DATA
+        # 1. MQ2 ABNORMAL
         # =================================================
 
-        if (
-            total <= 0
-            or
-            physical_status
-            == "NO_DATA"
-        ):
+        if sensor.mq2_abnormal:
 
             self._add_action(
                 actions,
-                title=(
-                    "Complete Physical AI Inspection"
-                ),
-                description=(
-                    "A complete physical bean inspection "
-                    "must be performed before the batch "
-                    "can be prepared for roasting."
-                ),
-                action_type="INSPECT",
-                priority="CRITICAL",
-                required=True,
-            )
 
+                defect="MQ2_ABNORMAL",
 
-            self._add_action(
-                actions,
                 title=(
-                    "Generate New Quality Assessment"
+                    "Inspect Smoke and Combustible "
+                    "Vapour Exposure"
                 ),
+
                 description=(
-                    "Repeat the quality assessment after "
-                    "physical inspection data becomes "
-                    "available."
+                    "Temporarily hold direct roasting. "
+                    "Inspect the coffee storage and testing "
+                    "area for smoke, fuel, combustion "
+                    "exhaust or other combustible vapour "
+                    "sources. Move the batch to a clean, "
+                    "well-ventilated area if needed and "
+                    "repeat the MQ-2 assessment before "
+                    "release."
                 ),
-                action_type="RETEST",
+
+                action_type=(
+                    "HOLD_AND_VERIFY"
+                ),
+
                 priority="HIGH",
-                required=True,
-            )
 
-
-            return PreRoastPlan(
-
-                readiness_status=(
-                    "INSPECTION_REQUIRED"
-                ),
-
-                title=(
-                    "Physical Inspection Required"
-                ),
-
-                summary=(
-                    "The batch cannot be prepared for "
-                    "roasting because physical quality "
-                    "inspection data is incomplete."
-                ),
-
-                total_actions=len(
-                    actions
-                ),
-
-                mandatory_actions=len(
-                    [
-                        action
-                        for action
-                        in actions
-                        if action.required
-                    ]
-                ),
-
-                actions=actions,
-
-                reinspection_required=True,
-
-                sensor_retest_required=False,
-
-                physical_retest_required=True,
-
-                manual_inspection_required=False,
-
-                severe_defect_removal_required=False,
-
-                broken_sorting_required=False,
-
-                estimated_preparation_level=(
-                    "CRITICAL"
-                ),
-
-                methodology_note=(
-                    "The preparation plan is generated "
-                    "using research-defined raw-bean "
-                    "quality rules and requires complete "
-                    "quality evidence before roasting."
+                evidence_class=(
+                    "SENSOR_TECHNICAL_RULE"
                 ),
             )
 
 
         # =================================================
-        # SEVERE DEFECT REMOVAL
+        # 2. MQ3 ABNORMAL
         # =================================================
 
-        if (
-            black > 0
-        ):
-
-            severe_defect_removal_required = True
-
+        if sensor.mq3_abnormal:
 
             self._add_action(
                 actions,
+
+                defect="MQ3_ABNORMAL",
+
                 title=(
-                    "Remove Black Beans"
+                    "Inspect Alcohol-Sensitive "
+                    "Volatile Condition"
                 ),
+
                 description=(
-                    f"Remove the {black} black or dark "
-                    "beans identified by the physical "
-                    "AI inspection before roasting."
+                    "Hold direct roasting while the signal "
+                    "is verified. Inspect for unusual "
+                    "alcohol-like or fermentative odours "
+                    "and remove external alcohol, solvent "
+                    "or volatile sources from the testing "
+                    "environment. Repeat the MQ-3 "
+                    "assessment before further processing. "
+                    "The MQ-3 result does not by itself "
+                    "confirm coffee fermentation."
                 ),
-                action_type="REMOVE",
-                priority=(
-                    "CRITICAL"
-                    if severe_defect_percentage
-                    >= self.SEVERE_HIGH_PERCENTAGE
-                    else "HIGH"
+
+                action_type=(
+                    "INSPECT_AND_RETEST"
                 ),
-                required=True,
+
+                priority="HIGH",
+
+                evidence_class=(
+                    "SENSOR_TECHNICAL_RULE"
+                ),
             )
 
 
-        if (
-            black_and_broken > 0
-        ):
+        # =================================================
+        # 3. MQ135 ABNORMAL
+        # =================================================
 
-            severe_defect_removal_required = True
-
+        if sensor.mq135_abnormal:
 
             self._add_action(
                 actions,
+
+                defect="MQ135_ABNORMAL",
+
                 title=(
-                    "Remove Black-and-Broken Beans"
+                    "Inspect VOC and Odour "
+                    "Contamination Sources"
                 ),
+
                 description=(
-                    f"Remove the {black_and_broken} beans "
-                    "that contain both black-color and "
-                    "broken-shape defects."
+                    "Inspect the surrounding environment "
+                    "for chemicals, fuels, smoke, strong "
+                    "odours or other volatile sources. "
+                    "Transfer the batch to a clean, "
+                    "odour-free and well-ventilated area "
+                    "when necessary, then repeat the "
+                    "MQ-135 assessment before roasting."
                 ),
-                action_type="REMOVE",
-                priority=(
-                    "CRITICAL"
-                    if severe_defect_percentage
-                    >= self.SEVERE_HIGH_PERCENTAGE
-                    else "HIGH"
+
+                action_type=(
+                    "INSPECT_AND_RETEST"
                 ),
-                required=True,
+
+                priority="HIGH",
+
+                evidence_class=(
+                    "SENSOR_TECHNICAL_RULE"
+                ),
             )
 
 
         # =================================================
-        # BROKEN BEAN SORTING
+        # 4. MOISTURE DEFECT
+        # =================================================
+        #
+        # The current project sensor rule identifies only an
+        # experimental moisture RESPONSE anomaly.
+        #
+        # It does NOT prove a standardized coffee-moisture %.
+        #
         # =================================================
 
-        if (
-            broken > 0
-        ):
-
-            broken_sorting_required = True
-
+        if sensor.moisture_defect:
 
             self._add_action(
                 actions,
+
+                defect="MOISTURE_DEFECT",
+
+                title=(
+                    "Verify and Correct Bean Moisture"
+                ),
+
+                description=(
+                    "Do not roast the batch immediately. "
+                    "Verify the actual green-coffee "
+                    "moisture condition using an "
+                    "appropriate calibrated or reference "
+                    "measurement method. Determine whether "
+                    "the coffee is excessively moist or "
+                    "over-dry, correct the condition as "
+                    "required, and repeat the assessment "
+                    "before roasting."
+                ),
+
+                action_type=(
+                    "VERIFY_AND_CORRECT_MOISTURE"
+                ),
+
+                priority="CRITICAL",
+
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+            )
+
+
+        # =================================================
+        # 5. TEMPERATURE ABNORMAL
+        # =================================================
+        #
+        # The current project sets temperature_abnormal=False
+        # until a separate validated temperature rule exists.
+        #
+        # This rule is ready for future activation.
+        #
+        # =================================================
+
+        if sensor.temperature_abnormal:
+
+            self._add_action(
+                actions,
+
+                defect="TEMPERATURE_ABNORMAL",
+
+                title=(
+                    "Stabilize Pre-Roast Temperature"
+                ),
+
+                description=(
+                    "Move the batch away from excessive "
+                    "heat and rapid temperature changes. "
+                    "Stabilize the storage and pre-roast "
+                    "environment, then reassess the batch "
+                    "before direct roasting."
+                ),
+
+                action_type=(
+                    "STABILIZE_ENVIRONMENT"
+                ),
+
+                priority="MEDIUM",
+
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+            )
+
+
+        # =================================================
+        # 6. HUMIDITY ABNORMAL
+        # =================================================
+
+        if sensor.humidity_abnormal:
+
+            self._add_action(
+                actions,
+
+                defect="HUMIDITY_ABNORMAL",
+
+                title=(
+                    "Control Humidity and Prevent "
+                    "Moisture Reabsorption"
+                ),
+
+                description=(
+                    "Move the batch to a dry, "
+                    "well-ventilated and protected area. "
+                    "Prevent further humid-air exposure, "
+                    "condensation and re-wetting. Recheck "
+                    "the humidity condition and verify bean "
+                    "moisture before roasting."
+                ),
+
+                action_type=(
+                    "CONTROL_HUMIDITY"
+                ),
+
+                priority="HIGH",
+
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+            )
+
+
+        # =================================================
+        # 7. BROKEN BEANS
+        # =================================================
+        #
+        # physical.broken includes:
+        #
+        #   broken + black_and_broken
+        #
+        # No separate BLACK_AND_BROKEN corrective-action
+        # category is generated.
+        #
+        # =================================================
+
+        if physical.broken > 0:
+
+            self._add_action(
+                actions,
+
+                defect="BROKEN_BEANS",
+
                 title=(
                     "Secondary Sort Broken Beans"
                 ),
+
                 description=(
-                    f"{broken} broken or chipped beans "
-                    f"were detected "
-                    f"({broken_percentage:.2f}% of the "
-                    "inspected batch). Perform secondary "
-                    "sorting before roasting."
+                    f"{physical.broken} beans contribute "
+                    "to the normalized broken-bean defect "
+                    "profile. Perform secondary sorting to "
+                    "separate broken or chipped material "
+                    "before the final roasting lot is "
+                    "prepared."
                 ),
-                action_type="SORT",
-                priority=(
-                    "HIGH"
-                    if broken_percentage
-                    >= self.BROKEN_HIGH_PERCENTAGE
-                    else "MEDIUM"
+
+                action_type=(
+                    "SECONDARY_SORT"
                 ),
-                required=(
-                    broken_percentage
-                    >= self.BROKEN_WARNING_PERCENTAGE
+
+                priority="MEDIUM",
+
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+
+                detected_count=(
+                    physical.broken
                 ),
             )
 
 
         # =================================================
-        # UNKNOWN / UNCERTAIN BEANS
+        # 8. BLACK BEANS
+        # =================================================
+        #
+        # physical.black includes:
+        #
+        #   black + black_and_broken
+        #
         # =================================================
 
-        if (
-            unknown > 0
-        ):
-
-            manual_inspection_required = True
-
+        if physical.black > 0:
 
             self._add_action(
                 actions,
+
+                defect="BLACK_BEANS",
+
                 title=(
-                    "Inspect Uncertain Beans"
+                    "Remove and Segregate Black Beans"
                 ),
+
                 description=(
-                    f"{unknown} bean classification(s) "
-                    "were uncertain. Inspect these beans "
-                    "manually before roasting or repeat "
-                    "the physical AI inspection."
+                    f"{physical.black} beans contribute "
+                    "to the normalized black-bean defect "
+                    "profile. Remove the affected beans "
+                    "during sorting and keep the rejected "
+                    "material physically separated from "
+                    "the usable coffee lot before "
+                    "reinspection."
                 ),
-                action_type="INSPECT",
-                priority=(
-                    "HIGH"
-                    if unknown_percentage
-                    >= self.UNKNOWN_WARNING_PERCENTAGE
-                    else "MEDIUM"
+
+                action_type=(
+                    "REMOVE_AND_SEGREGATE"
                 ),
-                required=True,
-            )
 
-
-        # =================================================
-        # SENSOR CONDITION
-        # =================================================
-
-        if (
-            sensor_status == "BAD"
-        ):
-
-            sensor_retest_required = True
-
-
-            self._add_action(
-                actions,
-                title=(
-                    "Repeat Sensor Quality Analysis"
-                ),
-                description=(
-                    "The sensor assessment indicates a "
-                    "defective bean profile. Repeat the "
-                    "sensor analysis after sorting and "
-                    "before roasting."
-                ),
-                action_type="RETEST",
                 priority="CRITICAL",
-                required=True,
-            )
 
-
-        elif (
-            sensor_status == "REVIEW"
-        ):
-
-            sensor_retest_required = True
-
-
-            self._add_action(
-                actions,
-                title=(
-                    "Review Sensor Measurements"
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
                 ),
-                description=(
-                    "The sensor assessment requires "
-                    "additional review. Confirm the "
-                    "sensor readings before roasting."
+
+                detected_count=(
+                    physical.black
                 ),
-                action_type="RETEST",
-                priority="HIGH",
-                required=True,
-            )
-
-
-        elif (
-            sensor_status == "SKIPPED"
-        ):
-
-            sensor_retest_required = True
-
-
-            self._add_action(
-                actions,
-                title=(
-                    "Complete Sensor Analysis"
-                ),
-                description=(
-                    "Sensor-based quality analysis was "
-                    "skipped. Complete the sensor test "
-                    "before final roasting release."
-                ),
-                action_type="RETEST",
-                priority="HIGH",
-                required=True,
             )
 
 
         # =================================================
-        # PHYSICAL RETEST CONDITION
+        # DERIVED MODULE FLAGS
         # =================================================
 
-        if (
-            physical_status
-            in {
-                "POOR",
-                "REVIEW",
-            }
-            or
-            severe_defect_removal_required
-            or
-            broken_sorting_required
-            or
-            manual_inspection_required
-        ):
-
-            physical_retest_required = True
-
-            reinspection_required = True
-
-
-            self._add_action(
-                actions,
-                title=(
-                    "Repeat Physical AI Inspection"
-                ),
-                description=(
-                    "After sorting and defect removal, "
-                    "repeat the physical AI inspection "
-                    "to confirm that the batch quality "
-                    "has improved."
-                ),
-                action_type="RETEST",
-                priority=(
-                    "HIGH"
-                    if physical_status
-                    == "POOR"
-                    else "MEDIUM"
-                ),
-                required=True,
-            )
-
-
-        # =================================================
-        # SENSOR RETEST ALSO MEANS REINSPECTION
-        # =================================================
-
-        if (
-            sensor_retest_required
-        ):
-            reinspection_required = True
-
-
-        # =================================================
-        # NORMAL PRE-ROAST CLEANING
-        # =================================================
-
-        self._add_action(
-            actions,
-            title=(
-                "Perform Standard Pre-Roast Cleaning"
-            ),
-            description=(
-                "Complete normal cleaning and remove "
-                "foreign material before loading the "
-                "batch into the roasting stage."
-            ),
-            action_type="CLEAN",
-            priority="LOW",
-            required=True,
+        inspection_complete = (
+            inspection.sensor_complete
+            and
+            inspection.physical_complete
         )
 
 
-        # =================================================
-        # FINAL RELEASE / HOLD ACTION
-        # =================================================
+        sensor_retest_required = any(
+            action.defect
+            in {
+                "MQ2_ABNORMAL",
+                "MQ3_ABNORMAL",
+                "MQ135_ABNORMAL",
+                "MOISTURE_DEFECT",
+                "TEMPERATURE_ABNORMAL",
+                "HUMIDITY_ABNORMAL",
+            }
+            for action in actions
+        )
 
-        if (
-            grade == "Reject"
+
+        physical_retest_required = any(
+            action.defect
+            in {
+                "BROKEN_BEANS",
+                "BLACK_BEANS",
+            }
+            for action in actions
+        )
+
+
+        manual_inspection_required = any(
+            action.defect
+            in {
+                "MQ2_ABNORMAL",
+                "MQ3_ABNORMAL",
+                "MQ135_ABNORMAL",
+                "BROKEN_BEANS",
+                "BLACK_BEANS",
+            }
+            for action in actions
+        )
+
+
+        severe_defect_removal_required = (
+            physical.black
+            > 0
+        )
+
+
+        broken_sorting_required = (
+            physical.broken
+            > 0
+        )
+
+
+        reinspection_required = (
+            len(actions)
+            > 0
             or
-            (
-                sensor_status == "BAD"
-                and
-                physical_status == "POOR"
+            not inspection_complete
+        )
+
+
+        preparation_level = (
+            self._get_preparation_level(
+                actions
             )
-        ):
-
-            self._add_action(
-                actions,
-                title=(
-                    "Hold Batch From Roasting"
-                ),
-                description=(
-                    "Do not release the current batch "
-                    "to roasting until corrective "
-                    "actions and quality reassessment "
-                    "are completed."
-                ),
-                action_type="HOLD",
-                priority="CRITICAL",
-                required=True,
-            )
-
-
-        elif (
-            reinspection_required
-            or
-            quality_status
-            == "Needs Review"
-        ):
-
-            self._add_action(
-                actions,
-                title=(
-                    "Release Only After Reinspection"
-                ),
-                description=(
-                    "The batch may proceed to roasting "
-                    "only after the required preparation "
-                    "steps are completed and the new "
-                    "quality assessment is acceptable."
-                ),
-                action_type="RELEASE",
-                priority="HIGH",
-                required=True,
-            )
-
-
-        else:
-
-            self._add_action(
-                actions,
-                title=(
-                    "Release Batch to Roasting"
-                ),
-                description=(
-                    "After standard cleaning, the batch "
-                    "can proceed to the roasting stage."
-                ),
-                action_type="RELEASE",
-                priority="LOW",
-                required=True,
-            )
-
-
-        # =================================================
-        # PREPARATION LEVEL
-        # =================================================
-
-        if (
-            grade == "Reject"
-            or
-            (
-                sensor_status == "BAD"
-                and
-                physical_status == "POOR"
-            )
-        ):
-
-            preparation_level = (
-                "CRITICAL"
-            )
-
-
-        elif (
-            physical_status == "POOR"
-            or
-            severe_defect_percentage
-            >= self.SEVERE_HIGH_PERCENTAGE
-        ):
-
-            preparation_level = (
-                "EXTENSIVE"
-            )
-
-
-        elif (
-            reinspection_required
-            or
-            broken_percentage
-            >= self.BROKEN_WARNING_PERCENTAGE
-            or
-            severe_defect_percentage
-            >= self.SEVERE_WARNING_PERCENTAGE
-        ):
-
-            preparation_level = (
-                "MODERATE"
-            )
-
-
-        else:
-
-            preparation_level = (
-                "MINIMAL"
-            )
+        )
 
 
         # =================================================
         # READINESS STATUS
         # =================================================
 
-        if (
-            grade == "Reject"
-            or
-            (
-                sensor_status == "BAD"
-                and
-                physical_status == "POOR"
-            )
-        ):
+        if not inspection_complete:
 
             readiness_status = (
-                "NOT_READY"
+                "INSPECTION_REQUIRED"
+            )
+
+            title = (
+                "Complete Quality Inspection "
+                "Before Corrective Release"
+            )
+
+            summary = (
+                "The corrective-action module cannot "
+                "support a complete pre-roast release "
+                "because one or more required inspections "
+                "are incomplete. Complete the missing "
+                "inspection and then apply all detected "
+                "defect-specific corrective actions."
             )
 
 
-        elif (
-            reinspection_required
-            or
-            severe_defect_removal_required
-            or
-            broken_sorting_required
-            or
-            manual_inspection_required
-        ):
+        elif actions:
 
             readiness_status = (
                 "READY_AFTER_PREPARATION"
+            )
+
+            title = (
+                "Pre-Roast Corrective Actions Required"
+            )
+
+            summary = (
+                f"{len(actions)} defect-specific "
+                "corrective action(s) must be completed "
+                "before the batch is considered ready for "
+                "the next roasting decision."
             )
 
 
@@ -793,72 +608,21 @@ class PreRoastPlanService:
                 "READY"
             )
 
-
-        # =================================================
-        # SUMMARY
-        # =================================================
-
-        if (
-            readiness_status
-            == "READY"
-        ):
-
             title = (
-                "Batch Ready for Standard "
-                "Pre-Roast Preparation"
+                "No Corrective Pre-Roast Action Required"
             )
 
             summary = (
-                "No major corrective preparation is "
-                "required. Complete standard cleaning "
-                "and release the batch to roasting."
-            )
-
-
-        elif (
-            readiness_status
-            == "READY_AFTER_PREPARATION"
-        ):
-
-            title = (
-                "Corrective Pre-Roast "
-                "Preparation Required"
-            )
-
-            summary = (
-                "The batch can potentially proceed to "
-                "roasting after the listed sorting, "
-                "inspection, cleaning, and re-testing "
-                "steps are completed."
-            )
-
-
-        else:
-
-            title = (
-                "Batch Not Ready for Roasting"
-            )
-
-            summary = (
-                "The current quality condition requires "
-                "major corrective action before the "
-                "batch can be considered for roasting."
+                "No active Processing Intelligence defect "
+                "requires a corrective pre-roast action. "
+                "Continue normal factory cleaning and "
+                "quality-control procedures."
             )
 
 
         # =================================================
-        # RETURN
+        # RESPONSE
         # =================================================
-
-        mandatory_actions = len(
-            [
-                action
-                for action
-                in actions
-                if action.required
-            ]
-        )
-
 
         return PreRoastPlan(
 
@@ -870,12 +634,16 @@ class PreRoastPlanService:
 
             summary=summary,
 
-            total_actions=len(
-                actions
+            total_actions=(
+                len(actions)
             ),
 
             mandatory_actions=(
-                mandatory_actions
+                sum(
+                    1
+                    for action in actions
+                    if action.required
+                )
             ),
 
             actions=actions,
@@ -908,13 +676,30 @@ class PreRoastPlanService:
                 preparation_level
             ),
 
+            active_defect_count=(
+                defect_profile
+                .active_defect_count
+            ),
+
+            inspection_complete=(
+                inspection_complete
+            ),
+
             methodology_note=(
-                "This pre-roast preparation plan is "
-                "generated from research-defined raw "
-                "coffee bean quality rules. The system "
-                "converts detected defects and quality "
-                "assessment results into recommended "
-                "pre-processing actions before roasting."
+                "Module 2 is defect-driven. Each active "
+                "sensor or physical defect independently "
+                "produces its relevant corrective action. "
+                "Overall final score, grade, sensor status "
+                "and physical status do not trigger these "
+                "actions. MQ-2, MQ-3 and MQ-135 actions are "
+                "sensor-technical verification rules "
+                "because these sensors are broad and "
+                "non-specific. Moisture, environmental and "
+                "physical-defect actions are "
+                "standard-supported research rules. "
+                "CRITICAL/HIGH/MEDIUM priorities and the "
+                "aggregated preparation level are "
+                "research-defined workflow labels."
             ),
         )
 
