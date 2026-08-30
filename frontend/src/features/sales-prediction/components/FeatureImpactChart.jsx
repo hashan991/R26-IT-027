@@ -95,8 +95,8 @@ function FeatureImpactChart({
             gap: "8px",
             marginBottom: "8px"
           }}>
-            <span style={{ fontSize: "20px" }}>{directionEmoji}</span>
-            <strong style={{ fontSize: "16px", color: "#1a1a1a" }}>
+            <span style={{ fontSize: "22px" }}>{directionEmoji}</span>
+            <strong style={{ fontSize: "18px", color: "#1a1a1a" }}>
               {item.name}
             </strong>
           </div>
@@ -111,7 +111,7 @@ function FeatureImpactChart({
             <span style={{ 
               fontWeight: "600", 
               color: "#2c3e50",
-              fontSize: "14px"
+              fontSize: "16px"
             }}>
               {item.strength.label}
             </span>
@@ -120,7 +120,7 @@ function FeatureImpactChart({
           <div style={{
             color: directionColor,
             fontWeight: "500",
-            fontSize: "14px",
+            fontSize: "16px",
             padding: "6px 0",
             borderTop: "1px solid #f0f0f0",
             marginTop: "6px"
@@ -129,7 +129,7 @@ function FeatureImpactChart({
           </div>
           
           <div style={{
-            fontSize: "12px",
+            fontSize: "14px",
             color: "#7f8c8d",
             marginTop: "4px",
             fontStyle: "italic"
@@ -172,7 +172,7 @@ function FeatureImpactChart({
         <p style={{
           margin: "6px 0 0 0",
           color: "#6b5a4a",
-          fontSize: "14px",
+          fontSize: "16px",
           lineHeight: "1.5"
         }}>
           These factors had the strongest influence on the prediction
@@ -197,7 +197,7 @@ function FeatureImpactChart({
               type="category"
               width={150}
               tick={{
-                fontSize: 13,
+                fontSize: 15,
                 fill: "#3d2a1a",
                 fontWeight: "500"
               }}
@@ -251,7 +251,7 @@ function FeatureImpactChart({
           display: "flex",
           alignItems: "center",
           gap: "8px",
-          fontSize: "13px",
+          fontSize: "15px",
           color: "#3d2a1a"
         }}>
           <span style={{
@@ -267,7 +267,7 @@ function FeatureImpactChart({
           display: "flex",
           alignItems: "center",
           gap: "8px",
-          fontSize: "13px",
+          fontSize: "15px",
           color: "#3d2a1a"
         }}>
           <span style={{
@@ -283,7 +283,7 @@ function FeatureImpactChart({
           display: "flex",
           alignItems: "center",
           gap: "8px",
-          fontSize: "13px",
+          fontSize: "17px",
           color: "#3d2a1a"
         }}>
           <span style={{
@@ -303,14 +303,14 @@ function FeatureImpactChart({
         padding: "12px 16px",
         background: "#f8f4ef",
         borderRadius: "10px",
-        fontSize: "13px",
+        fontSize: "15px",
         color: "#6b5a4a",
         display: "flex",
         alignItems: "flex-start",
         gap: "8px",
         border: "1px solid #ede8e0"
       }}>
-        <span style={{ fontSize: "18px" }}>💡</span>
+        <span style={{ fontSize: "20px" }}>💡</span>
         <div>
           <strong style={{ display: "block", color: "#3d2a1a", marginBottom: "2px" }}>
             How to read this chart
