@@ -78,8 +78,8 @@ CAMERA_URL = os.getenv(
     "http://10.25.249.116:8080/videofeed"
 )
 
-SEAL_CONFIDENCE = 0.25
-OVERHEAT_CONFIDENCE = 0.25
+SEAL_CONFIDENCE = 0.50
+OVERHEAT_CONFIDENCE = 0.20
 
 
 # ==================================================
@@ -248,13 +248,8 @@ class RealtimeSealInspector:
         )
 
         if not resolved_packet_id:
-            return {
-                "started": False,
-                "message": (
-                    "No active inspection session. Please start a new "
-                    "inspection (Packet ID) before starting the camera."
-                )
-            }
+
+            resolved_packet_id = "MANUAL_TEST"
 
         if not self.open_camera():
             return {
@@ -889,7 +884,10 @@ class RealtimeSealInspector:
         # (this is what lets /report/generate and the leak test
         # later know this AI result belongs to this exact packet_id)
 
-        if self.current_packet_id:
+        if (
+            self.current_packet_id
+            and self.current_packet_id != "MANUAL_TEST"
+        ):
 
             update_vision_result(
                 self.current_packet_id,
@@ -938,17 +936,7 @@ class RealtimeSealInspector:
 
             result_data["created_at"] = inspection_timestamp.isoformat()
 
-            # ==========================================
-            # RE-SAVE VISION RESULT WITH FINAL IMAGE PATH
-            # AND TIMESTAMP ATTACHED
-            # ==========================================
-
-            if self.current_packet_id:
-
-                update_vision_result(
-                    self.current_packet_id,
-                    result_data
-                )
+            
 
             # ==========================================
             # CREATE HISTORY RECORD
