@@ -5,7 +5,7 @@ import HomePage from "../pages/HomePage";
 import LoginPage from "../auth/pages/LoginPage";
 import RegisterPage from "../auth/pages/RegisterPage";
 
-import BeanUploadPage from "../features/bean-defect-detection/pages/BeanUploadPage";
+
 import BeanQualityPage from "../features/bean-defect-detection/pages/BeanQualityPage";
 
 import SalesPredictionPage from "../features/sales-prediction/pages/SalesPredictionPage";
@@ -113,15 +113,6 @@ function AppRoutes() {
         {/* =====================================================
             BEAN QUALITY
         ===================================================== */}
-
-        <Route
-          path="/bean"
-          element={
-            <RoleRoute allowedRoles={["ADMIN", "BEAN_QUALITY_INSPECTOR"]}>
-              <BeanUploadPage />
-            </RoleRoute>
-          }
-        />
 
         <Route
           path="/beans"
