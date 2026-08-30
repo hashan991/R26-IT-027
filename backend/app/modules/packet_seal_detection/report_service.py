@@ -20,6 +20,9 @@ from reportlab.platypus import (
     PageBreak,
 )
 
+from app.modules.packet_seal_detection.leak_repository import save_leak_test
+from app.modules.packet_seal_detection import inspection_service
+
 
 # ==================================================
 # PATH SETTINGS
@@ -102,6 +105,34 @@ class InspectionReportService:
 
             self.latest_leak_result = result.copy()
 
+     # ==================================================
+    # save_leak_history() function
+    # ==================================================
+
+        # ==================================================
+    # SAVE LEAK HISTORY TO MONGODB
+    # ==================================================
+
+    def save_leak_history(
+        self,
+        result
+    ):
+
+        import asyncio
+
+        try:
+
+            asyncio.run(
+                save_leak_test(result)
+            )
+
+
+        except Exception as error:
+
+            print(
+                "MongoDB history save error:",
+                error
+            )
 
     # ==================================================
     # GET CURRENT REPORT DATA
@@ -501,6 +532,28 @@ class InspectionReportService:
         )
 
 
+        # ----------------------------------------------
+        # RESOLVE WHICH PACKET THIS REPORT BELONGS TO
+        # ----------------------------------------------
+        # Prefer the packet_id already stamped onto the AI
+        # result (set by realtime_service when the camera
+        # session ran). Fall back to whichever inspection
+        # session was created/updated most recently.
+        # ----------------------------------------------
+
+        last_inspection = inspection_service.get_last_inspection()
+
+        packet_id_display = (
+            realtime_result.get("packet_id")
+            or (
+                last_inspection["packet_id"]
+                if last_inspection
+                else None
+            )
+            or "N/A"
+        )
+
+
         # ==================================================
         # CREATE PDF DOCUMENT
         # ==================================================
@@ -640,6 +693,11 @@ class InspectionReportService:
 
 
         report_info = [
+
+            [
+                "Packet ID",
+                packet_id_display
+            ],
 
             [
                 "Report ID",
@@ -1793,6 +1851,28 @@ class InspectionReportService:
 
 
         # ==================================================
+        # FINALIZE INSPECTION SESSION (IF STILL OPEN)
+        # ==================================================
+        # Once the report is generated, close out the packet's
+        # inspection session so a new "Start New Inspection"
+        # is required for the next physical packet.
+        # ==================================================
+
+        if packet_id_display and packet_id_display != "N/A":
+
+            try:
+                inspection_service.finalize_inspection(
+                    packet_id_display
+                )
+
+            except Exception as error:
+                print(
+                    "Inspection finalize warning:",
+                    error
+                )
+
+
+        # ==================================================
         # RETURN REPORT DETAILS
         # ==================================================
 
@@ -1801,6 +1881,8 @@ class InspectionReportService:
             "success": True,
 
             "report_id": report_id,
+
+            "packet_id": packet_id_display,
 
             "filename": pdf_filename,
 

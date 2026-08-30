@@ -2,7 +2,44 @@ import api from "../../../shared/services/api";
 
 
 // ==================================================
-// AI SEAL DEFECT DETECTION
+// INSPECTION SESSION (PACKET ID)
+// ==================================================
+// One inspection session = one physical coffee packet.
+// Starting a session generates a packet_id that the backend
+// automatically attaches to BOTH the real-time AI result and
+// the physical leak test result, so they can be matched
+// together for the final report.
+// ==================================================
+
+export const startInspectionSession = async () => {
+  const response = await api.post(
+    "/api/seals/inspection/start"
+  );
+
+  return response.data;
+};
+
+export const getCurrentInspectionSession = async () => {
+  const response = await api.get(
+    "/api/seals/inspection/current"
+  );
+
+  return response.data;
+};
+
+export const finalizeInspectionSession = async (packetId) => {
+  const response = await api.post(
+    "/api/seals/inspection/finalize",
+    null,
+    packetId ? { params: { packet_id: packetId } } : undefined
+  );
+
+  return response.data;
+};
+
+
+// ==================================================
+// AI SEAL DEFECT DETECTION (MANUAL IMAGE UPLOAD)
 // ==================================================
 export const predictSealDefects = async (imageFile) => {
 
@@ -25,7 +62,7 @@ export const predictSealDefects = async (imageFile) => {
 
 
 // ==================================================
-// CHECK PACKET LEAK DEVICE CONNECTION
+// PACKET LEAK DEVICE (ARDUINO)
 // ==================================================
 export const getLeakDeviceStatus = async () => {
 
@@ -36,10 +73,6 @@ export const getLeakDeviceStatus = async () => {
   return response.data;
 };
 
-
-// ==================================================
-// START PACKET LEAK TEST
-// ==================================================
 export const runLeakDeviceTest = async () => {
 
   const response = await api.post(
@@ -49,8 +82,9 @@ export const runLeakDeviceTest = async () => {
   return response.data;
 };
 
+
 // ==================================================
-// START REAL-TIME SEAL INSPECTION
+// REAL-TIME TWO-STAGE SEAL INSPECTION
 // ==================================================
 export const startRealtimeSealInspection = async () => {
   const response = await api.post(
@@ -60,10 +94,6 @@ export const startRealtimeSealInspection = async () => {
   return response.data;
 };
 
-
-// ==================================================
-// GET REAL-TIME AI RESULT
-// ==================================================
 export const getRealtimeSealResult = async () => {
   const response = await api.get(
     "/api/seals/realtime/result"
@@ -72,10 +102,6 @@ export const getRealtimeSealResult = async () => {
   return response.data;
 };
 
-
-// ==================================================
-// STOP REAL-TIME SEAL INSPECTION
-// ==================================================
 export const stopRealtimeSealInspection = async () => {
   const response = await api.post(
     "/api/seals/realtime/stop"
@@ -84,10 +110,6 @@ export const stopRealtimeSealInspection = async () => {
   return response.data;
 };
 
-
-// ==================================================
-// REAL-TIME VIDEO STREAM URL
-// ==================================================
 export const getRealtimeVideoUrl = () => {
   const baseURL =
     import.meta.env.VITE_API_URL ||
@@ -96,8 +118,9 @@ export const getRealtimeVideoUrl = () => {
   return `${baseURL}/api/seals/realtime/video`;
 };
 
+
 // ==================================================
-// GET FINAL REPORT STATUS
+// FINAL INSPECTION REPORT
 // ==================================================
 export const getInspectionReportStatus = async () => {
   const response = await api.get(
@@ -107,10 +130,6 @@ export const getInspectionReportStatus = async () => {
   return response.data;
 };
 
-
-// ==================================================
-// GENERATE FINAL PDF REPORT
-// ==================================================
 export const generateInspectionReport = async () => {
   const response = await api.post(
     "/api/seals/report/generate"
@@ -119,10 +138,6 @@ export const generateInspectionReport = async () => {
   return response.data;
 };
 
-
-// ==================================================
-// GET PDF DOWNLOAD URL
-// ==================================================
 export const getReportDownloadUrl = (downloadUrl) => {
   if (!downloadUrl) return "";
 
@@ -132,4 +147,26 @@ export const getReportDownloadUrl = (downloadUrl) => {
   ).replace(/\/$/, "");
 
   return `${baseURL}${downloadUrl}`;
+};
+
+
+// ==================================================
+// HISTORY
+// ==================================================
+export const getLeakTestHistory = async () => {
+  const response = await api.get(
+    "/api/seals/leak/history"
+  );
+
+  return response.data;
+};
+
+export const getSealInspectionHistory = async () => {
+
+  const response = await api.get(
+    "/api/seals/history"
+  );
+
+  return response.data;
+
 };
