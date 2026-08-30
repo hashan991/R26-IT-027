@@ -1,300 +1,1122 @@
-import { Coffee, LayoutDashboard, Database, BarChart3 } from "lucide-react";
+import {
+    Coffee,
+    LayoutDashboard,
+    Database,
+    Sparkles
+} from "lucide-react";
 
-import { motion } from "framer-motion";
 
-import { useNavigate, useLocation } from "react-router-dom";
+import {
+    motion
+} from "framer-motion";
 
-export default function Sidebar() {
-  const navigate = useNavigate();
 
-  const location = useLocation();
+import {
+    useNavigate,
+    useLocation
+} from "react-router-dom";
 
-  const menu = [
-    {
-      name: "Dashboard",
-      path: "/powder",
-      icon: <LayoutDashboard size={22} />,
-    },
 
-    {
-      name: "Batch Intelligence",
-      path: "/powder/batch-intelligence",
-      icon: <Database size={22} />,
-    },
 
-    {
-      name: "Production Intelligence",
-      path: "/powder/production-intelligence",
-      icon: <BarChart3 size={22} />,
-    },
-  ];
 
-  return (
-    <motion.aside
-      initial={{
-        x: -80,
-        opacity: 0,
-      }}
-      animate={{
-        x: 0,
-        opacity: 1,
-      }}
-      transition={{
-        duration: 0.5,
-      }}
-      className="
+
+export default function Sidebar(){
+
+
+const navigate = useNavigate();
+
+const location = useLocation();
+
+
+
+
+
+const menu = [
+
+
+{
+name:"Dashboard",
+path:"/powder",
+icon:<LayoutDashboard size={22}/>
+},
+
+
+
+{
+name:"Batch Intelligence",
+path:"/powder/batch-intelligence",
+icon:<Database size={22}/>
+}
+
+
+
+];
+
+
+
+
+
+
+
+
+
+return(
+
+
+<motion.aside
+
+
+initial={{
+    x:-120,
+    opacity:0
+}}
+
+
+animate={{
+    x:0,
+    opacity:1
+}}
+
+
+transition={{
+    duration:0.6,
+    ease:"easeOut"
+}}
+
+
+
+
+className="
+
 fixed
+
 left-0
+
 top-0
-w-72
+
+
+w-[300px]
+
+
 min-h-screen
-bg-[#080808]
+
+
+
+bg-gradient-to-b
+
+from-[#170C05]
+
+via-[#241408]
+
+to-[#0E0703]
+
+
+
 border-r
-border-white/10
-p-6
+
+border-[#5A3518]
+
+
+
+px-7
+
+py-6
+
+
+
 z-50
+
+
+
 flex
+
 flex-col
-"
-    >
-      {/* BRAND */}
 
-      <div
-        className="
+
+
+shadow-[25px_0px_70px_rgba(0,0,0,0.65)]
+
+
+
+"
+
+>
+
+
+
+
+
+
+
+{/* ===============================
+ BRAND SECTION
+================================ */}
+
+
+
+<div
+
+
+className="
+
 flex
+
+flex-col
+
 items-center
-gap-4
+
+
 mb-12
-"
-      >
-        <div
-          className="
-p-3
-rounded-2xl
-bg-yellow-400/10
-border
-border-yellow-400/20
-"
-        >
-          <Coffee
-            className="
-text-yellow-400
-"
-            size={30}
-          />
-        </div>
 
-        <div>
-          <h1
-            className="
-text-xl
-font-bold
-text-white
-tracking-wide
 "
-          >
-            CoffeeSense
-          </h1>
 
-          <p
-            className="
-text-xs
-text-gray-500
-mt-1
-"
-          >
-            AI Coffee Intelligence
-          </p>
-        </div>
-      </div>
+>
 
-      {/* NAVIGATION */}
 
-      <nav
-        className="
-space-y-3
-flex-1
-"
-      >
-        {menu.map((item, index) => {
-          const active = location.pathname === item.path;
 
-          return (
-            <motion.button
-              key={index}
-              onClick={() => navigate(item.path)}
-              whileHover={{
-                x: 6,
-              }}
-              whileTap={{
-                scale: 0.96,
-              }}
-              className={`
+
+
+
+<div
+
+
+className="
+
 
 relative
 
-w-full
+
+w-[82px]
+
+h-[82px]
+
+
+
+rounded-[28px]
+
+
 
 flex
 
 items-center
 
-gap-4
+justify-center
 
-px-5
 
-py-4
+
+
+
+bg-gradient-to-br
+
+from-[#FFD76A]
+
+via-[#D99A32]
+
+to-[#8B4513]
+
+
+
+
+border
+
+border-[#FFE9B0]/50
+
+
+
+
+
+shadow-[0_20px_45px_rgba(217,154,50,0.45)]
+
+
+
+"
+
+>
+
+
+
+<Coffee
+
+
+size={42}
+
+
+strokeWidth={2.5}
+
+
+className="
+
+text-white
+
+drop-shadow-xl
+
+"
+
+/>
+
+
+</div>
+
+
+
+
+
+
+
+<h1
+
+
+className="
+
+
+mt-6
+
+
+text-[36px]
+
+
+font-black
+
+
+tracking-tight
+
+
+text-[#FFF4DE]
+
+
+leading-none
+
+
+
+drop-shadow-[0_0_20px_rgba(255,244,222,.35)]
+
+
+
+"
+
+>
+
+
+CoffeeSense
+
+
+</h1>
+
+
+
+
+
+
+
+<div
+
+
+className="
+
+flex
+
+items-center
+
+gap-2
+
+
+mt-4
+
+"
+
+>
+
+
+
+<Sparkles
+
+
+size={16}
+
+
+className="
+
+text-[#F6C85F]
+
+"
+
+/>
+
+
+
+
+
+<p
+
+
+className="
+
+
+text-sm
+
+
+font-semibold
+
+
+text-[#D9B88A]
+
+
+tracking-wide
+
+
+
+"
+
+>
+
+
+AI Coffee Intelligence
+
+
+</p>
+
+
+
+</div>
+
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+{/* ===============================
+ MENU
+================================ */}
+
+
+
+<nav
+
+
+className="
+
+flex-1
+
+space-y-4
+
+"
+
+>
+
+
+
+
+{
+
+menu.map((item,index)=>{
+
+
+const active =
+
+location.pathname === item.path;
+
+
+
+
+
+return(
+
+
+
+<motion.button
+
+
+key={index}
+
+
+
+onClick={()=>navigate(item.path)}
+
+
+
+whileHover={{
+
+x:8,
+
+scale:1.03
+
+}}
+
+
+
+whileTap={{
+
+scale:0.96
+
+}}
+
+
+
+
+
+className={`
+
+
+relative
+
+overflow-hidden
+
+
+w-full
+
+
+flex
+
+
+items-center
+
+
+gap-5
+
+
+
+px-6
+
+
+py-[18px]
+
+
 
 rounded-2xl
 
-text-left
+
 
 transition-all
+
 
 duration-300
 
 
 
 ${
-  active
-    ? `
+
+
+
+active
+
+
+
+?
+
+
+
+`
 
 bg-gradient-to-r
 
-from-yellow-400/20
 
-to-orange-500/20
+from-[#F6C85F]
+
+
+via-[#D99A32]
+
+
+to-[#A85C20]
+
+
+
+
+text-[#1B0D04]
+
+
+
+font-bold
+
+
+
+shadow-[0_18px_40px_rgba(246,200,95,.35)]
+
+
+
+`
+
+
+
+
+
+:
+
+
+
+`
+
+
+
+bg-[#211309]/80
+
 
 
 border
 
-border-yellow-400/40
+
+border-[#4A2C18]
 
 
-text-yellow-400
+
+text-[#E8D9C7]
 
 
-shadow-lg
 
-shadow-yellow-500/10
+hover:bg-[#352015]
+
+
+hover:border-[#D9A441]/50
+
+
+
+hover:text-white
+
+
 
 `
-    : `
 
-text-gray-300
-
-hover:bg-white/5
-
-`
 }
 
 
 
 `}
-            >
-              <motion.div
-                animate={
-                  active
-                    ? {
-                        scale: 1.12,
-                      }
-                    : {
-                        scale: 1,
-                      }
-                }
-                transition={{
-                  duration: 0.2,
-                }}
-              >
-                {item.icon}
-              </motion.div>
 
-              <span
-                className="
+
+
+>
+
+
+
+
+
+
+
+<motion.div
+
+
+
+animate={
+
+
+
+active
+
+
+
+?
+
+
+
+{
+
+scale:1.15,
+
+rotate:5
+
+}
+
+
+
+:
+
+
+
+{
+
+scale:1,
+
+rotate:0
+
+}
+
+
+
+}
+
+
+
+
+transition={{
+
+duration:.3
+
+}}
+
+
+
+>
+
+
+
+{item.icon}
+
+
+
+</motion.div>
+
+
+
+
+
+
+
+
+<span
+
+
+className="
+
+
+text-[15px]
+
+
+tracking-wide
+
+
 font-semibold
-text-sm
-"
-              >
-                {item.name}
-              </span>
 
-              {active && (
-                <motion.div
-                  layoutId="sidebar-active"
-                  className="
+
+"
+
+>
+
+
+
+{item.name}
+
+
+
+</span>
+
+
+
+
+
+
+
+
+{
+
+
+
+active &&
+
+
+
+<motion.span
+
+
+
+layoutId="active-dot"
+
+
+
+className="
+
+
 absolute
-right-4
-w-2
-h-2
+
+
+right-6
+
+
+
+w-2.5
+
+
+h-2.5
+
+
+
 rounded-full
-bg-yellow-400
+
+
+
+bg-white
+
+
+
+shadow-[0_0_18px_white]
+
+
+
 "
-                />
-              )}
-            </motion.button>
-          );
-        })}
-      </nav>
 
-      {/* SYSTEM STATUS */}
 
-      <div
-        className="
+
+/>
+
+
+
+}
+
+
+
+
+
+</motion.button>
+
+
+
+
+)
+
+
+
+})
+
+
+
+}
+
+
+
+</nav>
+
+
+
+
+
+
+
+
+
+
+
+
+{/* ===============================
+ SYSTEM STATUS
+================================ */}
+
+
+
+<motion.div
+
+
+whileHover={{
+
+scale:1.04
+
+}}
+
+
+
+
+className="
+
+
+rounded-3xl
+
+
+p-5
+
+
 mb-6
-bg-white/5
+
+
+
+
+
+bg-gradient-to-br
+
+
+from-[#29150A]
+
+
+to-[#130803]
+
+
+
+
+
 border
-border-white/10
-rounded-2xl
-p-4
+
+
+border-[#5A3518]
+
+
+
+
+
+shadow-xl
+
+
+
 "
-      >
-        <div
-          className="
+
+
+
+>
+
+
+
+
+<div
+
+
+className="
+
 flex
+
 items-center
-gap-2
-text-green-400
-text-sm
-font-semibold
+
+gap-3
+
 "
-        >
-          <span
-            className="
-w-2
-h-2
+
+>
+
+
+
+
+<span
+
+
+className="
+
+
+block
+
+
+w-3
+
+
+h-3
+
+
+
 rounded-full
+
+
+
 bg-green-400
+
+
+
 animate-pulse
-"
-          ></span>
-          System Online
-        </div>
 
-        <p
-          className="
+
+
+"
+
+/>
+
+
+
+
+
+
+<div>
+
+
+
+<p
+
+
+className="
+
+
+text-green-300
+
+
+font-bold
+
+
+text-sm
+
+
+"
+
+>
+
+
+System Online
+
+
+</p>
+
+
+
+
+
+
+<p
+
+
+className="
+
+
 text-xs
-text-gray-500
+
+
+text-[#D6BFA5]
+
+
+mt-1
+
+
+"
+
+>
+
+
+IoT + AI Monitoring Active
+
+
+</p>
+
+
+
+
+</div>
+
+
+
+
+</div>
+
+
+
+</motion.div>
+
+
+
+
+
+
+
+
+
+
+
+
+{/* ===============================
+ FOOTER
+================================ */}
+
+
+
+<div
+
+
+className="
+
+
+border-t
+
+
+border-[#5A3518]
+
+
+pt-5
+
+
+"
+
+>
+
+
+
+
+
+<p
+
+
+className="
+
+
+text-sm
+
+
+font-black
+
+
+text-white
+
+
+tracking-wide
+
+
+"
+
+>
+
+
+CoffeeSense AI™
+
+
+</p>
+
+
+
+
+
+
+<p
+
+
+className="
+
+
+text-xs
+
+
+text-[#C5A47E]
+
+
 mt-2
-"
-        >
-          IoT + AI Monitoring Active
-        </p>
-      </div>
 
-      {/* FOOTER */}
 
-      <div
-        className="
-text-xs
-text-gray-600
+leading-relaxed
+
+
 "
-      >
-        CoffeeSense AI™
-        <br />
-        Industrial Intelligence Platform
-        <br />
-        v1.0
-      </div>
-    </motion.aside>
-  );
+
+>
+
+
+Industrial Coffee Quality
+
+<br/>
+
+Intelligence Platform
+
+<br/>
+
+Version 1.0
+
+
+</p>
+
+
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+</motion.aside>
+
+
+)
+
+
 }

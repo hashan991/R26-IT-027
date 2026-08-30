@@ -29,7 +29,6 @@ import PowderDashboardLayout from "../features/powder-quality-checking/layouts/D
 
 import PowderDashboard from "../features/powder-quality-checking/pages/Dashboard";
 import BatchIntelligence from "../features/powder-quality-checking/pages/BatchIntelligence";
-import ProductionIntelligence from "../features/powder-quality-checking/pages/ProductionIntelligence";
 import CoffeeInspectionReport from "../features/powder-quality-checking/pages/report/CoffeeInspectionReport";
 
 import { RefreshProvider } from "../features/powder-quality-checking/context/RefreshContext";
@@ -180,12 +179,7 @@ function AppRoutes() {
 
         <Route path="batch-intelligence" element={<BatchIntelligence />} />
 
-        {/* Production Intelligence */}
-
-        <Route
-          path="production-intelligence"
-          element={<ProductionIntelligence />}
-        />
+      
       </Route>
 
       {/* =====================================================
