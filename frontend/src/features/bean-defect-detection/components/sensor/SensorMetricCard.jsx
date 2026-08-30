@@ -30,20 +30,42 @@ function SensorMetricCard({
       <p>{description}</p>
 
       <style>{`
+        /*
+          SensorMetricCard UI refresh
+          - Removes old dark embedded styles
+          - Matches the light coffee theme
+          - Keeps props/rendering logic unchanged
+          - Scopes selectors to avoid CSS conflicts
+        */
+
+        .sensor-metric-card,
+        .sensor-metric-card * {
+          box-sizing: border-box;
+        }
+
         .sensor-metric-card {
+          width: 100%;
+          min-width: 0;
+          min-height: 190px;
           padding: 20px;
-          border-radius: 22px;
-          border: 1px solid rgba(255, 222, 178, 0.12);
-          background: rgba(255, 255, 255, 0.055);
-          transition: 0.25s ease;
+          border: 1px solid #e5d8cb;
+          border-radius: 18px;
+          background: #fffdfa;
+          color: #342117;
+          box-shadow: 0 8px 22px rgba(67, 39, 24, 0.045);
+          transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease,
+            border-color 0.2s ease;
         }
 
         .sensor-metric-card:hover {
-          transform: translateY(-3px);
-          background: rgba(255, 255, 255, 0.075);
+          transform: translateY(-2px);
+          border-color: #d8c0a7;
+          box-shadow: 0 12px 28px rgba(67, 39, 24, 0.075);
         }
 
-        .sensor-card-top {
+        .sensor-metric-card .sensor-card-top {
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -51,69 +73,93 @@ function SensorMetricCard({
           margin-bottom: 18px;
         }
 
-        .sensor-icon {
-          width: 44px;
-          height: 44px;
+        .sensor-metric-card .sensor-icon {
+          width: 46px;
+          height: 46px;
           display: grid;
           place-items: center;
-          border-radius: 14px;
+          flex-shrink: 0;
+          border: 1px solid #dcc3a9;
+          border-radius: 13px;
+          color: #704326;
+          background: #f6e8d9;
           font-size: 18px;
-          font-weight: 800;
-          background: rgba(221, 149, 77, 0.12);
-          border: 1px solid rgba(255, 210, 150, 0.12);
+          font-weight: 850;
         }
 
-        .sensor-status {
+        .sensor-metric-card .sensor-status {
           display: inline-flex;
-          padding: 6px 9px;
+          align-items: center;
+          justify-content: center;
+          padding: 6px 10px;
           border-radius: 999px;
           font-size: 10px;
-          font-weight: 900;
+          font-weight: 850;
           text-transform: uppercase;
-          letter-spacing: 0.8px;
+          letter-spacing: 0.65px;
+          white-space: nowrap;
         }
 
-        .sensor-measured {
-          color: #a6e8ae;
-          background: rgba(78, 180, 91, 0.12);
-          border: 1px solid rgba(107, 210, 119, 0.18);
+        .sensor-metric-card .sensor-measured {
+          color: #347247;
+          background: #edf7ef;
+          border: 1px solid #c8e1cd;
         }
 
-        .sensor-waiting {
-          color: #ffd48f;
-          background: rgba(222, 153, 55, 0.1);
-          border: 1px solid rgba(237, 168, 74, 0.15);
+        .sensor-metric-card .sensor-waiting {
+          color: #8b5a16;
+          background: #fff6e8;
+          border: 1px solid #ead3a8;
         }
 
-        .sensor-name {
-          color: rgba(255, 239, 214, 0.62);
-          font-size: 13px;
+        .sensor-metric-card .sensor-name {
           margin-bottom: 7px;
-        }
-
-        .sensor-value-row {
-          display: flex;
-          align-items: baseline;
-          gap: 6px;
-        }
-
-        .sensor-value-row strong {
-          color: #fff3df;
-          font-size: 30px;
-          letter-spacing: -1px;
-        }
-
-        .sensor-value-row span {
-          color: #dca467;
+          color: #6f6056;
           font-size: 13px;
           font-weight: 700;
+          line-height: 1.4;
+        }
+
+        .sensor-metric-card .sensor-value-row {
+          display: flex;
+          align-items: baseline;
+          gap: 7px;
+          min-width: 0;
+        }
+
+        .sensor-metric-card .sensor-value-row strong {
+          min-width: 0;
+          color: #2f1c13;
+          font-size: 32px;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: -0.8px;
+          overflow-wrap: anywhere;
+        }
+
+        .sensor-metric-card .sensor-value-row span {
+          color: #9a5d2f;
+          font-size: 13px;
+          font-weight: 750;
         }
 
         .sensor-metric-card p {
-          margin: 10px 0 0;
-          color: rgba(255, 239, 214, 0.42);
+          margin: 11px 0 0;
+          color: #786a61;
           font-size: 12px;
-          line-height: 1.5;
+          line-height: 1.55;
+        }
+
+        @media (max-width: 620px) {
+          .sensor-metric-card {
+            min-height: 0;
+            padding: 17px;
+            border-radius: 15px;
+          }
+
+          .sensor-metric-card .sensor-value-row strong {
+            font-size: 28px;
+          }
         }
       `}</style>
     </div>

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { sendSensorIndicatorCommand } from "../../services/sensorService";
 
-
 import {
   SENSOR_THRESHOLDS,
   TOTAL_VOTING_SENSORS,
@@ -578,12 +577,10 @@ function SensorScanWorkflow({
   // ---------------------------------------------------------
 
   const mq2Bad =
-    mq2QualityResponse !== null &&
-    mq2QualityResponse >= MQ2_BAD_THRESHOLD;
+    mq2QualityResponse !== null && mq2QualityResponse >= MQ2_BAD_THRESHOLD;
 
   const mq3Bad =
-    mq3QualityResponse !== null &&
-    mq3QualityResponse >= MQ3_BAD_THRESHOLD;
+    mq3QualityResponse !== null && mq3QualityResponse >= MQ3_BAD_THRESHOLD;
 
   const mq135Bad =
     mq135QualityResponse !== null &&
@@ -607,13 +604,9 @@ function SensorScanWorkflow({
   // COUNT BAD VOTES
   // ---------------------------------------------------------
 
-  const badCount = [
-    mq2Bad,
-    mq3Bad,
-    mq135Bad,
-    moistureBad,
-    humidityBad,
-  ].filter(Boolean).length;
+  const badCount = [mq2Bad, mq3Bad, mq135Bad, moistureBad, humidityBad].filter(
+    Boolean,
+  ).length;
 
   // ---------------------------------------------------------
   // SENSOR SCORE
@@ -623,10 +616,7 @@ function SensorScanWorkflow({
   // ---------------------------------------------------------
 
   const sensorQualityScore = sensorResponsesAvailable
-    ? Math.max(
-        0,
-        100 - badCount * SENSOR_VOTE_WEIGHT,
-      )
+    ? Math.max(0, 100 - badCount * SENSOR_VOTE_WEIGHT)
     : 0;
 
   // ---------------------------------------------------------
@@ -777,14 +767,13 @@ function SensorScanWorkflow({
 
       <div className="scan-workflow-header">
         <div>
-          <span className="scan-section-label">SAMPLE TEST WORKFLOW</span>
+          <span className="scan-section-label">GUIDED SENSOR WORKFLOW</span>
 
-          <h3>Coffee Bean Sensor Scan</h3>
+          <h3>Baseline → Coffee Sample</h3>
 
           <p>
-            Capture the empty baseline, expose the sensors to the coffee bean
-            sample, scan the stable sample response, and calculate the final
-            sensor response relative to the baseline.
+            Complete the two required captures in order. The system will guide
+            the empty-chamber baseline first, then the coffee-bean sample scan.
           </p>
         </div>
 
@@ -1229,8 +1218,8 @@ function SensorScanWorkflow({
 
                     <p>
                       {TOTAL_VOTING_SENSORS} sensor responses are compared with
-                      experimentally derived BAD thresholds. Each BAD vote removes{" "}
-                      {SENSOR_VOTE_WEIGHT} points from the sensor score.
+                      experimentally derived BAD thresholds. Each BAD vote
+                      removes {SENSOR_VOTE_WEIGHT} points from the sensor score.
                     </p>
                   </div>
 
@@ -1305,8 +1294,8 @@ function SensorScanWorkflow({
                         {formatQualityNumber(moistureQualityResponse)}
                       </strong>
                       <small>
-                        {getVoteLabel(moistureQualityResponse, moistureBad)} · BAD ≤{" "}
-                        {MOISTURE_BAD_THRESHOLD}
+                        {getVoteLabel(moistureQualityResponse, moistureBad)} ·
+                        BAD ≤ {MOISTURE_BAD_THRESHOLD}
                       </small>
                     </div>
 
@@ -1316,8 +1305,8 @@ function SensorScanWorkflow({
                         {formatQualityNumber(humidityQualityResponse)}
                       </strong>
                       <small>
-                        {getVoteLabel(humidityQualityResponse, humidityBad)} · BAD ≥{" "}
-                        {HUMIDITY_BAD_THRESHOLD}
+                        {getVoteLabel(humidityQualityResponse, humidityBad)} ·
+                        BAD ≥ {HUMIDITY_BAD_THRESHOLD}
                       </small>
                     </div>
 

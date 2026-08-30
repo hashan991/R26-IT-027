@@ -1031,11 +1031,12 @@ function SensorAnalysis({ onComplete }) {
           <div>
             <span className="sensor-step-label">STEP 01 — SENSOR ANALYSIS</span>
 
-            <h2>Sensor-Based Quality Analysis</h2>
+            <h2>Sensor Quality Inspection</h2>
 
             <p>
-              Start live monitoring and allow the sensor readings to stabilize
-              before locking the measurements for this coffee bean inspection.
+              Follow the guided baseline and coffee-sample test below. The
+              system will monitor each sensor, validate stability, and lock the
+              final sample measurements automatically.
             </p>
           </div>
 
@@ -1083,54 +1084,96 @@ function SensorAnalysis({ onComplete }) {
         </div>
 
         {/* ===================================================
-            DEVICE STATUS
+            SENSOR STEP QUICK GUIDE
         =================================================== */}
 
-        <DeviceStatus
-          connected={deviceStatus.connected}
-          device={deviceStatus.device}
-          port={deviceStatus.port}
-          baudRate={deviceStatus.baud_rate}
-        />
-
-        {/* ===================================================
-            SENSOR TOOLBAR
-        =================================================== */}
-
-        <div className="sensor-toolbar">
-          <div>
-            <span className="toolbar-title">Coffee Bean Sensor Readings</span>
-
-            <span className="toolbar-description">
-              {!sensorData
-                ? "Start monitoring to collect sensor measurements."
-                : autoReading
-                  ? `Live updating — Last update: ${formatTime(lastUpdated)}`
-                  : `Monitoring stopped — Snapshot time: ${formatTime(
-                      lockedAt || lastUpdated,
-                    )}`}
-            </span>
+        <div className="sensor-quick-guide">
+          <div className="quick-guide-copy">
+            <span>HOW THIS STEP WORKS</span>
+            <strong>
+              Complete the sensor inspection in three guided actions.
+            </strong>
           </div>
 
-          <div className="toolbar-actions">
-            <button
-              className={`monitor-toggle-button ${
-                autoReading ? "stop-monitor-button" : "start-monitor-button"
-              }`}
-              onClick={handleToggleMonitoring}
-            >
-              {autoReading ? (
-                <>
-                  <span className="stop-square"></span>
-                  Stop Monitoring
-                </>
-              ) : (
-                <>
-                  <span className="play-symbol">▶</span>
-                  Start Monitoring
-                </>
-              )}
-            </button>
+          <div className="quick-guide-steps">
+            <div className="quick-guide-item">
+              <span>1</span>
+              <div>
+                <strong>Verify device</strong>
+                <small>Confirm the sensor module is connected.</small>
+              </div>
+            </div>
+
+            <div className="quick-guide-item">
+              <span>2</span>
+              <div>
+                <strong>Capture baseline</strong>
+                <small>Measure the empty chamber until stable.</small>
+              </div>
+            </div>
+
+            <div className="quick-guide-item">
+              <span>3</span>
+              <div>
+                <strong>Scan coffee sample</strong>
+                <small>
+                  Add beans, wait for exposure, then lock the result.
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ===================================================
+            DEVICE + MANUAL MONITORING
+        =================================================== */}
+
+        <div className="sensor-setup-grid">
+          <DeviceStatus
+            connected={deviceStatus.connected}
+            device={deviceStatus.device}
+            port={deviceStatus.port}
+            baudRate={deviceStatus.baud_rate}
+          />
+
+          <div className="sensor-toolbar">
+            <div>
+              <span className="toolbar-kicker">LIVE SENSOR MONITOR</span>
+              <span className="toolbar-title">
+                Sensor connection & readings
+              </span>
+
+              <span className="toolbar-description">
+                {!sensorData
+                  ? "Use the guided task below or start monitoring manually."
+                  : autoReading
+                    ? `Live updating — Last update: ${formatTime(lastUpdated)}`
+                    : `Monitoring stopped — Snapshot time: ${formatTime(
+                        lockedAt || lastUpdated,
+                      )}`}
+              </span>
+            </div>
+
+            <div className="toolbar-actions">
+              <button
+                className={`monitor-toggle-button ${
+                  autoReading ? "stop-monitor-button" : "start-monitor-button"
+                }`}
+                onClick={handleToggleMonitoring}
+              >
+                {autoReading ? (
+                  <>
+                    <span className="stop-square"></span>
+                    Stop Monitoring
+                  </>
+                ) : (
+                  <>
+                    <span className="play-symbol">▶</span>
+                    Start Monitoring
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1161,9 +1204,16 @@ function SensorAnalysis({ onComplete }) {
             SENSOR CARDS
         =================================================== */}
 
+        <div className="sensor-section-heading">
+          <div>
+            <span>LIVE MEASUREMENTS</span>
+            <h3>Current Sensor Readings</h3>
+          </div>
+        </div>
+
         <div className="sensor-grid">
           <SensorMetricCard
-            icon="M2"
+            icon="MQ2"
             label="MQ-2"
             value={sensorData?.mq2}
             unit="Raw"
@@ -1172,7 +1222,7 @@ function SensorAnalysis({ onComplete }) {
           />
 
           <SensorMetricCard
-            icon="M3"
+            icon="MQ3"
             label="MQ-3"
             value={sensorData?.mq3}
             unit="Raw"
@@ -1181,7 +1231,7 @@ function SensorAnalysis({ onComplete }) {
           />
 
           <SensorMetricCard
-            icon="135"
+            icon="AQ"
             label="MQ-135"
             value={sensorData?.mq135}
             unit="Raw"
@@ -1212,7 +1262,7 @@ function SensorAnalysis({ onComplete }) {
           />
 
           <SensorMetricCard
-            icon="◌"
+            icon="RH"
             label="Humidity"
             value={
               sensorData?.humidity != null
@@ -1226,24 +1276,38 @@ function SensorAnalysis({ onComplete }) {
         </div>
 
         {/* ===================================================
-            SAMPLE SCAN WORKFLOW
-          =================================================== */}
+            GUIDED SAMPLE SCAN WORKFLOW
+        =================================================== */}
 
-        <div className="scan-workflow-dark-wrap">
-          <SensorScanWorkflow
-            sensorData={sensorData}
-            stabilityStatus={stabilityStatus}
-            autoReading={autoReading}
-            reading={reading}
-            handleToggleMonitoring={handleToggleMonitoring}
-            resetStabilityTracking={resetStabilityTracking}
-            onWorkflowChange={setScanResult}
-          />
+        <div className="sensor-primary-workflow">
+          <div className="sensor-section-heading sensor-section-heading-light">
+            <div>
+              <span>PRIMARY TASK</span>
+              <h3>Guided Coffee Bean Sensor Test</h3>
+            </div>
+          </div>
+
+          <div className="scan-workflow-dark-wrap">
+            <SensorScanWorkflow
+              sensorData={sensorData}
+              stabilityStatus={stabilityStatus}
+              autoReading={autoReading}
+              reading={reading}
+              handleToggleMonitoring={handleToggleMonitoring}
+              resetStabilityTracking={resetStabilityTracking}
+              onWorkflowChange={setScanResult}
+            />
+          </div>
         </div>
-
         {/* ===================================================
             STABILITY INDICATOR
         =================================================== */}
+
+        <div className="sensor-section-heading sensor-diagnostics-heading">
+          
+
+          
+        </div>
 
         <div className={`stability-panel stability-panel-${stabilityStatus}`}>
           <div
@@ -1291,7 +1355,6 @@ function SensorAnalysis({ onComplete }) {
                 : "STABLE"}
           </div>
         </div>
-
         {/* ===================================================
             INDIVIDUAL SENSOR STABILITY CHARTS
         =================================================== */}

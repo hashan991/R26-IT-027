@@ -7,6 +7,8 @@ import {
 
 import FinalQualityReport from "../components/report/FinalQualityReport";
 
+import "../styles/beanQuality.css";
+
 import {
   getSavedBeanQualityReport,
 } from "../services/qualityService";
@@ -322,25 +324,35 @@ function SavedQualityReportPage() {
             REUSE THE SAME FINAL REPORT UI + PDF ENGINE
         ================================================= */}
 
-        <FinalQualityReport
-          sensorResult={
-            report.sensor_result || {}
-          }
-          physicalResult={
-            report.physical_result || {}
-          }
-          initialReport={report}
-          savedMode
-          autoDownload={
-            autoDownload
-          }
-          onBack={
-            handleBackToHistory
-          }
-          onNewAnalysis={
-            handleNewAnalysis
-          }
-        />
+        {/* =================================================
+            SAVED REPORT — SAME STEP 03 RENDERING CONTEXT
+        ================================================= */}
+
+        <div className="bean-quality-page bean-quality-step-3 saved-report-live-theme">
+          <div className="quality-container saved-report-quality-container">
+            <section className="analysis-shell saved-report-analysis-shell">
+              <FinalQualityReport
+                sensorResult={
+                  report.sensor_result || {}
+                }
+                physicalResult={
+                  report.physical_result || {}
+                }
+                initialReport={report}
+                savedMode
+                autoDownload={
+                  autoDownload
+                }
+                onBack={
+                  handleBackToHistory
+                }
+                onNewAnalysis={
+                  handleNewAnalysis
+                }
+              />
+            </section>
+          </div>
+        </div>
 
       </div>
     </main>
@@ -349,6 +361,27 @@ function SavedQualityReportPage() {
 
 
 const pageStyles = `
+  /*
+    SavedQualityReportPage — exact Step 03 saved-report presentation
+
+    IMPORTANT:
+    This page only loads a saved report and passes the saved object
+    back into FinalQualityReport through initialReport={report}.
+
+    No changes to:
+    - MongoDB/API calls
+    - saved report data
+    - score/grade logic
+    - navigation
+    - PDF generation
+    - auto-download
+  */
+
+  .saved-report-page,
+  .saved-report-page * {
+    box-sizing: border-box;
+  }
+
   .saved-report-page {
     min-height: 100vh;
 
@@ -357,20 +390,25 @@ const pageStyles = `
       clamp(14px, 3vw, 38px)
       60px;
 
+    color: #2f211b;
+
     background:
       radial-gradient(
-        circle at 85% 0%,
-        rgba(173, 111, 62, 0.13),
+        circle at 88% 0%,
+        rgba(199, 136, 69, 0.10),
         transparent 28%
+      ),
+      radial-gradient(
+        circle at 8% 24%,
+        rgba(97, 58, 41, 0.04),
+        transparent 25%
       ),
       linear-gradient(
         180deg,
-        #1a110c 0%,
-        #24170f 45%,
-        #1a110c 100%
+        #f7f2eb 0%,
+        #f3e9de 50%,
+        #f8f3ed 100%
       );
-
-    color: #f5e8d6;
 
     font-family:
       Inter,
@@ -382,80 +420,68 @@ const pageStyles = `
       sans-serif;
   }
 
-  .saved-report-page * {
-    box-sizing: border-box;
-  }
-
   .saved-report-shell {
-    width: min(
-      1500px,
-      100%
-    );
-
+    width: min(1480px, 100%);
     margin: 0 auto;
   }
 
+  /* =========================================================
+     SAVED REPORT TOOLBAR
+  ========================================================= */
+
   .saved-report-toolbar {
+    position: relative;
+
     display: flex;
-
     align-items: center;
+    justify-content: space-between;
 
-    justify-content:
-      space-between;
+    gap: 22px;
+    padding: 18px;
 
-    gap: 20px;
+    overflow: hidden;
 
-    padding: 16px;
-
-    border:
-      1px solid
-      rgba(
-        255,
-        220,
-        170,
-        0.11
-      );
-
-    border-radius: 18px;
+    border: 1px solid #e1d3c5;
+    border-radius: 20px;
 
     background:
       linear-gradient(
         145deg,
-        rgba(
-          255,
-          255,
-          255,
-          0.07
-        ),
-        rgba(
-          255,
-          255,
-          255,
-          0.025
-        )
+        rgba(255, 255, 255, 0.98),
+        rgba(250, 244, 237, 0.98)
       );
 
     box-shadow:
-      0 18px 45px
-      rgba(
-        0,
-        0,
-        0,
-        0.18
-      );
+      0 14px 34px
+      rgba(65, 41, 27, 0.07);
+  }
 
-    backdrop-filter:
-      blur(16px);
+  .saved-report-toolbar::after {
+    content: "";
+
+    position: absolute;
+
+    width: 180px;
+    height: 180px;
+
+    top: -116px;
+    right: -72px;
+
+    border: 1px solid rgba(169, 109, 53, 0.10);
+    border-radius: 50%;
+
+    pointer-events: none;
   }
 
   .saved-report-toolbar-left {
+    position: relative;
+    z-index: 1;
+
     min-width: 0;
 
     display: flex;
-
     align-items: center;
-
-    gap: 15px;
+    gap: 16px;
   }
 
   .saved-report-toolbar-left > div {
@@ -466,262 +492,218 @@ const pageStyles = `
   .saved-report-toolbar-meta span {
     display: block;
 
-    margin-bottom: 4px;
+    margin-bottom: 5px;
 
-    color:
-      rgba(
-        240,
-        199,
-        150,
-        0.55
-      );
+    color: #a96d35;
 
-    font-size: 8px;
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: 0.09em;
 
-    font-weight: 900;
-
-    letter-spacing:
-      0.09em;
+    text-transform: uppercase;
   }
 
   .saved-report-toolbar-left strong {
     display: block;
 
+    max-width: 520px;
+
     overflow: hidden;
 
-    text-overflow:
-      ellipsis;
+    color: #351c13;
 
-    color: #f8dfc0;
+    font-size: 13px;
+    font-weight: 800;
 
-    font-size: 12px;
-
+    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .saved-report-toolbar-meta {
+    position: relative;
+    z-index: 1;
+
     display: grid;
 
     grid-template-columns:
-      repeat(
-        3,
-        minmax(
-          80px,
-          auto
-        )
-      );
+      repeat(3, minmax(96px, auto));
 
     gap: 10px;
   }
 
   .saved-report-toolbar-meta > div {
-    padding:
-      9px 11px;
+    min-width: 96px;
 
-    border-radius: 11px;
+    padding: 10px 12px;
 
-    background:
-      rgba(
-        255,
-        255,
-        255,
-        0.035
-      );
+    border: 1px solid #e7ddd3;
+    border-radius: 12px;
+
+    background: rgba(255, 253, 249, 0.88);
   }
 
   .saved-report-toolbar-meta strong {
-    color: #f2d7b7;
+    display: block;
 
-    font-size: 10px;
+    color: #4b2a1d;
+
+    font-size: 12px;
+    font-weight: 850;
   }
 
-  .saved-page-button {
-    min-height: 40px;
+  /* =========================================================
+     BUTTONS
+  ========================================================= */
 
-    padding:
-      0 14px;
+  .saved-page-button {
+    min-height: 42px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 15px;
 
     border-radius: 11px;
 
     cursor: pointer;
 
-    font-size: 10px;
-
-    font-weight: 900;
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: 0.02em;
 
     transition:
-      transform
-      160ms ease,
-      box-shadow
-      160ms ease;
+      transform 160ms ease,
+      box-shadow 160ms ease,
+      background 160ms ease,
+      border-color 160ms ease;
   }
 
   .saved-page-button:hover {
-    transform:
-      translateY(-1px);
+    transform: translateY(-1px);
 
     box-shadow:
       0 8px 18px
-      rgba(
-        0,
-        0,
-        0,
-        0.15
-      );
+      rgba(65, 41, 27, 0.10);
   }
 
   .saved-page-button.primary {
-    border: none;
+    color: #fffaf3;
 
-    color: #2d190f;
+    border: 1px solid #3d2117;
 
     background:
       linear-gradient(
         135deg,
-        #ffe0a3,
-        #d69150
+        #4b2a1d,
+        #351c13
       );
   }
 
   .saved-page-button.secondary {
-    border:
-      1px solid
-      rgba(
-        255,
-        220,
-        170,
-        0.12
-      );
+    color: #613a29;
 
-    color: #f1d5b1;
+    border: 1px solid #d8c9ba;
 
-    background:
-      rgba(
-        255,
-        255,
-        255,
-        0.045
-      );
+    background: #fffdf9;
   }
 
+  .saved-page-button.secondary:hover {
+    border-color: #c9ad91;
+    background: #f8eee4;
+  }
+
+  /* =========================================================
+     LOADING / ERROR
+  ========================================================= */
+
   .saved-report-state-card {
-    min-height: 400px;
+    min-height: 430px;
 
     display: flex;
-
     flex-direction: column;
-
     align-items: center;
+    justify-content: center;
 
-    justify-content:
-      center;
-
-    padding: 34px;
+    padding: 38px 30px;
 
     text-align: center;
 
-    border:
-      1px solid
-      rgba(
-        255,
-        220,
-        170,
-        0.12
-      );
-
-    border-radius: 26px;
+    border: 1px solid #e2d6ca;
+    border-radius: 22px;
 
     background:
-      rgba(
-        43,
-        27,
-        18,
-        0.88
+      linear-gradient(
+        145deg,
+        #fffdf9,
+        #fbf4ec
       );
 
     box-shadow:
-      0 25px 70px
-      rgba(
-        0,
-        0,
-        0,
-        0.24
-      );
+      0 18px 45px
+      rgba(65, 41, 27, 0.07);
   }
 
   .saved-report-state-card.error {
-    border-color:
-      rgba(
-        255,
-        130,
-        105,
-        0.18
+    border-color: #ead1cd;
+
+    background:
+      linear-gradient(
+        145deg,
+        #fffdf9,
+        #fbefed
       );
   }
 
   .saved-report-kicker {
-    color: #d99b59;
+    color: #a96d35;
 
-    font-size: 9px;
-
+    font-size: 10px;
     font-weight: 900;
+    letter-spacing: 0.12em;
 
-    letter-spacing:
-      0.12em;
+    text-transform: uppercase;
   }
 
   .saved-report-state-card h1 {
-    margin:
-      9px 0 0;
+    margin: 10px 0 0;
 
-    color: #fff0db;
+    color: #2f211b;
 
-    font-size: 25px;
+    font-family:
+      Georgia,
+      "Times New Roman",
+      serif;
+
+    font-size: 30px;
+    font-weight: 500;
+    line-height: 1.2;
   }
 
   .saved-report-state-card p {
-    max-width: 620px;
+    max-width: 640px;
 
-    margin:
-      10px auto 0;
+    margin: 11px auto 0;
 
-    color:
-      rgba(
-        255,
-        235,
-        207,
-        0.52
-      );
+    color: #81736a;
 
-    font-size: 12px;
-
+    font-size: 13px;
     line-height: 1.65;
   }
 
   .saved-report-state-card p strong {
-    color: #efc796;
+    color: #613a29;
   }
 
   .saved-report-loader {
-    width: 48px;
+    width: 50px;
+    height: 50px;
 
-    height: 48px;
+    margin-bottom: 20px;
 
-    margin-bottom: 18px;
-
+    border: 4px solid #e8ded4;
+    border-top-color: #a96d35;
     border-radius: 50%;
-
-    border:
-      4px solid
-      rgba(
-        255,
-        214,
-        157,
-        0.13
-      );
-
-    border-top-color:
-      #dfa15d;
 
     animation:
       savedReportSpin
@@ -731,101 +713,330 @@ const pageStyles = `
   }
 
   .saved-report-error-icon {
-    width: 54px;
+    width: 56px;
+    height: 56px;
 
-    height: 54px;
-
-    margin-bottom: 17px;
+    margin-bottom: 18px;
 
     display: grid;
-
     place-items: center;
 
-    border-radius: 16px;
+    color: #a75147;
 
-    color: #38170f;
+    border: 1px solid #e2b8b1;
+    border-radius: 15px;
 
-    background: #ef9079;
+    background: #fbefed;
 
-    font-size: 26px;
-
-    font-weight: 950;
+    font-size: 24px;
+    font-weight: 900;
   }
 
   .saved-report-state-actions {
     display: flex;
-
-    justify-content:
-      center;
+    justify-content: center;
 
     gap: 10px;
-
-    margin-top: 20px;
+    margin-top: 22px;
   }
+
+  /* =========================================================
+     EXACT LIVE STEP 03 HOST
+  ========================================================= */
+
+  /*
+    The live BeanQualityPage renders FinalQualityReport inside:
+      .bean-quality-page
+        .quality-container
+          .analysis-shell
+
+    The saved page now recreates the same structure.
+  */
+
+  .saved-report-live-theme {
+    --bq-bg: #f7f2eb;
+    --bq-surface: #fffdf9;
+    --bq-surface-soft: #fbf6ef;
+    --bq-surface-warm: #f3e8d9;
+    --bq-border: #e5dbcf;
+    --bq-border-strong: #d8c9ba;
+    --bq-ink: #2f211b;
+    --bq-ink-soft: #604f45;
+    --bq-muted: #81736a;
+    --bq-coffee-950: #2b160f;
+    --bq-coffee-900: #351c13;
+    --bq-coffee-850: #3d2117;
+    --bq-coffee-800: #4b2a1d;
+    --bq-coffee-700: #613a29;
+    --bq-caramel: #c78845;
+    --bq-caramel-deep: #a96d35;
+    --bq-caramel-soft: #f3e4d0;
+    --bq-green: #68836e;
+    --bq-green-deep: #496b53;
+    --bq-green-soft: #edf5ee;
+    --bq-red: #a75147;
+    --bq-red-soft: #fbefed;
+    --bq-amber: #a9772e;
+    --bq-amber-soft: #fbf4e7;
+    --bq-shadow: 0 18px 45px rgba(65, 41, 27, 0.08);
+    --bq-shadow-soft: 0 8px 24px rgba(65, 41, 27, 0.055);
+
+    min-height: 0 !important;
+
+    margin: 22px 0 0 !important;
+    padding: 0 !important;
+
+    color: var(--bq-ink) !important;
+
+    background: transparent !important;
+  }
+
+  .saved-report-quality-container {
+    width: min(1320px, 100%) !important;
+
+    margin: 0 auto !important;
+    padding: 0 !important;
+  }
+
+  .saved-report-analysis-shell {
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    background: transparent !important;
+
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /*
+    Safety overrides:
+    Even if FinalQualityReport still contains an older embedded dark style,
+    the saved page keeps the same light report surface used by Step 03.
+  */
+
+  .saved-report-page
+  .saved-report-live-theme
+  .final-report {
+    width: 100% !important;
+
+    margin-top: 0 !important;
+
+    color: var(--bq-ink) !important;
+  }
+
+  .saved-report-page
+  .saved-report-live-theme
+  .final-report-card {
+    width: 100% !important;
+
+    padding: 24px !important;
+
+    color: var(--bq-ink) !important;
+
+    border: 1px solid var(--bq-border) !important;
+    border-radius: 22px !important;
+
+    background: var(--bq-surface) !important;
+
+    box-shadow: var(--bq-shadow-soft) !important;
+  }
+
+  .saved-report-page
+  .saved-report-live-theme
+  .report-read-guide {
+    color: var(--bq-ink) !important;
+
+    border: 1px solid #e7d8c8 !important;
+
+    background: #fbf5ed !important;
+  }
+
+  .saved-report-page
+  .saved-report-live-theme
+  .report-read-guide-heading strong,
+  .saved-report-page
+  .saved-report-live-theme
+  .report-read-guide-item strong {
+    color: var(--bq-ink) !important;
+  }
+
+  .saved-report-page
+  .saved-report-live-theme
+  .report-read-guide-item small,
+  .saved-report-page
+  .saved-report-live-theme
+  .report-group-heading p {
+    color: var(--bq-muted) !important;
+  }
+
+  .saved-report-page
+  .saved-report-live-theme
+  .batch-information {
+    background: transparent !important;
+  }
+
+  .saved-report-page
+  .saved-report-live-theme
+  .batch-information > div {
+    color: var(--bq-ink) !important;
+
+    border: 1px solid var(--bq-border) !important;
+
+    background: #fffdf9 !important;
+  }
+
+  .saved-report-page
+  .saved-report-live-theme
+  .batch-information span {
+    color: var(--bq-muted) !important;
+  }
+
+  .saved-report-page
+  .saved-report-live-theme
+  .batch-information strong {
+    color: var(--bq-ink) !important;
+  }
+
+  .saved-report-page
+  .saved-report-live-theme
+  .report-group-heading h3 {
+    color: var(--bq-ink) !important;
+  }
+
+  .saved-report-page
+  .saved-report-live-theme
+  .report-group-heading
+  > div:nth-child(2)
+  > span {
+    color: var(--bq-caramel-deep) !important;
+  }
+
+  .saved-report-page
+  .saved-report-live-theme
+  .report-group-number {
+    color: var(--bq-coffee-800) !important;
+
+    border: 1px solid #e1cfbc !important;
+
+    background: #f5e9dc !important;
+  }
+
+  .saved-report-page
+  .saved-report-live-theme
+  .report-section-block {
+    background: transparent !important;
+  }
+
+  .saved-report-page
+  .saved-report-live-theme
+  .methodology-card {
+    color: var(--bq-ink-soft) !important;
+
+    border: 1px solid var(--bq-border) !important;
+
+    background: #fbf6ef !important;
+  }
+
+  .saved-report-page
+  .saved-report-live-theme
+  .methodology-card span {
+    color: var(--bq-caramel-deep) !important;
+  }
+
+  .saved-report-page
+  .saved-report-live-theme
+  .methodology-card p {
+    color: var(--bq-muted) !important;
+  }
+
+  /* =========================================================
+     ANIMATION
+  ========================================================= */
 
   @keyframes savedReportSpin {
     to {
-      transform:
-        rotate(360deg);
+      transform: rotate(360deg);
     }
   }
 
-  @media (
-    max-width: 850px
-  ) {
-    .saved-report-toolbar {
-      align-items:
-        stretch;
+  /* =========================================================
+     RESPONSIVE
+  ========================================================= */
 
-      flex-direction:
-        column;
+  @media (max-width: 900px) {
+    .saved-report-toolbar {
+      align-items: stretch;
+      flex-direction: column;
     }
 
     .saved-report-toolbar-meta {
       grid-template-columns:
-        repeat(
-          3,
-          1fr
-        );
+        repeat(3, minmax(0, 1fr));
     }
   }
 
-  @media (
-    max-width: 580px
-  ) {
+  @media (max-width: 620px) {
     .saved-report-page {
       padding:
         16px
         10px
-        40px;
+        42px;
+    }
+
+    .saved-report-toolbar {
+      padding: 15px;
+      border-radius: 16px;
     }
 
     .saved-report-toolbar-left {
-      align-items:
-        stretch;
+      align-items: stretch;
+      flex-direction: column;
+    }
 
-      flex-direction:
-        column;
+    .saved-report-toolbar-left strong {
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
     }
 
     .saved-report-toolbar-meta {
-      grid-template-columns:
-        1fr;
+      grid-template-columns: 1fr;
+    }
+
+    .saved-report-toolbar-meta > div {
+      min-width: 0;
+    }
+
+    .saved-report-state-card {
+      min-height: 380px;
+      padding: 28px 18px;
+    }
+
+    .saved-report-state-card h1 {
+      font-size: 25px;
     }
 
     .saved-report-state-actions {
       width: 100%;
-
-      flex-direction:
-        column;
+      flex-direction: column;
     }
 
     .saved-report-state-actions
     .saved-page-button {
       width: 100%;
     }
+
+    .saved-report-page
+    .saved-report-live-theme
+    .final-report-card {
+      padding: 16px !important;
+    }
   }
 `;
+
 
 
 export default SavedQualityReportPage;

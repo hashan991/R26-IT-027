@@ -629,1735 +629,649 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
       ===================================================== */}
 
       <style>{`
+        /* ==============================================================
+           STEP 03 / SENSOR ASSESSMENT
+           Scoped light coffee-theme styles.
+           All selectors are intentionally nested under
+           .sensor-assessment-card so other report components cannot
+           overwrite this component's typography or legend styles.
+        ============================================================== */
 
-        * {
+        .sensor-assessment-card,
+        .sensor-assessment-card * {
           box-sizing: border-box;
         }
 
-
         .sensor-assessment-card {
           width: 100%;
-
-          padding: 24px;
-
-          border-radius: 22px;
-
-          background:
-            radial-gradient(
-              circle at 10% 0%,
-              rgba(
-                214,
-                142,
-                70,
-                0.08
-              ),
-              transparent 30%
-            ),
-            linear-gradient(
-              145deg,
-              rgba(
-                255,
-                255,
-                255,
-                0.045
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.015
-              )
-            ),
-            rgba(
-              0,
-              0,
-              0,
-              0.12
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.09
-            );
+          padding: 28px;
+          border: 1px solid #e6d8cb;
+          border-radius: 20px;
+          background: #fffdf9;
+          color: #2b190f;
+          box-shadow: 0 10px 28px rgba(70, 39, 24, 0.045);
         }
 
-
-        /* =================================================
-           HEADER
-        ================================================= */
-
-        .sensor-header {
+        /* Header ------------------------------------------------------ */
+        .sensor-assessment-card .sensor-header {
           display: flex;
-
-          align-items:
-            flex-start;
-
-          justify-content:
-            space-between;
-
-          gap: 20px;
-        }
-
-
-        .sensor-header-label {
-          display: block;
-
-          color: #dda05e;
-
-          font-size: 8px;
-
-          font-weight: 950;
-
-          letter-spacing:
-            1.6px;
-        }
-
-
-        .sensor-header h3 {
-          margin:
-            5px 0 0;
-
-          color: #fff0d8;
-
-          font-size: 19px;
-        }
-
-
-        .sensor-header p {
-          max-width: 560px;
-
-          margin:
-            6px 0 0;
-
-          color:
-            rgba(
-              255,
-              238,
-              212,
-              0.38
-            );
-
-          font-size: 10px;
-
-          line-height: 1.55;
-        }
-
-
-        /* =================================================
-           MAIN STATUS PANEL
-        ================================================= */
-
-        .sensor-status-panel {
-          margin-top: 18px;
-
-          min-height: 150px;
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content:
-            space-between;
-
-          gap: 30px;
-
-          padding: 22px;
-
-          border-radius: 18px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.025
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.07
-            );
-        }
-
-
-        .status-caption {
-          display: block;
-
-          color:
-            rgba(
-              255,
-              234,
-              204,
-              0.38
-            );
-
-          font-size: 8px;
-
-          font-weight: 900;
-
-          letter-spacing:
-            1.4px;
-        }
-
-
-        .status-main-row {
-          margin-top: 7px;
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 11px;
-        }
-
-
-        .status-main-row strong {
-          font-size: 34px;
-
-          font-weight: 950;
-
-          line-height: 1;
-
-          text-transform:
-            uppercase;
-        }
-
-
-        .status-indicator {
-          width: 31px;
-          height: 31px;
-
-          display: grid;
-
-          place-items: center;
-
-          border-radius: 50%;
-
-          background:
-            currentColor;
-        }
-
-
-        .status-indicator span {
-          width: 10px;
-          height: 10px;
-
-          border-radius: 50%;
-
-          background: #20140d;
-        }
-
-
-        .status-left p {
-          margin:
-            10px 0 0;
-
-          color:
-            rgba(
-              255,
-              238,
-              212,
-              0.34
-            );
-
-          font-size: 9px;
-
-          line-height: 1.5;
-        }
-
-
-        /* =================================================
-           OVERALL GOOD
-        ================================================= */
-
-        .sensor-status-panel-good,
-        .sensor-status-panel-excellent {
-          color: #a7e6ae;
-
-          background:
-            linear-gradient(
-              135deg,
-              rgba(
-                62,
-                160,
-                76,
-                0.10
-              ),
-              rgba(
-                0,
-                0,
-                0,
-                0.09
-              )
-            );
-
-          border-color:
-            rgba(
-              93,
-              194,
-              105,
-              0.16
-            );
-        }
-
-
-        /* =================================================
-           OVERALL REVIEW
-        ================================================= */
-
-        .sensor-status-panel-review,
-        .sensor-status-panel-needs-review {
-          color: #ffd18d;
-
-          background:
-            linear-gradient(
-              135deg,
-              rgba(
-                201,
-                137,
-                54,
-                0.10
-              ),
-              rgba(
-                0,
-                0,
-                0,
-                0.09
-              )
-            );
-
-          border-color:
-            rgba(
-              226,
-              163,
-              77,
-              0.16
-            );
-        }
-
-
-        /* =================================================
-           OVERALL BAD
-        ================================================= */
-
-        .sensor-status-panel-bad,
-        .sensor-status-panel-poor {
-          color: #ffad97;
-
-          background:
-            linear-gradient(
-              135deg,
-              rgba(
-                181,
-                62,
-                46,
-                0.10
-              ),
-              rgba(
-                0,
-                0,
-                0,
-                0.09
-              )
-            );
-
-          border-color:
-            rgba(
-              221,
-              89,
-              66,
-              0.16
-            );
-        }
-
-
-        /* =================================================
-           WAITING / SKIPPED
-        ================================================= */
-
-        .sensor-status-panel-waiting,
-        .sensor-status-panel-skipped {
-          color:
-            rgba(
-              255,
-              233,
-              202,
-              0.65
-            );
-        }
-
-
-        /* =================================================
-           SCORE - SECONDARY
-        ================================================= */
-
-        .status-score {
-          min-width: 150px;
-
-          padding:
-            15px 18px;
-
-          flex-shrink: 0;
-
-          border-radius: 14px;
-
-          text-align: right;
-
-          background:
-            rgba(
-              0,
-              0,
-              0,
-              0.12
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.055
-            );
-        }
-
-
-        .status-score > span {
-          display: block;
-
-          margin-bottom: 5px;
-
-          color:
-            rgba(
-              255,
-              236,
-              208,
-              0.3
-            );
-
-          font-size: 7px;
-
-          font-weight: 900;
-
-          letter-spacing: 1px;
-        }
-
-
-        .status-score strong {
-          color: #f2ddbf;
-
-          font-size: 24px;
-        }
-
-
-        .status-score small {
-          margin-left: 3px;
-
-          color:
-            rgba(
-              255,
-              235,
-              205,
-              0.3
-            );
-
-          font-size: 8px;
-        }
-
-
-
-        /* =================================================
-           STATUS METRICS
-        ================================================= */
-
-        .status-metrics {
-          display: flex;
-
-          align-items: stretch;
-
-          gap: 10px;
-
-          flex-shrink: 0;
-        }
-
-
-        .vote-count-score {
-          min-width: 125px;
-        }
-
-
-        /* =================================================
-           FIVE-SENSOR VOTING SUMMARY
-        ================================================= */
-
-        .sensor-voting-summary {
-          margin-top: 15px;
-
-          padding: 15px;
-
-          border-radius: 15px;
-
-          background:
-            rgba(
-              0,
-              0,
-              0,
-              0.09
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.055
-            );
-        }
-
-
-        .voting-summary-heading {
-          display: flex;
-
-          align-items: flex-end;
-
+          align-items: flex-start;
           justify-content: space-between;
-
-          gap: 18px;
+          gap: 20px;
+          padding-bottom: 18px;
+          border-bottom: 1px solid #eee3d8;
         }
 
-
-        .voting-summary-heading > div > span {
-          color: #dca05e;
-
-          font-size: 7px;
-
-          font-weight: 900;
-
-          letter-spacing: 1.3px;
-        }
-
-
-        .voting-summary-heading h4 {
-          margin: 4px 0 0;
-
-          color: #f1ddc0;
-
-          font-size: 14px;
-        }
-
-
-        .voting-summary-heading p {
-          max-width: 330px;
-
-          margin: 0;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.28
-            );
-
-          font-size: 8px;
-
-          text-align: right;
-
-          line-height: 1.45;
-        }
-
-
-        .voting-summary-grid {
-          margin-top: 11px;
-
-          display: grid;
-
-          grid-template-columns:
-            repeat(
-              4,
-              minmax(
-                0,
-                1fr
-              )
-            );
-
-          gap: 9px;
-        }
-
-
-        .voting-summary-card {
-          padding: 11px;
-
-          border-radius: 11px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.025
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.045
-            );
-        }
-
-
-        .voting-summary-card span {
+        .sensor-assessment-card .sensor-header-label {
           display: block;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.27
-            );
-
-          font-size: 7px;
-
-          font-weight: 800;
-
-          letter-spacing: 0.6px;
-
+          color: #9a542b;
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 1.25px;
           text-transform: uppercase;
         }
 
-
-        .voting-summary-card strong {
-          display: block;
-
-          margin-top: 6px;
-
-          color: #ffe0aa;
-
-          font-size: 15px;
-
-          font-weight: 900;
+        .sensor-assessment-card .sensor-header h3 {
+          margin: 6px 0 0;
+          color: #2a170f;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 27px;
+          font-weight: 500;
+          line-height: 1.2;
         }
 
+        .sensor-assessment-card .sensor-header p {
+          max-width: 760px;
+          margin: 8px 0 0;
+          color: #6b5d53;
+          font-size: 14px;
+          line-height: 1.65;
+        }
 
-        /* =================================================
-           SENSOR RESULTS HEADING
-        ================================================= */
+        /* Overall status --------------------------------------------- */
+        .sensor-assessment-card .sensor-status-panel {
+          margin-top: 18px;
+          display: grid;
+          grid-template-columns: minmax(0, 1.6fr) minmax(250px, 0.8fr);
+          gap: 18px;
+          align-items: stretch;
+          padding: 20px;
+          border: 1px solid #d8e4d8;
+          border-radius: 17px;
+          background: #f3f8f2;
+        }
 
-        .sensor-readings-heading {
-          margin-top: 21px;
+        .sensor-assessment-card .sensor-status-panel-review,
+        .sensor-assessment-card .sensor-status-panel-needs-review {
+          border-color: #ead7b7;
+          background: #fff8ed;
+        }
 
+        .sensor-assessment-card .sensor-status-panel-bad,
+        .sensor-assessment-card .sensor-status-panel-poor {
+          border-color: #ebcbc4;
+          background: #fff2ef;
+        }
+
+        .sensor-assessment-card .status-left {
+          min-width: 0;
           display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
 
-          align-items:
-            flex-end;
+        .sensor-assessment-card .status-caption {
+          display: block;
+          color: #5c725f;
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 1.05px;
+        }
 
-          justify-content:
-            space-between;
+        .sensor-assessment-card .status-main-row {
+          margin-top: 8px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
 
+        .sensor-assessment-card .status-indicator {
+          width: 30px;
+          height: 30px;
+          flex: 0 0 30px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          background: #dff0e1;
+          border: 1px solid #bcd9c0;
+        }
+
+        .sensor-assessment-card .status-indicator > span {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: #3d9d54;
+        }
+
+        .sensor-assessment-card .sensor-status-panel-review .status-indicator,
+        .sensor-assessment-card .sensor-status-panel-needs-review .status-indicator {
+          background: #f8e8c8;
+          border-color: #e7c886;
+        }
+
+        .sensor-assessment-card .sensor-status-panel-review .status-indicator > span,
+        .sensor-assessment-card .sensor-status-panel-needs-review .status-indicator > span {
+          background: #c78324;
+        }
+
+        .sensor-assessment-card .sensor-status-panel-bad .status-indicator,
+        .sensor-assessment-card .sensor-status-panel-poor .status-indicator {
+          background: #f6d8d2;
+          border-color: #e6b5aa;
+        }
+
+        .sensor-assessment-card .sensor-status-panel-bad .status-indicator > span,
+        .sensor-assessment-card .sensor-status-panel-poor .status-indicator > span {
+          background: #c95845;
+        }
+
+        .sensor-assessment-card .status-main-row strong {
+          color: #2a170f;
+          font-size: 30px;
+          font-weight: 900;
+          line-height: 1;
+          text-transform: uppercase;
+        }
+
+        .sensor-assessment-card .status-left > p {
+          margin: 10px 0 0;
+          color: #617064;
+          font-size: 13px;
+          line-height: 1.55;
+        }
+
+        .sensor-assessment-card .status-metrics {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .sensor-assessment-card .status-score {
+          min-width: 0;
+          padding: 16px 14px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          border: 1px solid #e2ddd6;
+          border-radius: 13px;
+          background: rgba(255, 255, 255, 0.9);
+        }
+
+        .sensor-assessment-card .status-score > span {
+          color: #786a60;
+          font-size: 10.5px;
+          font-weight: 900;
+          letter-spacing: 0.85px;
+        }
+
+        .sensor-assessment-card .status-score > div {
+          margin-top: 8px;
+          display: flex;
+          align-items: baseline;
+          gap: 4px;
+        }
+
+        .sensor-assessment-card .status-score strong {
+          color: #2a170f;
+          font-size: 29px;
+          font-weight: 900;
+          line-height: 1;
+        }
+
+        .sensor-assessment-card .status-score small {
+          color: #7b6c62;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        /* Voting summary --------------------------------------------- */
+        .sensor-assessment-card .sensor-voting-summary {
+          margin-top: 16px;
+          padding: 18px;
+          border: 1px solid #eadfd4;
+          border-radius: 16px;
+          background: #fbf6f0;
+        }
+
+        .sensor-assessment-card .voting-summary-heading {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
           gap: 20px;
         }
 
-
-        .sensor-readings-heading
-        > div
-        > span {
-          color: #dca05e;
-
-          font-size: 7px;
-
+        .sensor-assessment-card .voting-summary-heading > div > span {
+          display: block;
+          color: #a05b30;
+          font-size: 10.5px;
           font-weight: 900;
-
-          letter-spacing:
-            1.3px;
+          letter-spacing: 1px;
         }
 
-
-        .sensor-readings-heading h4 {
-          margin:
-            4px 0 0;
-
-          color: #f1ddc0;
-
-          font-size: 14px;
+        .sensor-assessment-card .voting-summary-heading h4 {
+          margin: 5px 0 0;
+          color: #2b190f;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 20px;
+          font-weight: 500;
         }
 
-
-        .sensor-readings-heading p {
-          max-width: 300px;
-
+        .sensor-assessment-card .voting-summary-heading p {
+          max-width: 420px;
           margin: 0;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.28
-            );
-
-          font-size: 8px;
-
+          color: #706258;
+          font-size: 12.5px;
+          line-height: 1.5;
           text-align: right;
-
-          line-height: 1.45;
         }
 
-
-        /* =================================================
-           SENSOR GRID
-        ================================================= */
-
-        .sensor-grid {
-          margin-top: 12px;
-
+        .sensor-assessment-card .voting-summary-grid {
+          margin-top: 14px;
           display: grid;
-
-          grid-template-columns:
-            repeat(
-              3,
-              minmax(
-                0,
-                1fr
-              )
-            );
-
-          gap: 11px;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
         }
 
-
-        /* =================================================
-           BASE SENSOR CARD
-        ================================================= */
-
-        .sensor-item-card {
-          min-height: 215px;
-
+        .sensor-assessment-card .voting-summary-card {
+          min-height: 88px;
+          padding: 14px;
           display: flex;
-
-          flex-direction:
-            column;
-
-          padding: 16px;
-
-          border-radius: 16px;
-
-          background:
-            linear-gradient(
-              145deg,
-              rgba(
-                255,
-                255,
-                255,
-                0.035
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.012
-              )
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.07
-            );
-
-          transition:
-            transform
-            0.2s ease,
-            border-color
-            0.2s ease,
-            background
-            0.2s ease;
+          flex-direction: column;
+          justify-content: center;
+          border: 1px solid #e4d7ca;
+          border-radius: 12px;
+          background: #fffdfa;
         }
 
-
-        .sensor-item-card:hover {
-          transform:
-            translateY(-2px);
+        .sensor-assessment-card .voting-summary-card span {
+          color: #796a60;
+          font-size: 10.5px;
+          font-weight: 800;
         }
 
-
-        /* =================================================
-           GOOD CARD
-        ================================================= */
-
-        .sensor-card-good {
-          background:
-            linear-gradient(
-              145deg,
-              rgba(
-                57,
-                153,
-                73,
-                0.13
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.012
-              )
-            );
-
-          border-color:
-            rgba(
-              92,
-              198,
-              106,
-              0.24
-            );
-
-          box-shadow:
-            inset
-            0 0 25px
-            rgba(
-              68,
-              171,
-              83,
-              0.025
-            );
+        .sensor-assessment-card .voting-summary-card strong {
+          margin-top: 7px;
+          color: #b66f37;
+          font-size: 21px;
+          font-weight: 900;
+          line-height: 1.18;
+          word-break: break-word;
         }
 
-
-        /* =================================================
-           REVIEW CARD
-        ================================================= */
-
-        .sensor-card-review {
-          background:
-            linear-gradient(
-              145deg,
-              rgba(
-                196,
-                128,
-                43,
-                0.14
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.012
-              )
-            );
-
-          border-color:
-            rgba(
-              230,
-              164,
-              76,
-              0.25
-            );
-
-          box-shadow:
-            inset
-            0 0 25px
-            rgba(
-              220,
-              151,
-              59,
-              0.025
-            );
-        }
-
-
-        /* =================================================
-           BAD CARD
-        ================================================= */
-
-        .sensor-card-bad {
-          background:
-            linear-gradient(
-              145deg,
-              rgba(
-                181,
-                57,
-                43,
-                0.15
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.012
-              )
-            );
-
-          border-color:
-            rgba(
-              229,
-              88,
-              67,
-              0.27
-            );
-
-          box-shadow:
-            inset
-            0 0 25px
-            rgba(
-              208,
-              67,
-              49,
-              0.03
-            );
-        }
-
-
-        /* =================================================
-           SUPPORTING CARD
-        ================================================= */
-
-        .sensor-card-supporting {
-          background:
-            linear-gradient(
-              145deg,
-              rgba(
-                255,
-                255,
-                255,
-                0.035
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.012
-              )
-            );
-        }
-
-
-        /* =================================================
-           NO DATA CARD
-        ================================================= */
-
-        .sensor-card-no-data {
-          opacity: 0.65;
-
-          border-color:
-            rgba(
-              255,
-              255,
-              255,
-              0.06
-            );
-        }
-
-
-        /* =================================================
-           SENSOR CARD HEADER
-        ================================================= */
-
-        .sensor-item-top {
+        /* Results heading -------------------------------------------- */
+        .sensor-assessment-card .sensor-readings-heading {
+          margin-top: 22px;
           display: flex;
-
-          align-items:
-            flex-start;
-
-          justify-content:
-            space-between;
-
-          gap: 8px;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 20px;
         }
 
+        .sensor-assessment-card .sensor-readings-heading > div > span {
+          display: block;
+          color: #9e582f;
+          font-size: 10.5px;
+          font-weight: 900;
+          letter-spacing: 1px;
+        }
 
-        .sensor-item-identity {
-          display: flex;
+        .sensor-assessment-card .sensor-readings-heading h4 {
+          margin: 5px 0 0;
+          color: #2a170f;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 20px;
+          font-weight: 500;
+        }
 
-          align-items: center;
+        .sensor-assessment-card .sensor-readings-heading p {
+          max-width: 480px;
+          margin: 0;
+          color: #716359;
+          font-size: 12.5px;
+          line-height: 1.55;
+          text-align: right;
+        }
 
+        /* Sensor cards ----------------------------------------------- */
+        .sensor-assessment-card .sensor-grid {
+          margin-top: 14px;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .sensor-assessment-card .sensor-item-card {
           min-width: 0;
+          min-height: 225px;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          border: 1px solid #e6ddd4;
+          border-radius: 15px;
+          background: #fffdf9;
+        }
 
+        .sensor-assessment-card .sensor-card-good {
+          border-color: #c7e1cb;
+          background: linear-gradient(145deg, #f1faf2, #fbfefb);
+        }
+
+        .sensor-assessment-card .sensor-card-bad {
+          border-color: #e8c7c0;
+          background: linear-gradient(145deg, #fff1ee, #fffaf8);
+        }
+
+        .sensor-assessment-card .sensor-card-supporting {
+          border-color: #e6d7bf;
+          background: linear-gradient(145deg, #fff9ee, #fffdf9);
+        }
+
+        .sensor-assessment-card .sensor-card-no-data {
+          background: #f7f4f0;
+        }
+
+        .sensor-assessment-card .sensor-item-top {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .sensor-assessment-card .sensor-item-identity {
+          min-width: 0;
+          display: flex;
+          align-items: center;
           gap: 9px;
         }
 
-
-        .sensor-item-icon {
-          width: 37px;
-          height: 37px;
-
-          flex-shrink: 0;
-
+        .sensor-assessment-card .sensor-item-icon {
+          width: 36px;
+          height: 36px;
+          flex: 0 0 36px;
           display: grid;
-
           place-items: center;
-
           border-radius: 10px;
-
-          color: #2b180c;
-
-          background:
-            linear-gradient(
-              145deg,
-              #ffdda5,
-              #ce8242
-            );
-
-          font-size: 8px;
-
-          font-weight: 950;
-        }
-
-
-        .sensor-item-name {
-          min-width: 0;
-        }
-
-
-        .sensor-item-name span {
-          display: block;
-
-          color:
-            rgba(
-              255,
-              229,
-              194,
-              0.29
-            );
-
-          font-size: 6px;
-
-          font-weight: 800;
-
-          text-transform:
-            uppercase;
-
-          letter-spacing:
-            0.8px;
-        }
-
-
-        .sensor-item-name h4 {
-          margin:
-            3px 0 0;
-
-          color: #f3ddc0;
-
-          font-size: 13px;
-        }
-
-
-        /* =================================================
-           INDIVIDUAL RANGE STATUS
-        ================================================= */
-
-        .individual-sensor-status {
-          flex-shrink: 0;
-
-          display: inline-flex;
-
-          align-items: center;
-
-          gap: 5px;
-
-          padding:
-            5px 7px;
-
-          border-radius: 999px;
-
-          font-size: 6px;
-
-          font-weight: 950;
-
-          white-space: nowrap;
-
-          letter-spacing:
-            0.35px;
-        }
-
-
-        .individual-status-dot {
-          width: 5px;
-          height: 5px;
-
-          flex-shrink: 0;
-
-          border-radius: 50%;
-
-          background:
-            currentColor;
-        }
-
-
-        .individual-good {
-          color: #9ee4a8;
-
-          background:
-            rgba(
-              52,
-              151,
-              68,
-              0.13
-            );
-
-          border:
-            1px solid
-            rgba(
-              95,
-              202,
-              109,
-              0.18
-            );
-        }
-
-
-        .individual-review {
-          color: #ffd18c;
-
-          background:
-            rgba(
-              203,
-              133,
-              44,
-              0.13
-            );
-
-          border:
-            1px solid
-            rgba(
-              231,
-              164,
-              75,
-              0.19
-            );
-        }
-
-
-        .individual-bad {
-          color: #ffad97;
-
-          background:
-            rgba(
-              184,
-              57,
-              43,
-              0.14
-            );
-
-          border:
-            1px solid
-            rgba(
-              227,
-              89,
-              67,
-              0.2
-            );
-        }
-
-
-        .individual-supporting {
-          color:
-            rgba(
-              255,
-              222,
-              180,
-              0.48
-            );
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.035
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.055
-            );
-        }
-
-
-        .individual-no-data {
-          color:
-            rgba(
-              255,
-              235,
-              205,
-              0.35
-            );
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.025
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.045
-            );
-        }
-
-
-        /* =================================================
-           RESPONSE
-        ================================================= */
-
-        .sensor-response {
-          margin-top: 18px;
-        }
-
-
-        .sensor-response span {
-          display: block;
-
-          margin-bottom: 4px;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.28
-            );
-
-          font-size: 7px;
-
-          font-weight: 800;
-
-          letter-spacing:
-            0.8px;
-        }
-
-
-        .sensor-response strong {
-          color: #ffe0aa;
-
-          font-size: 27px;
-
+          color: #5a2e18;
+          background: #f4e4d2;
+          font-size: 10px;
           font-weight: 900;
         }
 
-
-        /* =================================================
-           RANGE DESCRIPTION
-        ================================================= */
-
-        .sensor-range-description {
-          min-height: 32px;
-
-          margin-top: 9px;
-
-          display: flex;
-
-          align-items:
-            flex-start;
-
-          gap: 6px;
+        .sensor-assessment-card .sensor-item-name {
+          min-width: 0;
         }
 
+        .sensor-assessment-card .sensor-item-name > span {
+          display: block;
+          color: #85766b;
+          font-size: 9.5px;
+          font-weight: 800;
+          line-height: 1.2;
+        }
 
-        .range-marker {
+        .sensor-assessment-card .sensor-item-name h4 {
+          margin: 3px 0 0;
+          color: #2c190f;
+          font-size: 15px;
+          font-weight: 800;
+          line-height: 1.2;
+        }
+
+        .sensor-assessment-card .individual-sensor-status {
+          flex: 0 0 auto;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 6px 8px;
+          border-radius: 999px;
+          font-size: 9.5px;
+          font-weight: 900;
+          line-height: 1;
+          white-space: nowrap;
+        }
+
+        .sensor-assessment-card .individual-status-dot {
           width: 6px;
           height: 6px;
-
-          margin-top: 4px;
-
-          flex-shrink: 0;
-
           border-radius: 50%;
+          background: currentColor;
         }
 
-
-        .range-marker-good {
-          background: #81cf8c;
+        .sensor-assessment-card .individual-good {
+          color: #2f8545;
+          background: #e4f4e7;
+          border: 1px solid #c5e3ca;
         }
 
-
-        .range-marker-review {
-          background: #e6aa58;
+        .sensor-assessment-card .individual-bad {
+          color: #b64f3c;
+          background: #fce7e3;
+          border: 1px solid #efc4bc;
         }
 
-
-        .range-marker-bad {
-          background: #df715e;
+        .sensor-assessment-card .individual-supporting {
+          color: #a06b23;
+          background: #f9edd6;
+          border: 1px solid #ecd5a9;
         }
 
-
-        .range-marker-supporting,
-        .range-marker-no-data {
-          background:
-            rgba(
-              255,
-              224,
-              182,
-              0.3
-            );
+        .sensor-assessment-card .individual-no-data {
+          color: #756b63;
+          background: #eee9e4;
+          border: 1px solid #ddd4cb;
         }
 
-
-        .sensor-range-description p {
-          margin: 0;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.28
-            );
-
-          font-size: 7px;
-
-          line-height: 1.45;
+        .sensor-assessment-card .sensor-response {
+          margin-top: 22px;
         }
 
-
-        /* =================================================
-           CARD FOOTER
-        ================================================= */
-
-        .sensor-card-footer {
-          margin-top: auto;
-
-          padding-top: 10px;
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content:
-            space-between;
-
-          gap: 8px;
-
-          border-top:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.04
-            );
-        }
-
-
-        .sensor-card-footer span {
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.25
-            );
-
-          font-size: 7px;
-        }
-
-
-        .sensor-card-footer strong {
-          color:
-            rgba(
-              255,
-              219,
-              169,
-              0.67
-            );
-
-          font-size: 8px;
-
-          text-align: right;
-        }
-
-
-        /* =================================================
-           RANGE LEGEND
-        ================================================= */
-
-        .sensor-range-legend {
-          margin-top: 15px;
-
-          padding: 14px;
-
-          border-radius: 14px;
-
-          background:
-            rgba(
-              0,
-              0,
-              0,
-              0.09
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.055
-            );
-        }
-
-
-        .legend-heading > span {
-          color: #dca05e;
-
-          font-size: 7px;
-
+        .sensor-assessment-card .sensor-response > span {
+          display: block;
+          color: #786b62;
+          font-size: 10px;
           font-weight: 900;
-
-          letter-spacing:
-            1.2px;
+          letter-spacing: 0.9px;
         }
 
-
-        .legend-items {
-          margin-top: 10px;
-
-          display: grid;
-
-          grid-template-columns:
-            repeat(
-              3,
-              minmax(
-                0,
-                1fr
-              )
-            );
-
-          gap: 9px;
+        .sensor-assessment-card .sensor-response strong {
+          display: block;
+          margin-top: 5px;
+          color: #25150e;
+          font-size: 31px;
+          font-weight: 900;
+          line-height: 1.05;
         }
 
-
-        .legend-items > div {
+        .sensor-assessment-card .sensor-range-description {
+          margin-top: 11px;
           display: flex;
-
-          align-items:
-            flex-start;
-
+          align-items: flex-start;
           gap: 7px;
-
-          padding:
-            8px 9px;
-
-          border-radius: 9px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.018
-            );
         }
 
-
-        .legend-dot {
-          width: 8px;
-          height: 8px;
-
-          margin-top: 3px;
-
-          flex-shrink: 0;
-
+        .sensor-assessment-card .range-marker {
+          width: 7px;
+          height: 7px;
+          flex: 0 0 7px;
+          margin-top: 5px;
           border-radius: 50%;
+          background: #8b7e74;
         }
 
+        .sensor-assessment-card .range-marker-good { background: #50ad65; }
+        .sensor-assessment-card .range-marker-bad { background: #ce604d; }
+        .sensor-assessment-card .range-marker-supporting { background: #d19843; }
 
-        .legend-good {
-          background: #76cc84;
-        }
-
-
-        .legend-review {
-          background: #df9f4d;
-        }
-
-
-        .legend-bad {
-          background: #db6955;
-        }
-
-
-        .legend-supporting {
-          background:
-            rgba(
-              255,
-              224,
-              182,
-              0.4
-            );
-        }
-
-
-        .legend-items strong {
-          display: block;
-
-          color: #ead6b9;
-
-          font-size: 8px;
-        }
-
-
-        .legend-items small {
-          display: block;
-
-          margin-top: 2px;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.25
-            );
-
-          font-size: 6px;
-
-          line-height: 1.4;
-        }
-
-
-        /* =================================================
-           NOTE
-        ================================================= */
-
-        .sensor-note {
-          margin-top: 12px;
-
-          display: flex;
-
-          align-items:
-            flex-start;
-
-          gap: 8px;
-
-          padding:
-            11px 12px;
-
-          border-radius: 12px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.018
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.05
-            );
-        }
-
-
-        .sensor-note-icon {
-          width: 18px;
-          height: 18px;
-
-          flex-shrink: 0;
-
-          display: grid;
-
-          place-items: center;
-
-          border-radius: 50%;
-
-          color: #dda05e;
-
-          border:
-            1px solid
-            rgba(
-              221,
-              160,
-              94,
-              0.2
-            );
-
-          font-size: 7px;
-
-          font-weight: 900;
-        }
-
-
-        .sensor-note p {
-          margin:
-            1px 0 0;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.27
-            );
-
-          font-size: 8px;
-
+        .sensor-assessment-card .sensor-range-description p {
+          margin: 0;
+          color: #62564e;
+          font-size: 11.5px;
           line-height: 1.5;
         }
 
-
-        /* =================================================
-           RESPONSIVE
-        ================================================= */
-
-        @media (
-          max-width: 1000px
-        ) {
-
-          .sensor-grid {
-            grid-template-columns:
-              repeat(
-                2,
-                minmax(
-                  0,
-                  1fr
-                )
-              );
-          }
-
+        .sensor-assessment-card .sensor-card-footer {
+          margin-top: auto;
+          padding-top: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          border-top: 1px solid #ece3db;
         }
 
-
-        @media (
-          max-width: 1000px
-        ) {
-
-          .voting-summary-grid {
-            grid-template-columns:
-              repeat(
-                2,
-                minmax(
-                  0,
-                  1fr
-                )
-              );
-          }
-
+        .sensor-assessment-card .sensor-card-footer span {
+          color: #82746a;
+          font-size: 10px;
+          font-weight: 700;
         }
 
-
-        @media (
-          max-width: 700px
-        ) {
-
-          .legend-items {
-            grid-template-columns:
-              1fr;
-          }
-
+        .sensor-assessment-card .sensor-card-footer strong {
+          color: #a66334;
+          font-size: 11px;
+          font-weight: 900;
+          text-align: right;
         }
 
+        /* Legend ------------------------------------------------------ */
+        .sensor-assessment-card .sensor-range-legend {
+          margin-top: 16px;
+          padding: 16px;
+          border: 1px solid #e7ddd3;
+          border-radius: 15px;
+          background: #fbf7f2;
+        }
 
-        @media (
-          max-width: 620px
-        ) {
+        .sensor-assessment-card .legend-heading > span {
+          color: #9c572f;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: 1px;
+        }
 
+        .sensor-assessment-card .legend-items {
+          margin-top: 12px;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .sensor-assessment-card .legend-items > div {
+          min-width: 0;
+          display: flex;
+          align-items: flex-start;
+          gap: 9px;
+        }
+
+        .sensor-assessment-card .legend-dot {
+          width: 9px;
+          height: 9px;
+          flex: 0 0 9px;
+          margin-top: 4px;
+          border-radius: 50%;
+        }
+
+        .sensor-assessment-card .legend-good { background: #56b36b; }
+        .sensor-assessment-card .legend-bad { background: #cc614d; }
+        .sensor-assessment-card .legend-supporting { background: #d39a43; }
+
+        .sensor-assessment-card .legend-items strong {
+          display: block;
+          color: #342016;
+          font-size: 11.5px;
+          font-weight: 900;
+        }
+
+        .sensor-assessment-card .legend-items small {
+          display: block;
+          margin-top: 3px;
+          color: #71645b;
+          font-size: 10.5px;
+          line-height: 1.45;
+        }
+
+        /* Research note ---------------------------------------------- */
+        .sensor-assessment-card .sensor-note {
+          margin-top: 14px;
+          padding: 13px 14px;
+          display: flex;
+          align-items: flex-start;
+          gap: 9px;
+          border: 1px solid #eadfd5;
+          border-radius: 13px;
+          background: #faf6f1;
+        }
+
+        .sensor-assessment-card .sensor-note-icon {
+          width: 22px;
+          height: 22px;
+          flex: 0 0 22px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          color: #9d5b32;
+          border: 1px solid #d8b99e;
+          font-size: 10px;
+          font-weight: 900;
+        }
+
+        .sensor-assessment-card .sensor-note p {
+          margin: 1px 0 0;
+          color: #685b52;
+          font-size: 11.5px;
+          line-height: 1.55;
+        }
+
+        @media (max-width: 980px) {
+          .sensor-assessment-card .sensor-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .sensor-assessment-card .voting-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .sensor-assessment-card .sensor-status-panel {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 700px) {
           .sensor-assessment-card {
             padding: 18px;
           }
 
-
-          .sensor-status-panel {
-            flex-direction:
-              column;
-
-            align-items:
-              stretch;
-          }
-
-
-          .status-metrics {
-            width: 100%;
-
-            flex-direction: column;
-          }
-
-
-          .status-score {
-            width: 100%;
-
-            text-align: left;
-          }
-
-
-          .voting-summary-heading {
-            flex-direction: column;
-
+          .sensor-assessment-card .voting-summary-heading,
+          .sensor-assessment-card .sensor-readings-heading {
             align-items: flex-start;
+            flex-direction: column;
           }
 
-
-          .voting-summary-heading p {
+          .sensor-assessment-card .voting-summary-heading p,
+          .sensor-assessment-card .sensor-readings-heading p {
+            max-width: none;
             text-align: left;
           }
 
-
-          .voting-summary-grid {
+          .sensor-assessment-card .sensor-grid,
+          .sensor-assessment-card .legend-items,
+          .sensor-assessment-card .status-metrics {
             grid-template-columns: 1fr;
           }
 
-
-          .sensor-readings-heading {
-            flex-direction:
-              column;
-
-            align-items:
-              flex-start;
+          .sensor-assessment-card .status-main-row strong {
+            font-size: 26px;
           }
-
-
-          .sensor-readings-heading p {
-            text-align: left;
-          }
-
-
-          .sensor-grid {
-            grid-template-columns:
-              1fr;
-          }
-
-
-          .status-main-row strong {
-            font-size: 28px;
-          }
-
-
-          .sensor-item-top {
-            align-items:
-              flex-start;
-          }
-
         }
-
       `}</style>
     </div>
   );

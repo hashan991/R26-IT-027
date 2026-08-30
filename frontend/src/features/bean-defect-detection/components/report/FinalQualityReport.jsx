@@ -31,17 +31,13 @@ function FinalQualityReport({
   // REPORT STATE
   // =========================================================
 
-  const [report, setReport] = useState(
-    initialReport || null,
-  );
+  const [report, setReport] = useState(initialReport || null);
 
   // =========================================================
   // LOADING
   // =========================================================
 
-  const [loading, setLoading] = useState(
-    !initialReport,
-  );
+  const [loading, setLoading] = useState(!initialReport);
 
   // =========================================================
   // ERROR
@@ -57,12 +53,10 @@ function FinalQualityReport({
 
   const [pdfGenerating, setPdfGenerating] = useState(false);
 
-//save repoart
+  //save repoart
   const [savingReport, setSavingReport] = useState(false);
 
-  const [reportSaved, setReportSaved] = useState(
-    Boolean(initialReport),
-  );
+  const [reportSaved, setReportSaved] = useState(Boolean(initialReport));
 
   const autoDownloadTriggeredRef = useRef(false);
 
@@ -88,31 +82,22 @@ function FinalQualityReport({
         setReport(null);
         setReportSaved(false);
 
-        console.log(
-          "===== SENSOR RESULT RECEIVED BY FINAL REPORT =====",
-        );
+        console.log("===== SENSOR RESULT RECEIVED BY FINAL REPORT =====");
         console.log(sensorResult);
 
-        console.log(
-          "===== PHYSICAL RESULT RECEIVED BY FINAL REPORT =====",
-        );
+        console.log("===== PHYSICAL RESULT RECEIVED BY FINAL REPORT =====");
         console.log(physicalResult);
 
-        const data =
-          await generateBeanQualityReport(
-            sensorResult,
-            physicalResult,
-          );
-
-        console.log(
-          "===== BACKEND FINAL REPORT RESPONSE =====",
+        const data = await generateBeanQualityReport(
+          sensorResult,
+          physicalResult,
         );
+
+        console.log("===== BACKEND FINAL REPORT RESPONSE =====");
         console.log(data);
 
         if (!data) {
-          throw new Error(
-            "Backend returned an empty final report response.",
-          );
+          throw new Error("Backend returned an empty final report response.");
         }
 
         setReport(data);
@@ -122,17 +107,11 @@ function FinalQualityReport({
           data?.report_id,
         );
       } catch (requestError) {
-        console.error(
-          "Final report generation failed:",
-          requestError,
-        );
+        console.error("Final report generation failed:", requestError);
 
-        if (
-          requestError.response?.status !== 401
-        ) {
+        if (requestError.response?.status !== 401) {
           const message =
-            requestError.response?.data
-              ?.detail ||
+            requestError.response?.data?.detail ||
             "Failed to generate the final coffee bean quality report.";
 
           setError(message);
@@ -143,11 +122,7 @@ function FinalQualityReport({
     };
 
     generateReport();
-  }, [
-    initialReport,
-    sensorResult,
-    physicalResult,
-  ]);
+  }, [initialReport, sensorResult, physicalResult]);
 
   // =========================================================
   // RETRY REPORT GENERATION
@@ -167,25 +142,18 @@ function FinalQualityReport({
       setError("");
       setReport(null);
 
-      const data =
-        await generateBeanQualityReport(
-          sensorResult,
-          physicalResult,
-        );
+      const data = await generateBeanQualityReport(
+        sensorResult,
+        physicalResult,
+      );
 
       setReport(data);
     } catch (requestError) {
-      console.error(
-        "Report retry failed:",
-        requestError,
-      );
+      console.error("Report retry failed:", requestError);
 
-      if (
-        requestError.response?.status !== 401
-      ) {
+      if (requestError.response?.status !== 401) {
         const message =
-          requestError.response?.data
-            ?.detail ||
+          requestError.response?.data?.detail ||
           "Failed to generate the report.";
 
         setError(message);
@@ -214,22 +182,12 @@ function FinalQualityReport({
 
     autoDownloadTriggeredRef.current = true;
 
-    const timer = window.setTimeout(
-      () => {
-        handleDownload();
-      },
-      650,
-    );
+    const timer = window.setTimeout(() => {
+      handleDownload();
+    }, 650);
 
-    return () =>
-      window.clearTimeout(timer);
-  }, [
-    autoDownload,
-    report,
-    loading,
-    error,
-  ]);
-
+    return () => window.clearTimeout(timer);
+  }, [autoDownload, report, loading, error]);
 
   // =========================================================
   // LOADING UI
@@ -637,38 +595,38 @@ function FinalQualityReport({
   //
   // =========================================================
 
-const handleSave = async () => {
-  if (!report) {
-    alert("No report is available to save.");
+  const handleSave = async () => {
+    if (!report) {
+      alert("No report is available to save.");
 
-    return;
-  }
+      return;
+    }
 
-  if (savingReport) {
-    return;
-  }
+    if (savingReport) {
+      return;
+    }
 
-  try {
-    setSavingReport(true);
+    try {
+      setSavingReport(true);
 
-    const response = await saveBeanQualityReport(report);
+      const response = await saveBeanQualityReport(report);
 
-    console.log("REPORT SAVED:", response);
+      console.log("REPORT SAVED:", response);
 
-    setReportSaved(true);
+      setReportSaved(true);
 
-    alert(`Report ${response.report_id} saved successfully.`);
-  } catch (saveError) {
-    console.error("Report save failed:", saveError);
+      alert(`Report ${response.report_id} saved successfully.`);
+    } catch (saveError) {
+      console.error("Report save failed:", saveError);
 
-    alert(
-      saveError.response?.data?.detail ||
-        "Unable to save the report. Please try again.",
-    );
-  } finally {
-    setSavingReport(false);
-  }
-};
+      alert(
+        saveError.response?.data?.detail ||
+          "Unable to save the report. Please try again.",
+      );
+    } finally {
+      setSavingReport(false);
+    }
+  };
 
   // =========================================================
   // DOWNLOAD FULL REPORT AS PDF
@@ -693,17 +651,21 @@ const handleSave = async () => {
     try {
       setPdfGenerating(true);
 
-      // Wait until web fonts have finished loading so the PDF
-      // closely matches the report shown in the browser.
+      // Wait for fonts before taking the snapshot.
       if (document.fonts?.ready) {
         await document.fonts.ready;
       }
 
       const reportElement = reportRef.current;
 
-      // -----------------------------------------------------
+      // Give the browser one frame to finish any pending layout/paint.
+      await new Promise((resolve) => {
+        window.requestAnimationFrame(() => resolve());
+      });
+
+      // =====================================================
       // PDF SETTINGS
-      // -----------------------------------------------------
+      // =====================================================
 
       const pdf = new jsPDF({
         orientation: "portrait",
@@ -718,135 +680,92 @@ const handleSave = async () => {
       const marginX = 7;
       const marginTop = 7;
       const marginBottom = 10;
-      const blockGap = 3;
 
       const printableWidth = pageWidth - marginX * 2;
-      const printableHeight =
-        pageHeight - marginTop - marginBottom;
+      const printableHeight = pageHeight - marginTop - marginBottom;
 
-      const pageBackground = {
-        r: 33,
-        g: 21,
-        b: 15,
-      };
+      /*
+        IMPORTANT:
+        The previous exporter rendered every top-level report section as a
+        separate canvas. If the next section did not fit in the remaining
+        page space, it was moved to a completely new page. That is why the
+        downloaded PDF contained very large empty areas.
 
-      let currentY = marginTop;
+        The new exporter captures the SAME final report as ONE continuous
+        canvas, then slices that canvas into A4 pages. This keeps the PDF
+        visually much closer to the generated report shown in the browser.
+      */
 
-      const paintPageBackground = () => {
-        pdf.setFillColor(
-          pageBackground.r,
-          pageBackground.g,
-          pageBackground.b,
-        );
-
-        pdf.rect(
-          0,
-          0,
-          pageWidth,
-          pageHeight,
-          "F",
-        );
-      };
-
-      const createNewPage = () => {
-        pdf.addPage();
-        paintPageBackground();
-        currentY = marginTop;
-      };
-
-      paintPageBackground();
-
-      // -----------------------------------------------------
-      // COLLECT PDF BLOCKS
-      // -----------------------------------------------------
-      //
-      // Processing Intelligence is expanded into its internal
-      // sections so the browser does not need to create one huge
-      // canvas for all seven modules.
-      //
-      // -----------------------------------------------------
-
-      const pdfBlocks = [];
-
-      const addProcessingIntelligenceBlocks = (root) => {
-        const children = Array.from(root.children);
-
-        children.forEach((child) => {
-          if (child.tagName === "STYLE") {
-            return;
-          }
-
-          if (child.classList.contains("pdf-exclude")) {
-            return;
-          }
-
-          if (child.classList.contains("pi-grid")) {
-            const moduleSections = Array.from(
-              child.querySelectorAll(
-                ":scope > .pi-module-section",
-              ),
-            );
-
-            if (moduleSections.length > 0) {
-              moduleSections.forEach((section) => {
-                pdfBlocks.push(section);
-              });
-
-              return;
-            }
-          }
-
-          pdfBlocks.push(child);
-        });
-      };
-
-      Array.from(reportElement.children).forEach(
-        (child) => {
-          if (child.tagName === "STYLE") {
-            return;
-          }
-
-          if (child.classList.contains("pdf-exclude")) {
-            return;
-          }
-
-          if (
-            child.classList.contains(
-              "processing-intelligence",
-            )
-          ) {
-            addProcessingIntelligenceBlocks(child);
-            return;
-          }
-
-          pdfBlocks.push(child);
-        },
-      );
-
-      // -----------------------------------------------------
-      // CANVAS -> JPEG
-      // -----------------------------------------------------
-
-      const canvasToJpeg = (canvas) =>
-        canvas.toDataURL(
-          "image/jpeg",
-          0.94,
-        );
-
-      // -----------------------------------------------------
-      // SAFE PAGE-BREAK POINTS
-      // -----------------------------------------------------
-      //
-      // html2canvas produces a bitmap. If a tall bitmap is cut at
-      // a fixed pixel height, cards/text can be sliced in half.
-      // These selectors identify logical UI boundaries. Their top
-      // and bottom Y positions are converted to canvas coordinates
-      // and used as preferred PDF page-break positions.
-      //
-      // -----------------------------------------------------
+      // =====================================================
+      // SAFE PAGE-BREAK ELEMENTS
+      // =====================================================
 
       const SAFE_BREAK_SELECTORS = [
+        // Main report structure
+        ".final-report-header",
+        ".report-read-guide",
+        ".batch-information",
+        ".report-group-heading",
+        ".report-section-block",
+        ".methodology-card",
+
+        // Executive result
+        ".quality-result-card",
+        ".grade-display",
+        ".score-summary",
+
+        // Weight
+        ".bean-weight-card",
+        ".weight-main-panel",
+        ".weight-information-grid",
+        ".weight-trace",
+        ".weight-note",
+
+        // Sensor assessment
+        ".sensor-assessment-card",
+        ".sensor-status-panel",
+        ".sensor-voting-summary",
+        ".sensor-grid",
+        ".sensor-card",
+        ".sensor-legend",
+        ".sensor-note",
+
+        // Physical assessment
+        ".physical-assessment-card",
+        ".physical-status-panel",
+        ".physical-overview",
+        ".physical-category-heading",
+        ".physical-category-grid",
+        ".physical-category-card",
+        ".distribution-summary",
+        ".physical-note",
+
+        // Explainability
+        ".quality-findings",
+        ".explanation-section",
+        ".reason-box",
+        ".final-status-explanation",
+        ".primary-sensor-evidence",
+        ".sensor-evidence-card",
+        ".decision-logic-box",
+        ".xai-finding-item",
+        ".physical-detection-grid",
+        ".detection-card",
+        ".physical-score-trace",
+
+        // Recommendations
+        ".recommendations-section",
+        ".recommendation-card",
+        ".recommendation-item",
+
+        // Processing Intelligence parent
+        ".processing-intelligence",
+        ".pi-header",
+        ".pi-flow",
         ".pi-module-heading",
+        ".pi-module-section",
+        ".pi-warning",
+        ".pi-methodology",
 
         // Module 1
         ".roasting-hero",
@@ -910,337 +829,245 @@ const handleSave = async () => {
         ".preventive-guidance-item",
         ".preventive-empty-state",
         ".preventive-methodology",
-
-        // General top-level report blocks
-        ".final-report-header",
-        ".batch-information",
-        ".report-section-block",
-        ".assessment-summary-card",
-        ".methodology-card",
       ];
 
-      const getSafeBreakpoints = (sourceElement, canvas) => {
-        if (!sourceElement || !canvas?.height) {
-          return [];
-        }
+      // =====================================================
+      // GET SAFE BREAKPOINTS FROM THE LIVE DOM
+      // =====================================================
 
-        const sourceRect =
-          sourceElement.getBoundingClientRect();
+      const sourceRect = reportElement.getBoundingClientRect();
 
-        if (sourceRect.height <= 0) {
-          return [];
-        }
+      const domBreakpoints = [];
 
-        const canvasScaleY =
-          canvas.height / sourceRect.height;
+      reportElement
+        .querySelectorAll(SAFE_BREAK_SELECTORS.join(","))
+        .forEach((element) => {
+          // Action buttons are not part of the PDF.
+          if (
+            element.classList.contains("pdf-exclude") ||
+            element.closest(".pdf-exclude")
+          ) {
+            return;
+          }
 
-        const points = [];
+          const rect = element.getBoundingClientRect();
 
-        sourceElement
-          .querySelectorAll(
-            SAFE_BREAK_SELECTORS.join(","),
-          )
-          .forEach((element) => {
-            const rect =
-              element.getBoundingClientRect();
+          const top = rect.top - sourceRect.top;
+          const bottom = rect.bottom - sourceRect.top;
 
-            const top =
-              (rect.top - sourceRect.top) *
-              canvasScaleY;
+          if (top > 4 && top < sourceRect.height - 4) {
+            domBreakpoints.push(top);
+          }
 
-            const bottom =
-              (rect.bottom - sourceRect.top) *
-              canvasScaleY;
+          if (bottom > 4 && bottom < sourceRect.height - 4) {
+            domBreakpoints.push(bottom);
+          }
+        });
 
-            if (
-              top > 2 &&
-              top < canvas.height - 2
-            ) {
-              points.push(top);
-            }
+      // =====================================================
+      // CAPTURE THE COMPLETE REPORT ONCE
+      // =====================================================
 
-            if (
-              bottom > 2 &&
-              bottom < canvas.height - 2
-            ) {
-              points.push(bottom);
-            }
+      const canvas = await html2canvas(reportElement, {
+        scale: 1.35,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+
+        /*
+          null means: preserve the real report background exactly as it is
+          rendered in the browser instead of forcing an artificial dark or
+          light background on every individual report section.
+        */
+        backgroundColor: null,
+
+        scrollX: 0,
+        scrollY: -window.scrollY,
+
+        windowWidth: Math.max(
+          document.documentElement.clientWidth,
+          Math.ceil(reportElement.scrollWidth),
+          1200,
+        ),
+
+        onclone: (clonedDocument) => {
+          // Buttons/actions should never appear inside the PDF.
+          clonedDocument.querySelectorAll(".pdf-exclude").forEach((element) => {
+            element.style.display = "none";
           });
 
-        return Array.from(
-          new Set(
-            points.map((point) =>
-              Math.round(point),
-            ),
-          ),
-        ).sort((a, b) => a - b);
-      };
+          /*
+            Keep the same Step 03 theme context in the cloned DOM.
+            No component colors/layouts are rewritten here; these variables
+            only ensure the clone resolves the same shared theme tokens.
+          */
+          const clonedReport = clonedDocument.querySelector(".final-report");
 
-      // -----------------------------------------------------
-      // ADD ONE CANVAS TO PDF
-      // -----------------------------------------------------
-      //
-      // Small blocks stay together where possible. For a block
-      // taller than one page, we prefer semantic DOM boundaries
-      // instead of cutting at an arbitrary pixel row.
-      //
-      // -----------------------------------------------------
-
-      const addCanvasToPdf = (canvas, sourceElement) => {
-        if (!canvas.width || !canvas.height) {
-          return;
-        }
-
-        const pxPerMm =
-          canvas.width / printableWidth;
-
-        const fullHeightMm =
-          canvas.height / pxPerMm;
-
-        const remainingHeight =
-          pageHeight -
-          marginBottom -
-          currentY;
-
-        // Entire block fits in the current page.
-        if (
-          fullHeightMm <= remainingHeight
-        ) {
-          pdf.addImage(
-            canvasToJpeg(canvas),
-            "JPEG",
-            marginX,
-            currentY,
-            printableWidth,
-            fullHeightMm,
-            undefined,
-            "FAST",
-          );
-
-          currentY +=
-            fullHeightMm + blockGap;
-
-          return;
-        }
-
-        // Entire block fits on one fresh page.
-        if (
-          fullHeightMm <= printableHeight
-        ) {
-          createNewPage();
-
-          pdf.addImage(
-            canvasToJpeg(canvas),
-            "JPEG",
-            marginX,
-            currentY,
-            printableWidth,
-            fullHeightMm,
-            undefined,
-            "FAST",
-          );
-
-          currentY +=
-            fullHeightMm + blockGap;
-
-          return;
-        }
-
-        // The block itself is taller than one A4 page.
-        // Start it on a new page when some previous content
-        // already occupies the current page.
-        if (currentY > marginTop + 0.5) {
-          createNewPage();
-        }
-
-        const maxSliceHeightPx =
-          Math.max(
-            1,
-            Math.floor(
-              printableHeight * pxPerMm,
-            ),
-          );
-
-        const safeBreakpoints =
-          getSafeBreakpoints(
-            sourceElement,
-            canvas,
-          );
-
-        const chooseSafeSliceEnd = (
-          startY,
-          desiredEndY,
-        ) => {
-          if (desiredEndY >= canvas.height) {
-            return canvas.height;
+          if (clonedReport) {
+            clonedReport.style.setProperty("--bq-bg", "#f7f2eb");
+            clonedReport.style.setProperty("--bq-surface", "#fffdf9");
+            clonedReport.style.setProperty("--bq-surface-soft", "#fbf6ef");
+            clonedReport.style.setProperty("--bq-surface-warm", "#f3e8d9");
+            clonedReport.style.setProperty("--bq-border", "#e5dbcf");
+            clonedReport.style.setProperty("--bq-border-strong", "#d8c9ba");
+            clonedReport.style.setProperty("--bq-ink", "#2f211b");
+            clonedReport.style.setProperty("--bq-ink-soft", "#604f45");
+            clonedReport.style.setProperty("--bq-muted", "#81736a");
+            clonedReport.style.setProperty("--bq-coffee-950", "#2b160f");
+            clonedReport.style.setProperty("--bq-coffee-900", "#351c13");
+            clonedReport.style.setProperty("--bq-coffee-800", "#4b2a1d");
+            clonedReport.style.setProperty("--bq-caramel-deep", "#a96d35");
+            clonedReport.style.setProperty("--bq-green-deep", "#496b53");
+            clonedReport.style.setProperty("--bq-green-soft", "#edf5ee");
+            clonedReport.style.setProperty("--bq-red", "#a75147");
           }
+        },
+      });
 
-          // Avoid creating tiny fragments. Prefer a semantic
-          // breakpoint in roughly the last 65% of the page.
-          const minimumUsefulEnd =
-            startY +
-            maxSliceHeightPx * 0.35;
-
-          const candidates =
-            safeBreakpoints.filter(
-              (point) =>
-                point > minimumUsefulEnd &&
-                point <= desiredEndY - 8,
-            );
-
-          if (candidates.length > 0) {
-            return candidates[
-              candidates.length - 1
-            ];
-          }
-
-          // If no preferred boundary exists before the page
-          // limit, use the regular page limit as a fallback.
-          // This should only happen when one individual card is
-          // itself taller than a full A4 content area.
-          return desiredEndY;
-        };
-
-        let sourceY = 0;
-
-        while (sourceY < canvas.height) {
-          const desiredEndY =
-            Math.min(
-              sourceY + maxSliceHeightPx,
-              canvas.height,
-            );
-
-          const sliceEndY =
-            chooseSafeSliceEnd(
-              sourceY,
-              desiredEndY,
-            );
-
-          const sliceHeightPx =
-            Math.max(
-              1,
-              sliceEndY - sourceY,
-            );
-
-          const sliceCanvas =
-            document.createElement("canvas");
-
-          sliceCanvas.width =
-            canvas.width;
-
-          sliceCanvas.height =
-            sliceHeightPx;
-
-          const sliceContext =
-            sliceCanvas.getContext("2d");
-
-          sliceContext.fillStyle =
-            "#21150f";
-
-          sliceContext.fillRect(
-            0,
-            0,
-            sliceCanvas.width,
-            sliceCanvas.height,
-          );
-
-          sliceContext.drawImage(
-            canvas,
-            0,
-            sourceY,
-            canvas.width,
-            sliceHeightPx,
-            0,
-            0,
-            canvas.width,
-            sliceHeightPx,
-          );
-
-          const sliceHeightMm =
-            sliceHeightPx / pxPerMm;
-
-          pdf.addImage(
-            canvasToJpeg(sliceCanvas),
-            "JPEG",
-            marginX,
-            currentY,
-            printableWidth,
-            sliceHeightMm,
-            undefined,
-            "FAST",
-          );
-
-          sourceY = sliceEndY;
-
-          if (sourceY < canvas.height) {
-            createNewPage();
-          } else {
-            currentY +=
-              sliceHeightMm +
-              blockGap;
-          }
-        }
-      };
-
-      // -----------------------------------------------------
-      // RENDER EACH REPORT BLOCK
-      // -----------------------------------------------------
-
-      for (const block of pdfBlocks) {
-        const blockRect =
-          block.getBoundingClientRect();
-
-        if (
-          blockRect.width <= 0 ||
-          blockRect.height <= 0
-        ) {
-          continue;
-        }
-
-        const canvas =
-          await html2canvas(block, {
-            scale: 1.5,
-            useCORS: true,
-            allowTaint: false,
-            logging: false,
-            backgroundColor: "#21150f",
-            scrollX: 0,
-            scrollY: -window.scrollY,
-            windowWidth: Math.max(
-              document.documentElement.clientWidth,
-              1200,
-            ),
-            onclone: (clonedDocument) => {
-              clonedDocument
-                .querySelectorAll(".pdf-exclude")
-                .forEach((element) => {
-                  element.style.display = "none";
-                });
-            },
-          });
-
-        addCanvasToPdf(canvas, block);
+      if (!canvas.width || !canvas.height) {
+        throw new Error("The report canvas could not be generated.");
       }
 
-      // -----------------------------------------------------
+      // =====================================================
+      // MAP DOM BREAKPOINTS TO CANVAS PIXELS
+      // =====================================================
+
+      const canvasScaleY =
+        sourceRect.height > 0 ? canvas.height / sourceRect.height : 1;
+
+      const safeBreakpoints = Array.from(
+        new Set(
+          domBreakpoints
+            .map((point) => Math.round(point * canvasScaleY))
+            .filter((point) => point > 5 && point < canvas.height - 5),
+        ),
+      ).sort((a, b) => a - b);
+
+      // =====================================================
+      // A4 SLICE SETTINGS
+      // =====================================================
+
+      const pxPerMm = canvas.width / printableWidth;
+
+      const maxSliceHeightPx = Math.max(
+        1,
+        Math.floor(printableHeight * pxPerMm),
+      );
+
+      const pageBackground = {
+        r: 247,
+        g: 242,
+        b: 235,
+      };
+
+      const paintPageBackground = () => {
+        pdf.setFillColor(pageBackground.r, pageBackground.g, pageBackground.b);
+
+        pdf.rect(0, 0, pageWidth, pageHeight, "F");
+      };
+
+      const chooseSafeSliceEnd = (startY, desiredEndY) => {
+        if (desiredEndY >= canvas.height) {
+          return canvas.height;
+        }
+
+        /*
+          Prefer a logical boundary only when it is close to the natural
+          A4 page bottom. This avoids the huge blank areas produced by the
+          old block-by-block exporter.
+
+          A safe point must use at least 82% of the available page height.
+        */
+        const minimumUsefulEnd = startY + maxSliceHeightPx * 0.82;
+
+        const candidates = safeBreakpoints.filter(
+          (point) => point >= minimumUsefulEnd && point <= desiredEndY - 6,
+        );
+
+        if (candidates.length > 0) {
+          return candidates[candidates.length - 1];
+        }
+
+        // No nearby safe boundary: use the normal page bottom.
+        return desiredEndY;
+      };
+
+      // =====================================================
+      // CONTINUOUS CANVAS -> A4 PAGES
+      // =====================================================
+
+      let sourceY = 0;
+      let firstPage = true;
+
+      while (sourceY < canvas.height) {
+        if (!firstPage) {
+          pdf.addPage();
+        }
+
+        firstPage = false;
+
+        paintPageBackground();
+
+        const desiredEndY = Math.min(sourceY + maxSliceHeightPx, canvas.height);
+
+        const sliceEndY = chooseSafeSliceEnd(sourceY, desiredEndY);
+
+        const sliceHeightPx = Math.max(1, sliceEndY - sourceY);
+
+        const sliceCanvas = document.createElement("canvas");
+
+        sliceCanvas.width = canvas.width;
+
+        sliceCanvas.height = sliceHeightPx;
+
+        const sliceContext = sliceCanvas.getContext("2d");
+
+        /*
+          The canvas itself already contains the real report background.
+          This fallback only covers any transparent pixels at its edge.
+        */
+        sliceContext.fillStyle = "#fffdf9";
+
+        sliceContext.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+
+        sliceContext.drawImage(
+          canvas,
+          0,
+          sourceY,
+          canvas.width,
+          sliceHeightPx,
+          0,
+          0,
+          canvas.width,
+          sliceHeightPx,
+        );
+
+        const sliceHeightMm = sliceHeightPx / pxPerMm;
+
+        pdf.addImage(
+          sliceCanvas.toDataURL("image/jpeg", 0.94),
+          "JPEG",
+          marginX,
+          marginTop,
+          printableWidth,
+          sliceHeightMm,
+          undefined,
+          "FAST",
+        );
+
+        sourceY = sliceEndY;
+      }
+
+      // =====================================================
       // PAGE NUMBERS
-      // -----------------------------------------------------
+      // =====================================================
 
-      const totalPages =
-        pdf.getNumberOfPages();
+      const totalPages = pdf.getNumberOfPages();
 
-      for (
-        let pageNumber = 1;
-        pageNumber <= totalPages;
-        pageNumber += 1
-      ) {
+      for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
         pdf.setPage(pageNumber);
 
-        pdf.setTextColor(
-          211,
-          183,
-          151,
-        );
+        pdf.setTextColor(96, 79, 69);
 
         pdf.setFontSize(7.5);
 
@@ -1254,45 +1081,28 @@ const handleSave = async () => {
         );
       }
 
-      // -----------------------------------------------------
+      // =====================================================
       // PDF METADATA + FILE NAME
-      // -----------------------------------------------------
+      // =====================================================
 
-      const rawReportId =
-        report?.report_id ||
-        "coffee-bean-quality-report";
+      const rawReportId = report?.report_id || "coffee-bean-quality-report";
 
-      const safeReportId =
-        String(rawReportId)
-          .replace(
-            /[<>:"/\\|?*\u0000-\u001F]/g,
-            "-",
-          )
-          .trim();
+      const safeReportId = String(rawReportId)
+        .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
+        .trim();
 
       pdf.setProperties({
-        title:
-          `Coffee Bean Quality Report - ${rawReportId}`,
-        subject:
-          "Coffee bean sensor and physical AI quality assessment report",
-        author:
-          "Coffee Quality AI Platform",
-        creator:
-          "Coffee Quality AI Platform",
+        title: `Coffee Bean Quality Report - ${rawReportId}`,
+        subject: "Coffee bean sensor and physical AI quality assessment report",
+        author: "Coffee Quality AI Platform",
+        creator: "Coffee Quality AI Platform",
       });
 
-      pdf.save(
-        `${safeReportId || "coffee-bean-quality-report"}.pdf`,
-      );
+      pdf.save(`${safeReportId || "coffee-bean-quality-report"}.pdf`);
     } catch (downloadError) {
-      console.error(
-        "PDF generation failed:",
-        downloadError,
-      );
+      console.error("PDF generation failed:", downloadError);
 
-      alert(
-        "Unable to generate the PDF report. Please try again.",
-      );
+      alert("Unable to generate the PDF report. Please try again.");
     } finally {
       setPdfGenerating(false);
     }
@@ -1317,9 +1127,7 @@ const handleSave = async () => {
                 : "STEP 03 — FINAL ASSESSMENT"}
             </span>
 
-            <h2>
-              Final Coffee Bean Quality Report
-            </h2>
+            <h2>Final Coffee Bean Quality Report</h2>
 
             <p>
               {savedMode
@@ -1335,6 +1143,61 @@ const handleSave = async () => {
                 ? "Report Saved"
                 : "Report Generated"}
           </span>
+        </div>
+
+        {/* =================================================
+            REPORT READING GUIDE
+        ================================================= */}
+
+        <div className="report-read-guide">
+          <div className="report-read-guide-heading">
+            <div>
+              <span>HOW TO READ THIS REPORT</span>
+              <strong>
+                Start with the decision, then review the evidence and actions.
+              </strong>
+            </div>
+
+            <span className="report-read-guide-badge">Complete Assessment</span>
+          </div>
+
+          <div className="report-read-guide-grid">
+            <div className="report-read-guide-item">
+              <span>01</span>
+              <div>
+                <strong>Final Decision</strong>
+                <small>Grade, status and overall quality score.</small>
+              </div>
+            </div>
+
+            <div className="report-read-guide-item">
+              <span>02</span>
+              <div>
+                <strong>Inspection Evidence</strong>
+                <small>
+                  Sensor, weight and physical AI assessment details.
+                </small>
+              </div>
+            </div>
+
+            <div className="report-read-guide-item">
+              <span>03</span>
+              <div>
+                <strong>Why This Result</strong>
+                <small>Explainable decision trace and detected findings.</small>
+              </div>
+            </div>
+
+            <div className="report-read-guide-item">
+              <span>04</span>
+              <div>
+                <strong>What To Do Next</strong>
+                <small>
+                  Recommendations and pre-roast processing guidance.
+                </small>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* =================================================
@@ -1383,6 +1246,15 @@ const handleSave = async () => {
             SCORE
         ================================================= */}
 
+        <div className="report-group-heading report-group-heading-primary">
+          <div className="report-group-number">01</div>
+          <div>
+            <span>EXECUTIVE QUALITY DECISION</span>
+            <h3>Final Quality Result</h3>
+            <p>Review the overall grade and the two assessment scores first.</p>
+          </div>
+        </div>
+
         <div className="report-section-block">
           <QualityScore
             finalScore={finalScore}
@@ -1397,16 +1269,22 @@ const handleSave = async () => {
          SAMPLE WEIGHT ANALYSIS
           ================================================= */}
 
+        <div className="report-group-heading">
+          <div className="report-group-number">02</div>
+          <div>
+            <span>INSPECTION EVIDENCE</span>
+            <h3>Sample & Assessment Details</h3>
+            <p>
+              Supporting weight, sensor and physical AI evidence used by the
+              report.
+            </p>
+          </div>
+        </div>
+
         <div className="report-section-block">
           <BeanWeightAssessment
-            physicalResult={
-              report.physical_result ||
-              physicalResult ||
-              {}
-            }
-            physicalAssessment={
-              physicalAssessment
-            }
+            physicalResult={report.physical_result || physicalResult || {}}
+            physicalAssessment={physicalAssessment}
           />
         </div>
 
@@ -1414,15 +1292,31 @@ const handleSave = async () => {
           ASSESSMENT SUMMARY
           ================================================= */}
 
-        <div className="assessment-summary-grid">
-          <SensorAssessmentCard sensorAssessment={sensorAssessment} />
+        <div className="assessment-summary-stacked">
+          <div className="assessment-summary-item">
+            <SensorAssessmentCard sensorAssessment={sensorAssessment} />
+          </div>
 
-          <PhysicalAssessmentCard physicalAssessment={physicalAssessment} />
+          <div className="assessment-summary-item">
+            <PhysicalAssessmentCard physicalAssessment={physicalAssessment} />
+          </div>
         </div>
 
         {/* =================================================
             FINDINGS
         ================================================= */}
+
+        <div className="report-group-heading">
+          <div className="report-group-number">03</div>
+          <div>
+            <span>EXPLAINABLE QUALITY ANALYSIS</span>
+            <h3>Why the System Reached This Decision</h3>
+            <p>
+              Follow the evidence, rules and score contribution behind the final
+              result.
+            </p>
+          </div>
+        </div>
 
         <div className="report-section-block">
           <QualityFindings
@@ -1442,6 +1336,17 @@ const handleSave = async () => {
             RECOMMENDATIONS
         ================================================= */}
 
+        <div className="report-group-heading">
+          <div className="report-group-number">04</div>
+          <div>
+            <span>DECISION SUPPORT</span>
+            <h3>Recommended Quality Actions</h3>
+            <p>
+              Use these defect-driven actions before moving the batch forward.
+            </p>
+          </div>
+        </div>
+
         <div className="report-section-block">
           <Recommendations recommendations={report.recommendations || []} />
         </div>
@@ -1451,7 +1356,21 @@ const handleSave = async () => {
        ================================================= */}
 
         {report.processing_intelligence && (
-          <ProcessingIntelligence data={report.processing_intelligence} />
+          <>
+            <div className="report-group-heading report-group-heading-processing">
+              <div className="report-group-number">05</div>
+              <div>
+                <span>PRE-ROAST MANUFACTURING INTELLIGENCE</span>
+                <h3>Processing Guidance</h3>
+                <p>
+                  Translate detected defects into readiness, risk, usage, yield,
+                  storage and prevention guidance.
+                </p>
+              </div>
+            </div>
+
+            <ProcessingIntelligence data={report.processing_intelligence} />
+          </>
         )}
 
         {/* =================================================
@@ -1485,9 +1404,7 @@ const handleSave = async () => {
                 onClick={handleDownload}
                 disabled={pdfGenerating}
               >
-                {pdfGenerating
-                  ? "Generating PDF..."
-                  : "Download PDF"}
+                {pdfGenerating ? "Generating PDF..." : "Download PDF"}
               </button>
 
               <button
@@ -1899,15 +1816,25 @@ const handleSave = async () => {
            ASSESSMENT SUMMARY
         ================================================= */
 
-        .assessment-summary-grid {
-  margin-top: 17px;
+        .final-report .final-report-card .assessment-summary-stacked {
+          width: 100% !important;
+          margin-top: 20px !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: stretch !important;
+          gap: 22px !important;
+        }
 
-  display: grid;
+        .final-report .final-report-card .assessment-summary-item {
+          width: 100% !important;
+          min-width: 0 !important;
+          display: block !important;
+        }
 
-  grid-template-columns: 1fr;
-
-  gap: 17px;
-}
+        .final-report .final-report-card .assessment-summary-item > * {
+          width: 100% !important;
+          max-width: none !important;
+        }
 
 
         .assessment-summary-card {
@@ -2310,9 +2237,8 @@ const handleSave = async () => {
         @media (
           max-width: 900px
         ) {
-          .assessment-summary-grid {
-            grid-template-columns:
-              1fr;
+          .assessment-summary-stacked {
+            flex-direction: column !important;
           }
 
 

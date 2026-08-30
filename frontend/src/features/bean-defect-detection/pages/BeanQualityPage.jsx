@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+import "../styles/beanQuality.css";
+
 import BeanQualityStepper from "../components/stepper/BeanQualityStepper";
 import SensorAnalysis from "../components/sensor/SensorAnalysis";
 import PhysicalAnalysis from "../components/physical/PhysicalAnalysis";
@@ -87,7 +89,7 @@ function BeanQualityPage() {
   };
 
   return (
-    <div className="bean-quality-page">
+    <div className={`bean-quality-page bean-quality-step-${currentStep}`}>
       <div className="coffee-noise" />
 
       <div className="background-glow glow-left" />
@@ -128,9 +130,9 @@ function BeanQualityPage() {
             </h1>
 
             <p>
-              Analyze raw coffee bean quality using sensor intelligence
-              and computer vision AI, then generate a complete pre-roast
-              quality assessment and decision-support report.
+              Analyze raw coffee bean quality using sensor intelligence and
+              computer vision AI, then generate a complete pre-roast quality
+              assessment and decision-support report.
             </p>
 
             <div className="hero-meta">
@@ -216,8 +218,6 @@ function BeanQualityPage() {
         ================================================== */}
 
         <section className="analysis-shell">
-          
-
           {/* STEP 1 */}
           {currentStep === 1 && (
             <SensorAnalysis
@@ -265,9 +265,7 @@ function BeanQualityPage() {
             <span>Bean to Pack AI</span>
           </div>
 
-          <p>
-            Sensor Intelligence · Computer Vision · Processing Intelligence
-          </p>
+          <p>Sensor Intelligence · Computer Vision · Processing Intelligence</p>
         </section>
       </main>
 

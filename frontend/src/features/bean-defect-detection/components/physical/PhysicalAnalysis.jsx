@@ -1596,6 +1596,57 @@ function PhysicalAnalysis({
 
 
         {/* ===================================================
+            PHYSICAL ANALYSIS QUICK GUIDE
+            UI guidance only - no workflow logic changed.
+        =================================================== */}
+
+        <div className="physical-quick-guide">
+          <div className="physical-quick-guide-heading">
+            <div>
+              <span>HOW THIS STEP WORKS</span>
+              <h3>Complete the physical inspection in four clear actions</h3>
+            </div>
+
+            <span className="physical-guide-note">Same coffee sample</span>
+          </div>
+
+          <div className="physical-guide-grid">
+            <div className="physical-guide-item">
+              <span className="physical-guide-number">01</span>
+              <div>
+                <strong>Measure Sample</strong>
+                <p>Zero the empty tray, add beans and capture the sample weight.</p>
+              </div>
+            </div>
+
+            <div className="physical-guide-item">
+              <span className="physical-guide-number">02</span>
+              <div>
+                <strong>Choose Inspection</strong>
+                <p>Use one image for a quick check or three views for broader coverage.</p>
+              </div>
+            </div>
+
+            <div className="physical-guide-item">
+              <span className="physical-guide-number">03</span>
+              <div>
+                <strong>Capture Bean Image</strong>
+                <p>Take a phone photo or upload a clear top-view coffee bean image.</p>
+              </div>
+            </div>
+
+            <div className="physical-guide-item">
+              <span className="physical-guide-number">04</span>
+              <div>
+                <strong>Review AI Result</strong>
+                <p>Check bean categories, defects and the physical quality score.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        {/* ===================================================
             STEP 2.1 - SAMPLE WEIGHT
         =================================================== */}
 
@@ -2020,6 +2071,18 @@ function PhysicalAnalysis({
         {/* ===================================================
             INPUT + AI SUMMARY
         =================================================== */}
+
+        <div className="physical-run-heading">
+          <div>
+            <span>CAPTURE & ANALYZE</span>
+            <h3>Run the Physical AI Inspection</h3>
+            <p>Prepare one clear top-view image, run the AI, then review the result beside your input.</p>
+          </div>
+
+          <span className="physical-run-status">
+            {result && !loading ? "AI Result Ready" : loading ? "Analyzing..." : "Ready for Input"}
+          </span>
+        </div>
 
         <div className="physical-top-grid">
 

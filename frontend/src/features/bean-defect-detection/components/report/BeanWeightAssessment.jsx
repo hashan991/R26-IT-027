@@ -227,832 +227,404 @@ function BeanWeightAssessment({
       ===================================================== */}
 
       <style>{`
+        /*
+          BeanWeightAssessment UI refresh
+          - Keeps all current weight/calculation logic unchanged
+          - Matches the light coffee theme used by the report
+          - Uses scoped selectors to avoid CSS conflicts
+        */
 
         .bean-weight-card,
         .bean-weight-card * {
           box-sizing: border-box;
         }
 
-
         .bean-weight-card {
           width: 100%;
-
-          padding: 24px;
-
-          border-radius: 22px;
-
-          background:
-            radial-gradient(
-              circle at 10% 0%,
-              rgba(
-                214,
-                142,
-                70,
-                0.08
-              ),
-              transparent 30%
-            ),
-            linear-gradient(
-              145deg,
-              rgba(
-                255,
-                255,
-                255,
-                0.045
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.015
-              )
-            ),
-            rgba(
-              0,
-              0,
-              0,
-              0.12
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.09
-            );
+          padding: 26px;
+          border: 1px solid #e4d7ca;
+          border-radius: 20px;
+          background: #fffdfa;
+          color: #342117;
+          box-shadow: 0 10px 28px rgba(65, 38, 24, 0.055);
         }
-
 
         /* =================================================
            HEADER
         ================================================= */
 
-        .bean-weight-header {
+        .bean-weight-card .bean-weight-header {
           display: flex;
-
           align-items: flex-start;
-
-          justify-content:
-            space-between;
-
-          gap: 20px;
+          justify-content: space-between;
+          gap: 22px;
         }
 
-
-        .bean-weight-label {
+        .bean-weight-card .bean-weight-label {
           display: block;
-
-          color: #dda05e;
-
-          font-size: 8px;
-
-          font-weight: 950;
-
-          letter-spacing:
-            1.6px;
+          color: #9b5f31;
+          font-size: 11px;
+          font-weight: 850;
+          letter-spacing: 1.25px;
+          text-transform: uppercase;
         }
 
-
-        .bean-weight-header h3 {
-          margin:
-            5px 0 0;
-
-          color: #fff0d8;
-
-          font-size: 19px;
+        .bean-weight-card .bean-weight-header h3 {
+          margin: 6px 0 0;
+          color: #2f1c13;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 26px;
+          line-height: 1.2;
         }
 
-
-        .bean-weight-header p {
-          max-width: 560px;
-
-          margin:
-            6px 0 0;
-
-          color:
-            rgba(
-              255,
-              238,
-              212,
-              0.38
-            );
-
-          font-size: 10px;
-
-          line-height: 1.55;
+        .bean-weight-card .bean-weight-header p {
+          max-width: 720px;
+          margin: 9px 0 0;
+          color: #786a61;
+          font-size: 13px;
+          line-height: 1.65;
         }
-
 
         /* =================================================
            CALIBRATION BADGE
         ================================================= */
 
-        .weight-calibration-badge {
+        .bean-weight-card .weight-calibration-badge {
           display: inline-flex;
-
           align-items: center;
-
-          gap: 6px;
-
+          gap: 7px;
           flex-shrink: 0;
-
-          padding:
-            6px 10px;
-
+          padding: 7px 11px;
           border-radius: 999px;
-
-          font-size: 7px;
-
-          font-weight: 950;
-
-          letter-spacing:
-            0.4px;
+          font-size: 10px;
+          font-weight: 850;
+          letter-spacing: 0.45px;
+          text-transform: uppercase;
         }
 
-
-        .weight-calibration-badge
-        > span {
-          width: 6px;
-          height: 6px;
-
+        .bean-weight-card .weight-calibration-badge > span {
+          width: 7px;
+          height: 7px;
           border-radius: 50%;
-
-          background:
-            currentColor;
+          background: currentColor;
         }
 
-
-        .weight-calibrated {
-          color: #a5e7ad;
-
-          background:
-            rgba(
-              59,
-              157,
-              74,
-              0.09
-            );
-
-          border:
-            1px solid
-            rgba(
-              94,
-              197,
-              107,
-              0.15
-            );
+        .bean-weight-card .weight-calibrated {
+          color: #347247;
+          background: #edf7ef;
+          border: 1px solid #c9e1cd;
         }
 
-
-        .weight-uncalibrated {
-          color: #ffd18c;
-
-          background:
-            rgba(
-              205,
-              137,
-              48,
-              0.09
-            );
-
-          border:
-            1px solid
-            rgba(
-              228,
-              162,
-              73,
-              0.15
-            );
+        .bean-weight-card .weight-uncalibrated {
+          color: #8b5b16;
+          background: #fff6e8;
+          border: 1px solid #ead3a8;
         }
-
 
         /* =================================================
-           MAIN WEIGHT
+           MAIN WEIGHT PANEL
         ================================================= */
 
-        .weight-main-panel {
-          margin-top: 18px;
-
-          min-height: 155px;
-
+        .bean-weight-card .weight-main-panel {
+          margin-top: 20px;
+          min-height: 150px;
           display: flex;
-
           align-items: center;
-
-          justify-content:
-            space-between;
-
-          gap: 25px;
-
-          padding: 21px;
-
-          border-radius: 18px;
-
-          background:
-            linear-gradient(
-              135deg,
-              rgba(
-                213,
-                139,
-                67,
-                0.08
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.015
-              )
-            );
-
-          border:
-            1px solid
-            rgba(
-              228,
-              162,
-              92,
-              0.1
-            );
+          justify-content: space-between;
+          gap: 28px;
+          padding: 23px;
+          border: 1px solid #e1cdb7;
+          border-radius: 17px;
+          background: #fbf2e8;
         }
 
+        .bean-weight-card .weight-main-value {
+          min-width: 0;
+          flex: 1;
+        }
 
-        .weight-main-value
-        > span {
+        .bean-weight-card .weight-main-value > span {
           display: block;
-
-          color:
-            rgba(
-              255,
-              234,
-              204,
-              0.38
-            );
-
-          font-size: 8px;
-
-          font-weight: 900;
-
-          letter-spacing:
-            1.2px;
+          color: #8a7669;
+          font-size: 10px;
+          font-weight: 850;
+          letter-spacing: 1.05px;
+          text-transform: uppercase;
         }
 
-
-        .weight-main-value
-        > div {
-          margin-top: 6px;
-
+        .bean-weight-card .weight-main-value > div {
+          margin-top: 7px;
           display: flex;
-
           align-items: baseline;
-
-          gap: 7px;
-        }
-
-
-        .weight-main-value
-        strong {
-          color: #ffe0a8;
-
-          font-size: 42px;
-
-          line-height: 1;
-
-          letter-spacing:
-            -1.5px;
-        }
-
-
-        .weight-main-value
-        small {
-          color:
-            rgba(
-              255,
-              235,
-              205,
-              0.42
-            );
-
-          font-size: 12px;
-
-          font-weight: 800;
-        }
-
-
-        .weight-main-value p {
-          margin:
-            9px 0 0;
-
-          color:
-            rgba(
-              255,
-              238,
-              212,
-              0.32
-            );
-
-          font-size: 8px;
-        }
-
-
-        .weight-icon-area {
-          display: flex;
-
-          flex-direction: column;
-
-          align-items: center;
-
-          gap: 7px;
-
-          flex-shrink: 0;
-        }
-
-
-        .weight-scale-icon {
-          width: 55px;
-          height: 55px;
-
-          display: grid;
-
-          place-items: center;
-
-          border-radius: 16px;
-
-          color: #29170b;
-
-          background:
-            linear-gradient(
-              145deg,
-              #ffe0a5,
-              #cf8543
-            );
-
-          font-size: 15px;
-
-          font-weight: 950;
-
-          box-shadow:
-            0 8px 25px
-            rgba(
-              205,
-              132,
-              65,
-              0.12
-            );
-        }
-
-
-        .weight-icon-area
-        > span {
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.27
-            );
-
-          font-size: 6px;
-        }
-
-
-        /* =================================================
-           INFO GRID
-        ================================================= */
-
-        .weight-information-grid {
-          margin-top: 12px;
-
-          display: grid;
-
-          grid-template-columns:
-            repeat(
-              3,
-              minmax(
-                0,
-                1fr
-              )
-            );
-
-          gap: 9px;
-        }
-
-
-        .weight-info-card {
-          padding: 14px;
-
-          border-radius: 14px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.025
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.06
-            );
-        }
-
-
-        .weight-info-card
-        > span {
-          display: block;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.29
-            );
-
-          font-size: 7px;
-
-          font-weight: 900;
-
-          letter-spacing:
-            0.7px;
-        }
-
-
-        .weight-info-card
-        > strong {
-          display: block;
-
-          margin-top: 6px;
-
-          color: #efd8b9;
-
-          font-size: 19px;
-        }
-
-
-        .weight-info-card
-        > small {
-          display: block;
-
-          margin-top: 4px;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.22
-            );
-
-          font-size: 6px;
-        }
-
-
-        /* =================================================
-           TRACE
-        ================================================= */
-
-        .weight-trace {
-          margin-top: 11px;
-
-          display: grid;
-
-          grid-template-columns:
-            1fr
-            auto
-            1fr
-            auto
-            1fr;
-
-          align-items: stretch;
-
           gap: 8px;
         }
 
-
-        .weight-trace
-        > div:not(
-          .weight-trace-symbol
-        ) {
-          padding: 11px;
-
-          border-radius: 11px;
-
-          background:
-            rgba(
-              0,
-              0,
-              0,
-              0.08
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.05
-            );
+        .bean-weight-card .weight-main-value strong {
+          color: #3c2418;
+          font-size: 44px;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: -1.2px;
         }
 
+        .bean-weight-card .weight-main-value small {
+          color: #806f64;
+          font-size: 14px;
+          font-weight: 750;
+        }
 
-        .weight-trace span {
+        .bean-weight-card .weight-main-value p {
+          margin: 10px 0 0;
+          color: #74655c;
+          font-size: 12px;
+          line-height: 1.55;
+        }
+
+        .bean-weight-card .weight-icon-area {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+        }
+
+        .bean-weight-card .weight-scale-icon {
+          width: 58px;
+          height: 58px;
+          display: grid;
+          place-items: center;
+          border-radius: 16px;
+          color: #fff9f2;
+          background: #4b2818;
+          font-size: 16px;
+          font-weight: 900;
+          box-shadow: 0 8px 20px rgba(75, 40, 24, 0.12);
+        }
+
+        .bean-weight-card .weight-icon-area > span {
+          color: #7d6d63;
+          font-size: 10px;
+          font-weight: 650;
+          text-align: center;
+        }
+
+        /* =================================================
+           INFORMATION GRID
+        ================================================= */
+
+        .bean-weight-card .weight-information-grid {
+          margin-top: 14px;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 11px;
+        }
+
+        .bean-weight-card .weight-info-card {
+          min-height: 118px;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          border: 1px solid #e6dbd0;
+          border-radius: 14px;
+          background: #fffaf6;
+        }
+
+        .bean-weight-card .weight-info-card > span {
           display: block;
+          color: #7e6e64;
+          font-size: 10px;
+          font-weight: 850;
+          letter-spacing: 0.65px;
+          text-transform: uppercase;
+        }
 
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.27
-            );
+        .bean-weight-card .weight-info-card > strong {
+          display: block;
+          margin-top: 7px;
+          color: #39251b;
+          font-size: 22px;
+          font-weight: 850;
+        }
 
-          font-size: 6px;
+        .bean-weight-card .weight-info-card > small {
+          display: block;
+          margin-top: 5px;
+          color: #88786e;
+          font-size: 10px;
+          line-height: 1.4;
+        }
 
+        /* =================================================
+           WEIGHT RELATIONSHIP TRACE
+        ================================================= */
+
+        .bean-weight-card .weight-trace {
+          margin-top: 13px;
+          display: grid;
+          grid-template-columns: 1fr auto 1fr auto 1fr;
+          align-items: stretch;
+          gap: 9px;
+        }
+
+        .bean-weight-card
+          .weight-trace
+          > div:not(.weight-trace-symbol) {
+          min-height: 86px;
+          padding: 13px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          border: 1px solid #e6ddd4;
+          border-radius: 11px;
+          background: #faf7f3;
+        }
+
+        .bean-weight-card .weight-trace span {
+          display: block;
+          color: #7f6f65;
+          font-size: 9px;
+          font-weight: 850;
+          letter-spacing: 0.6px;
+          text-transform: uppercase;
+        }
+
+        .bean-weight-card .weight-trace strong {
+          display: block;
+          margin-top: 5px;
+          color: #3c281e;
+          font-size: 15px;
+        }
+
+        .bean-weight-card .weight-trace-symbol {
+          display: grid;
+          place-items: center;
+          color: #9a5e30;
+          font-size: 19px;
           font-weight: 900;
         }
 
-
-        .weight-trace strong {
-          display: block;
-
-          margin-top: 4px;
-
-          color: #ecd4b4;
-
-          font-size: 13px;
+        .bean-weight-card .weight-trace-result {
+          background: #f7e8d7 !important;
+          border-color: #d9ba99 !important;
         }
-
-
-        .weight-trace-symbol {
-          display: grid;
-
-          place-items: center;
-
-          color: #dca05e;
-
-          font-size: 16px;
-
-          font-weight: 950;
-        }
-
-
-        .weight-trace-result {
-          background:
-            rgba(
-              212,
-              137,
-              64,
-              0.065
-            ) !important;
-
-          border-color:
-            rgba(
-              228,
-              161,
-              90,
-              0.11
-            ) !important;
-        }
-
 
         /* =================================================
            NO DATA
         ================================================= */
 
-        .weight-no-data {
-          margin-top: 12px;
-
+        .bean-weight-card .weight-no-data {
+          margin-top: 14px;
           display: flex;
-
           align-items: center;
-
-          gap: 10px;
-
-          padding: 13px;
-
+          gap: 11px;
+          padding: 14px;
+          border: 1px solid #ead3a8;
           border-radius: 13px;
-
-          background:
-            rgba(
-              196,
-              124,
-              42,
-              0.055
-            );
-
-          border:
-            1px solid
-            rgba(
-              221,
-              153,
-              67,
-              0.1
-            );
+          background: #fff7e9;
         }
 
-
-        .weight-no-data-icon {
-          width: 30px;
-          height: 30px;
-
+        .bean-weight-card .weight-no-data-icon {
+          width: 32px;
+          height: 32px;
           display: grid;
-
           place-items: center;
-
           flex-shrink: 0;
-
           border-radius: 9px;
-
-          color: #ffd18c;
-
-          background:
-            rgba(
-              211,
-              140,
-              48,
-              0.12
-            );
-
-          font-size: 10px;
-
-          font-weight: 950;
+          color: #8b5b16;
+          background: #f7e5c2;
+          font-size: 12px;
+          font-weight: 900;
         }
 
-
-        .weight-no-data strong {
-          color: #ecd5b6;
-
-          font-size: 10px;
+        .bean-weight-card .weight-no-data strong {
+          color: #4b3324;
+          font-size: 12px;
         }
 
-
-        .weight-no-data p {
-          margin:
-            3px 0 0;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.28
-            );
-
-          font-size: 7px;
+        .bean-weight-card .weight-no-data p {
+          margin: 4px 0 0;
+          color: #7b6b61;
+          font-size: 11px;
+          line-height: 1.5;
         }
-
 
         /* =================================================
            NOTE
         ================================================= */
 
-        .weight-note {
-          margin-top: 12px;
-
+        .bean-weight-card .weight-note {
+          margin-top: 14px;
           display: flex;
-
           align-items: flex-start;
-
-          gap: 8px;
-
-          padding:
-            10px 11px;
-
+          gap: 9px;
+          padding: 13px 14px;
+          border: 1px solid #e7ddd4;
           border-radius: 11px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.018
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.045
-            );
+          background: #faf7f3;
         }
 
-
-        .weight-note
-        > span {
-          width: 18px;
-          height: 18px;
-
+        .bean-weight-card .weight-note > span {
+          width: 21px;
+          height: 21px;
           flex-shrink: 0;
-
           display: grid;
-
           place-items: center;
-
+          border: 1px solid #d5b38c;
           border-radius: 50%;
-
-          color: #dda05e;
-
-          border:
-            1px solid
-            rgba(
-              221,
-              160,
-              94,
-              0.2
-            );
-
-          font-size: 7px;
-
+          color: #985d30;
+          font-size: 10px;
           font-weight: 900;
         }
 
-
-        .weight-note p {
-          margin:
-            1px 0 0;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.27
-            );
-
-          font-size: 7px;
-
-          line-height: 1.5;
+        .bean-weight-card .weight-note p {
+          margin: 1px 0 0;
+          color: #74665d;
+          font-size: 11px;
+          line-height: 1.6;
         }
-
 
         /* =================================================
            RESPONSIVE
         ================================================= */
 
-        @media (
-          max-width: 750px
-        ) {
-
-          .weight-information-grid {
-            grid-template-columns:
-              1fr;
+        @media (max-width: 850px) {
+          .bean-weight-card .weight-information-grid {
+            grid-template-columns: 1fr;
           }
 
-
-          .weight-trace {
-            grid-template-columns:
-              1fr;
+          .bean-weight-card .weight-trace {
+            grid-template-columns: 1fr;
           }
 
-
-          .weight-trace-symbol {
+          .bean-weight-card .weight-trace-symbol {
             display: none;
           }
-
         }
 
-
-        @media (
-          max-width: 600px
-        ) {
-
+        @media (max-width: 650px) {
           .bean-weight-card {
             padding: 18px;
+            border-radius: 16px;
           }
 
-
-          .bean-weight-header {
-            flex-direction:
-              column;
+          .bean-weight-card .bean-weight-header {
+            flex-direction: column;
           }
 
-
-          .weight-main-panel {
-            align-items:
-              flex-start;
-
-            flex-direction:
-              column;
+          .bean-weight-card .weight-main-panel {
+            align-items: flex-start;
+            flex-direction: column;
           }
 
-
-          .weight-main-value
-          strong {
-            font-size: 35px;
+          .bean-weight-card .weight-main-value strong {
+            font-size: 38px;
           }
 
+          .bean-weight-card .weight-icon-area {
+            align-items: flex-start;
+          }
         }
-
       `}</style>
     </div>
   );
