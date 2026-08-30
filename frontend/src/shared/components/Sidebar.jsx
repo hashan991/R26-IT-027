@@ -1,19 +1,137 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../auth/context/AuthContext";
+
+function Icon({ name, size = 22, strokeWidth = 1.8 }) {
+  const common = {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": true,
+  };
+
+  const icons = {
+    coffee: (
+      <>
+        <path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z" />
+        <path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16" />
+        <path d="M7 3c0 1.3 1 1.7 1 3" />
+        <path d="M11 3c0 1.3 1 1.7 1 3" />
+        <path d="M15 3c0 1.3 1 1.7 1 3" />
+      </>
+    ),
+    dashboard: (
+      <>
+        <rect x="3" y="3" width="7" height="7" rx="1.3" />
+        <rect x="14" y="3" width="7" height="7" rx="1.3" />
+        <rect x="3" y="14" width="7" height="7" rx="1.3" />
+        <rect x="14" y="14" width="7" height="7" rx="1.3" />
+      </>
+    ),
+    user: (
+      <>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21a8 8 0 0 1 16 0" />
+      </>
+    ),
+    users: (
+      <>
+        <circle cx="9" cy="8" r="3" />
+        <path d="M3 20a6 6 0 0 1 12 0" />
+        <path d="M16 4.5a3 3 0 0 1 0 5.8" />
+        <path d="M18 20a5 5 0 0 0-3-4.6" />
+      </>
+    ),
+    bean: (
+      <>
+        <path d="M14.5 3.5c4.5 1.1 6.8 5.3 5.4 9.8-1.3 4.3-5.5 7.4-9.9 6.8-4.3-.5-6.9-4.1-5.8-8.2C5.4 7.4 9.8 2.5 14.5 3.5Z" />
+        <path d="M7.2 17.4c2.5-2.7 3.4-5.2 2.7-7.6-.5-1.7-.1-3.5 1.1-5.2" />
+      </>
+    ),
+    powder: (
+      <>
+        <circle cx="8" cy="9" r="2" />
+        <circle cx="15" cy="7" r="1.5" />
+        <circle cx="15" cy="14" r="2.5" />
+        <circle cx="7" cy="16" r="1.5" />
+      </>
+    ),
+    package: (
+      <>
+        <path d="m4 7 8-4 8 4-8 4-8-4Z" />
+        <path d="M4 7v10l8 4 8-4V7" />
+        <path d="M12 11v10" />
+      </>
+    ),
+    chart: (
+      <>
+        <path d="M4 19V5" />
+        <path d="M4 19h16" />
+        <path d="m7 15 4-4 3 2 5-6" />
+      </>
+    ),
+    report: (
+      <>
+        <path d="M6 3h9l3 3v15H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+        <path d="M15 3v4h4" />
+        <path d="M8 11h6" />
+        <path d="M8 15h7" />
+        <path d="M8 19h5" />
+      </>
+    ),
+    shield: (
+      <>
+        <path d="M12 3 19 6v5c0 4.5-2.8 7.6-7 10-4.2-2.4-7-5.5-7-10V6l7-3Z" />
+        <path d="m9 12 2 2 4-4" />
+      </>
+    ),
+    logout: (
+      <>
+        <path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4" />
+        <path d="M14 8l4 4-4 4" />
+        <path d="M9 12h9" />
+      </>
+    ),
+    chevron: <path d="m9 18 6-6-6-6" />,
+    spark: (
+      <>
+        <path d="m12 3 1.4 4.2L17.5 9l-4.1 1.5L12 14.7l-1.4-4.2L6.5 9l4.1-1.8L12 3Z" />
+        <path d="m19 14 .7 2.2L22 17l-2.3.8L19 20l-.7-2.2L16 17l2.3-.8L19 14Z" />
+      </>
+    ),
+  };
+
+  return <svg {...common}>{icons[name] || icons.dashboard}</svg>;
+}
 
 function Sidebar() {
   const navigate = useNavigate();
 
+  const location = useLocation();
+
   const { user, logout } = useAuth();
+
+  const beanSectionActive =
+    location.pathname === "/beans" || location.pathname.startsWith("/beans/");
+
+  const [beanMenuOpen, setBeanMenuOpen] = useState(beanSectionActive);
+
+  useEffect(() => {
+    if (beanSectionActive) {
+      setBeanMenuOpen(true);
+    }
+  }, [beanSectionActive]);
 
   if (!user) {
     return null;
   }
-
-  // =========================================================
-  // LOGOUT
-  // =========================================================
 
   const handleLogout = () => {
     logout();
@@ -23,142 +141,167 @@ function Sidebar() {
     });
   };
 
-  // =========================================================
-  // OPEN PROFILE
-  // =========================================================
-
   const handleOpenProfile = () => {
     navigate("/profile");
   };
 
-  // =========================================================
-  // ROLE LABEL
-  // =========================================================
-
   const getRoleLabel = (role) => {
     const labels = {
       ADMIN: "Administrator",
-
       BEAN_QUALITY_INSPECTOR: "Bean Quality Inspector",
-
       POWDER_QUALITY_INSPECTOR: "Powder Quality Inspector",
-
       PACKAGING_QUALITY_INSPECTOR: "Packaging Quality Inspector",
-
       SALES_ANALYST: "Sales Analyst",
     };
 
     return labels[role] || role;
   };
 
-  // =========================================================
-  // ROLE BASED MENU
-  // =========================================================
-
   const getMenuItems = () => {
-    // ---------------------------------------------------------
-    // ADMIN
-    // ---------------------------------------------------------
-
     if (user.role === "ADMIN") {
       return [
         {
-          label: "Home",
+          label: "Dashboard",
           path: "/dashboard",
+          icon: "dashboard",
         },
         {
           label: "My Profile",
           path: "/profile",
+          icon: "user",
         },
         {
           label: "User Management",
           path: "/admin",
+          icon: "users",
         },
         {
           label: "Bean Quality",
-          path: "/beans",
+          icon: "bean",
+          type: "group",
+          key: "bean-quality",
+          children: [
+            {
+              label: "Analysis",
+              path: "/beans",
+              icon: "bean",
+              end: true,
+            },
+            {
+              label: "Report History",
+              path: "/beans/reports",
+              icon: "report",
+            },
+          ],
         },
-
+        {
+          label: "Powder Quality",
+          path: "/powder",
+          icon: "powder",
+        },
         {
           label: "Packaging Quality",
           path: "/seals",
+          icon: "package",
+        },
+        {
+          label: "Sales Analysis",
+          path: "/sales",
+          icon: "chart",
         },
       ];
     }
-
-    // ---------------------------------------------------------
-    // BEAN QUALITY INSPECTOR
-    // ---------------------------------------------------------
 
     if (user.role === "BEAN_QUALITY_INSPECTOR") {
       return [
         {
-          label: "Home",
+          label: "Dashboard",
           path: "/dashboard",
+          icon: "dashboard",
         },
         {
           label: "My Profile",
           path: "/profile",
+          icon: "user",
         },
         {
           label: "Bean Quality",
-          path: "/beans",
+          icon: "bean",
+          type: "group",
+          key: "bean-quality",
+          children: [
+            {
+              label: "Analysis",
+              path: "/beans",
+              icon: "bean",
+              end: true,
+            },
+            {
+              label: "Report History",
+              path: "/beans/reports",
+              icon: "report",
+            },
+          ],
         },
       ];
     }
-
-    // ---------------------------------------------------------
-    // POWDER QUALITY INSPECTOR
-    // ---------------------------------------------------------
 
     if (user.role === "POWDER_QUALITY_INSPECTOR") {
       return [
         {
-          label: "Home",
+          label: "Dashboard",
           path: "/dashboard",
+          icon: "dashboard",
         },
         {
           label: "My Profile",
           path: "/profile",
+          icon: "user",
+        },
+        {
+          label: "Powder Quality",
+          path: "/powder",
+          icon: "powder",
         },
       ];
     }
-
-    // ---------------------------------------------------------
-    // PACKAGING QUALITY INSPECTOR
-    // ---------------------------------------------------------
 
     if (user.role === "PACKAGING_QUALITY_INSPECTOR") {
       return [
         {
-          label: "Home",
+          label: "Dashboard",
           path: "/dashboard",
+          icon: "dashboard",
         },
         {
           label: "My Profile",
           path: "/profile",
+          icon: "user",
         },
-
         {
           label: "Packaging Quality",
           path: "/seals",
+          icon: "package",
         },
       ];
     }
 
-    // ---------------------------------------------------------
-    // SALES ANALYST
-    // ---------------------------------------------------------
-
     if (user.role === "SALES_ANALYST") {
       return [
         {
-          label: "Home",
+          label: "Dashboard",
           path: "/dashboard",
+          icon: "dashboard",
         },
         {
           label: "My Profile",
           path: "/profile",
+          icon: "user",
+        },
+        {
+          label: "Sales Analysis",
+          path: "/sales",
+          icon: "chart",
         },
       ];
     }
@@ -168,367 +311,1235 @@ function Sidebar() {
 
   const menuItems = getMenuItems();
 
+  const initials = `${user.first_name?.[0] || ""}${
+    user.last_name?.[0] || ""
+  }`.toUpperCase();
+
   return (
     <>
-      <style>
-        {`
+      <style>{`
+        @keyframes sidebarStatusPulse {
+          0%, 100% {
+            box-shadow: 0 0 0 0 rgba(43, 204, 105, .28);
+          }
+
+          50% {
+            box-shadow: 0 0 0 8px rgba(43, 204, 105, 0);
+          }
+        }
+
+        @keyframes sidebarGlow {
+          0%, 100% {
+            opacity: .50;
+          }
+
+          50% {
+            opacity: .85;
+          }
+        }
+
+        @keyframes coffeeSteam {
+          0% {
+            transform: translateY(5px);
+            opacity: 0;
+          }
+
+          35% {
+            opacity: .7;
+          }
+
+          100% {
+            transform: translateY(-10px);
+            opacity: 0;
+          }
+        }
+
+        .sidebar,
+        .sidebar *,
+        .sidebar *::before,
+        .sidebar *::after {
+          box-sizing: border-box;
+        }
+
+        .sidebar {
+          width: 300px;
+          height: 100vh;
+          min-height: 100vh;
+          position: sticky;
+          top: 0;
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          padding: 14px 16px 12px;
+          color: #fff6e9;
+          font-family:
+            Inter,
+            ui-sans-serif,
+            system-ui,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
+          background:
+            radial-gradient(
+              circle at 72% 11%,
+              rgba(221, 142, 44, .19),
+              transparent 25%
+            ),
+            radial-gradient(
+              circle at 50% 35%,
+              rgba(164, 86, 24, .10),
+              transparent 42%
+            ),
+            linear-gradient(
+              180deg,
+              #231006 0%,
+              #180a04 54%,
+              #120704 100%
+            );
+          border-right: 1px solid rgba(231, 163, 75, .10);
+          box-shadow:
+            16px 0 55px rgba(32, 13, 4, .14);
+        }
+
+        .sidebar::before {
+          content: "";
+          position: absolute;
+          top: -90px;
+          left: 30px;
+          width: 250px;
+          height: 250px;
+          border-radius: 50%;
+          background: rgba(224, 145, 48, .08);
+          filter: blur(24px);
+          pointer-events: none;
+          animation: sidebarGlow 4.5s ease-in-out infinite;
+        }
+
+        /* =========================
+           BRAND
+        ========================= */
+
+        .sidebar-brand {
+          position: relative;
+          z-index: 2;
+
+          display: grid;
+          grid-template-columns: 54px minmax(0, 1fr);
+          grid-template-rows: auto auto;
+          column-gap: 12px;
+          row-gap: 3px;
+
+          align-items: center;
+
+          text-align: left;
+
+          padding: 3px 4px 13px;
+        }
+
+        .sidebar-brand-mark {
+          width: 54px;
+          height: 54px;
+
+          position: relative;
+
+          grid-column: 1;
+          grid-row: 1 / 3;
+
+          display: grid;
+          place-items: center;
+
+          margin: 0;
+
+          border-radius: 16px;
+          border-radius: 22px;
+          color: white;
+          background:
+            linear-gradient(
+              145deg,
+              #f4c451 0%,
+              #de951f 52%,
+              #b96317 100%
+            );
+          border: 1px solid rgba(255, 227, 155, .55);
+          box-shadow:
+            0 15px 34px rgba(215, 131, 30, .26),
+            inset 0 1px 0 rgba(255, 255, 255, .35);
+        }
+
+        .sidebar-brand-steam {
+          position: absolute;
+          top: 8px;
+          left: 50%;
+          width: 24px;
+          height: 14px;
+          transform: translateX(-50%);
+          pointer-events: none;
+        }
+
+        .sidebar-brand-steam span {
+          position: absolute;
+          bottom: 0;
+          width: 2px;
+          height: 8px;
+          border-radius: 99px;
+          background:
+            linear-gradient(
+              to top,
+              rgba(255, 255, 255, .80),
+              transparent
+            );
+          animation: coffeeSteam 2.5s ease-in-out infinite;
+        }
+
+        .sidebar-brand-steam span:nth-child(1) {
+          left: 4px;
+        }
+
+        .sidebar-brand-steam span:nth-child(2) {
+          left: 13px;
+          animation-delay: .55s;
+        }
+
+        .sidebar-brand-steam span:nth-child(3) {
+          left: 22px;
+          animation-delay: 1.1s;
+        }
+
+        .sidebar-brand-title {
+          grid-column: 2;
+          grid-row: 1;
+
+          margin-top: 0;
+
+          align-self: end;
+
+          color: #fff7e8;
+          font-family:
+            Georgia,
+            "Times New Roman",
+            serif;
+          font-size: 24px;
+          font-weight: 700;
+          line-height: 1;
+          letter-spacing: -0.8px;
+        }
+
+        .sidebar-brand-subtitle {
+          grid-column: 2;
+          grid-row: 2;
+
+          margin-top: 2px;
+
+          display: inline-flex;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 6px;
+
+          align-self: start;
+
+          color: #e8bd82;
+          font-size: 11px;
+          font-weight: 700;
+        }
+
+        .sidebar-brand-subtitle svg {
+          color: #f1b84f;
+        }
+
+        /* =========================
+           USER
+        ========================= */
+
+        .sidebar-user {
+          position: relative;
+          z-index: 2;
+
+          display: grid;
+          grid-template-columns: 38px minmax(0, 1fr) 16px;
+          align-items: center;
+          gap: 9px;
+
+          margin: 0 2px 11px;
+          padding: 9px 10px;
+          border-radius: 15px;
+          color: #f7e9da;
+          background: rgba(255,255,255,.035);
+          border: 1px solid rgba(239, 179, 100, .10);
+          cursor: pointer;
+          transition:
+            transform .18s ease,
+            background .18s ease,
+            border-color .18s ease;
+        }
+
+        .sidebar-user:hover {
+          transform: translateY(-1px);
+          background: rgba(255,255,255,.055);
+          border-color: rgba(239,179,100,.18);
+        }
+
+        .sidebar-user-avatar {
+          width: 38px;
+          height: 38px;
+          display: grid;
+          place-items: center;
+          border-radius: 10px;
+          color: #35180a;
+          background:
+            linear-gradient(
+              145deg,
+              #f0c059,
+              #c97a20
+            );
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        .sidebar-user-copy {
+          min-width: 0;
+        }
+
+        .sidebar-user-name {
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          color: #fff5e8;
+          font-size: 13px;
+          font-weight: 800;
+        }
+
+        .sidebar-user-role {
+          margin-top: 3px;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          color: #cba98e;
+          font-size: 10.5px;
+        }
+
+        .sidebar-user-arrow {
+          color: #8f6d58;
+          transition: .18s ease;
+        }
+
+        .sidebar-user:hover .sidebar-user-arrow {
+          color: #e7bc87;
+          transform: translateX(2px);
+        }
+
+        /* =========================
+           MENU
+        ========================= */
+
+        .sidebar-menu {
+          position: relative;
+          z-index: 2;
+
+          min-height: 0;
+          flex: 1;
+
+          overflow-y: auto;
+
+          padding: 1px 2px 7px;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255,255,255,.09) transparent;
+        }
+
+        .sidebar-menu::-webkit-scrollbar {
+          width: 4px;
+        }
+
+        .sidebar-menu::-webkit-scrollbar-thumb {
+          border-radius: 99px;
+          background: rgba(255,255,255,.09);
+        }
+
+        .sidebar-menu-title {
+          margin: 0 0 6px 4px;
+          color: #b58b6f;
+          font-size: 10px;
+          font-weight: 850;
+          letter-spacing: 1.35px;
+          text-transform: uppercase;
+        }
+
+        .sidebar-menu-list {
+          display: grid;
+          gap: 7px;
+        }
+
+        .sidebar-link {
+          min-height: 48px;
+          position: relative;
+          display: grid;
+          grid-template-columns: 32px minmax(0, 1fr) 18px;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 10px;
+          border-radius: 13px;
+          color: #d8c5b8;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 800;
+          border: 1px solid rgba(199, 128, 51, .19);
+          background:
+            linear-gradient(
+              135deg,
+              rgba(255,255,255,.018),
+              rgba(151,73,19,.035)
+            );
+          transition:
+            transform .18s ease,
+            color .18s ease,
+            background .18s ease,
+            border-color .18s ease,
+            box-shadow .18s ease;
+        }
+
+        .sidebar-link:hover {
+          transform: translateY(-1px);
+          color: #fff6e9;
+          border-color: rgba(222, 153, 66, .30);
+          background:
+            linear-gradient(
+              135deg,
+              rgba(220, 144, 46, .08),
+              rgba(255,255,255,.025)
+            );
+        }
+
+        .sidebar-link.active {
+          color: #2e1508;
+          border-color: rgba(255, 220, 133, .72);
+          background:
+            linear-gradient(
+              100deg,
+              #f4cd64 0%,
+              #e9aa31 45%,
+              #c46d1f 100%
+            );
+          box-shadow:
+            0 11px 28px rgba(208, 123, 28, .26),
+            inset 0 1px 0 rgba(255,255,255,.42);
+        }
+
+        .sidebar-link-icon {
+          width: 32px;
+          height: 32px;
+          display: grid;
+          place-items: center;
+          border-radius: 11px;
+          color: #d7b99e;
+          background: rgba(255,255,255,.028);
+        }
+
+        .sidebar-link.active .sidebar-link-icon {
+          color: #281308;
+          background: rgba(255,255,255,.14);
+        }
+
+        .sidebar-link-dot {
+          width: 11px;
+          height: 11px;
+          justify-self: center;
+          border-radius: 50%;
+          border: 1.5px solid rgba(213, 171, 127, .26);
+          background: transparent;
+        }
+
+        .sidebar-link.active .sidebar-link-dot {
+          border: none;
+          background: #fff;
+          box-shadow:
+            0 0 0 3px rgba(255,255,255,.13),
+            0 3px 8px rgba(72,33,7,.12);
+        }
+
+
+        /* =========================
+           NESTED BEAN QUALITY MENU
+        ========================= */
+
+        .sidebar-group {
+          display: grid;
+          gap: 7px;
+        }
+
+        .sidebar-parent-link {
+          width: 100%;
+          min-height: 48px;
+          position: relative;
+          display: grid;
+          grid-template-columns:
+            32px
+            minmax(0, 1fr)
+            18px;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 10px;
+          border-radius: 13px;
+          color: #d8c5b8;
+          text-align: left;
+          font: inherit;
+          font-size: 14px;
+          font-weight: 800;
+          border:
+            1px solid
+            rgba(
+              199,
+              128,
+              51,
+              .19
+            );
+          background:
+            linear-gradient(
+              135deg,
+              rgba(
+                255,
+                255,
+                255,
+                .018
+              ),
+              rgba(
+                151,
+                73,
+                19,
+                .035
+              )
+            );
+          cursor: pointer;
+          transition:
+            transform .18s ease,
+            color .18s ease,
+            background .18s ease,
+            border-color .18s ease,
+            box-shadow .18s ease;
+        }
+
+        .sidebar-parent-link:hover {
+          transform:
+            translateY(-1px);
+          color: #fff6e9;
+          border-color:
+            rgba(
+              222,
+              153,
+              66,
+              .30
+            );
+          background:
+            linear-gradient(
+              135deg,
+              rgba(
+                220,
+                144,
+                46,
+                .08
+              ),
+              rgba(
+                255,
+                255,
+                255,
+                .025
+              )
+            );
+        }
+
+        .sidebar-parent-link.group-active {
+          color: #f3d7b5;
+          border-color:
+            rgba(
+              232,
+              163,
+              72,
+              .34
+            );
+          background:
+            linear-gradient(
+              135deg,
+              rgba(
+                211,
+                131,
+                38,
+                .10
+              ),
+              rgba(
+                255,
+                255,
+                255,
+                .025
+              )
+            );
+          box-shadow:
+            inset
+            0 1px 0
+            rgba(
+              255,
+              255,
+              255,
+              .025
+            );
+        }
+
+        .sidebar-parent-link.group-active
+        .sidebar-link-icon {
+          color: #efbc7a;
+          background:
+            rgba(
+              225,
+              150,
+              61,
+              .10
+            );
+        }
+
+        .sidebar-parent-chevron {
+          width: 24px;
+          height: 24px;
+          display: grid;
+          place-items: center;
+          justify-self: center;
+          color: #a9856c;
+          transition:
+            transform .20s ease,
+            color .20s ease;
+        }
+
+        .sidebar-parent-chevron.open {
+          transform:
+            rotate(90deg);
+          color: #e7b06f;
+        }
+
+        .sidebar-submenu {
+          position: relative;
+
+          display: grid;
+          gap: 5px;
+
+          margin-left: 14px;
+
+          padding:
+            1px
+            0
+            1px
+            16px;
+        }
+
+        .sidebar-submenu::before {
+          content: "";
+          position: absolute;
+          top: 2px;
+          bottom: 2px;
+          left: 1px;
+          width: 1px;
+          border-radius: 99px;
+          background:
+            linear-gradient(
+              to bottom,
+              rgba(
+                221,
+                151,
+                70,
+                .32
+              ),
+              rgba(
+                221,
+                151,
+                70,
+                .08
+              )
+            );
+        }
+
+        .sidebar-sublink {
+          min-height: 38px;
+          position: relative;
+          display: grid;
+          grid-template-columns:
+            27px
+            minmax(0, 1fr)
+            8px;
+          align-items: center;
+          gap: 7px;
+
+          padding:
+            4px
+            8px;
+
+          border-radius: 11px;
+          color: #bfa99a;
+          text-decoration: none;
+          font-size: 12px;
+          font-weight: 800;
+          border:
+            1px solid
+            rgba(
+              207,
+              143,
+              67,
+              .08
+            );
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .018
+            );
+          transition:
+            transform .17s ease,
+            color .17s ease,
+            border-color .17s ease,
+            background .17s ease;
+        }
+
+        .sidebar-sublink::before {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: -19px;
+          width: 13px;
+          height: 1px;
+          background:
+            rgba(
+              221,
+              151,
+              70,
+              .26
+            );
+        }
+
+        .sidebar-sublink:hover {
+          transform:
+            translateX(2px);
+          color: #f6e5d5;
+          border-color:
+            rgba(
+              221,
+              151,
+              70,
+              .18
+            );
+          background:
+            rgba(
+              209,
+              128,
+              34,
+              .055
+            );
+        }
+
+        .sidebar-sublink.active {
+          color: #2c1609;
+          border-color:
+            rgba(
+              255,
+              219,
+              131,
+              .62
+            );
+          background:
+            linear-gradient(
+              100deg,
+              #f2ca62,
+              #db8f28
+            );
+          box-shadow:
+            0 8px 20px
+            rgba(
+              199,
+              111,
+              23,
+              .18
+            );
+        }
+
+        .sidebar-sublink-icon {
+          width: 27px;
+          height: 27px;
+          display: grid;
+          place-items: center;
+          border-radius: 9px;
+          color: #c8a98e;
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .025
+            );
+        }
+
+        .sidebar-sublink.active
+        .sidebar-sublink-icon {
+          color: #2c1609;
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .13
+            );
+        }
+
+        .sidebar-sublink-dot {
+          width: 7px;
+          height: 7px;
+          justify-self: center;
+          border-radius: 50%;
+          border:
+            1.2px solid
+            rgba(
+              210,
+              165,
+              121,
+              .24
+            );
+        }
+
+        .sidebar-sublink.active
+        .sidebar-sublink-dot {
+          border: none;
+          background: #fff;
+          box-shadow:
+            0 0 0 2px
+            rgba(
+              255,
+              255,
+              255,
+              .13
+            );
+        }
+
+        /* =========================
+           SYSTEM CARD
+        ========================= */
+
+        .sidebar-system-card {
+          position: relative;
+          z-index: 2;
+
+          margin: 8px 2px 0;
+          padding: 11px 12px;
+          display: grid;
+          grid-template-columns: 12px 1fr;
+          gap: 9px;
+          align-items: center;
+          border-radius: 18px;
+          background:
+            linear-gradient(
+              145deg,
+              rgba(255,255,255,.035),
+              rgba(116,60,21,.055)
+            );
+          border: 1px solid rgba(209, 139, 64, .20);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+        }
+
+        .sidebar-system-dot {
+          width: 9px;
+          height: 9px;
+          border-radius: 50%;
+          background: #21c565;
+          box-shadow: 0 0 16px rgba(33,197,101,.45);
+          animation: sidebarStatusPulse 2s ease-in-out infinite;
+        }
+
+        .sidebar-system-title {
+          color: #39e17e;
+          font-size: 12.5px;
+          font-weight: 850;
+        }
+
+        .sidebar-system-text {
+          margin-top: 2px;
+          color: #cfb9aa;
+          font-size: 10.5px;
+          line-height: 1.45;
+        }
+
+        /* =========================
+           FOOTER
+        ========================= */
+
+        .sidebar-footer {
+          position: relative;
+          z-index: 2;
+
+          margin-top: 9px;
+          padding-top: 9px;
+          border-top: 1px solid rgba(226, 159, 79, .10);
+        }
+
+        .sidebar-footer-brand {
+          margin-bottom: 7px;
+        }
+
+        .sidebar-footer-brand strong {
+          display: block;
+          color: #fff5e8;
+          font-size: 12.5px;
+        }
+
+        .sidebar-footer-brand span {
+          display: block;
+          margin-top: 2px;
+          color: #a98c79;
+          font-size: 9.5px;
+          line-height: 1.45;
+        }
+
+        .sidebar-logout {
+          width: 100%;
+          min-height: 38px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          border-radius: 12px;
+          border: 1px solid rgba(225, 151, 77, .14);
+          color: #e8d4c5;
+          background: rgba(255,255,255,.035);
+          font: inherit;
+          font-size: 12px;
+          font-weight: 800;
+          cursor: pointer;
+          transition:
+            transform .18s ease,
+            color .18s ease,
+            background .18s ease,
+            border-color .18s ease;
+        }
+
+        .sidebar-logout:hover {
+          transform: translateY(-1px);
+          color: #fff1eb;
+          background: rgba(145, 49, 38, .30);
+          border-color: rgba(218, 102, 83, .22);
+        }
+
+
+        /* =========================
+           VIEWPORT HEIGHT ADAPTATION
+           Keeps more navigation items visible on laptops.
+        ========================= */
+
+        @media (max-height: 850px) {
           .sidebar {
-            width: 270px;
-            min-height: 100vh;
-
-            background: #173d2a;
-
-            color: white;
-
-            display: flex;
-            flex-direction: column;
-
-            padding: 25px 18px;
-
-            position: sticky;
-            top: 0;
+            padding-top: 9px;
+            padding-bottom: 8px;
           }
 
-
-          /* =================================================
-             LOGO
-          ================================================= */
-
-          .sidebar-logo {
-            padding: 5px 10px 25px;
-
-            border-bottom:
-              1px solid
-              rgba(255, 255, 255, 0.12);
+          .sidebar-brand {
+            padding-bottom: 8px;
           }
 
-
-          .sidebar-logo h2 {
-            margin: 0;
-
-            font-size: 21px;
-
-            line-height: 1.3;
+          .sidebar-brand-mark {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
           }
 
-
-          .sidebar-logo span {
-            color: #a7d9b8;
+          .sidebar-brand-title {
+            font-size: 22px;
           }
 
-
-          .sidebar-logo p {
-            margin: 7px 0 0;
-
-            font-size: 11px;
-
-            color:
-              rgba(255, 255, 255, 0.55);
+          .sidebar-brand-subtitle {
+            margin-top: 0;
+            font-size: 10px;
           }
-
-
-          /* =================================================
-             USER CARD
-          ================================================= */
 
           .sidebar-user {
-            margin-top: 22px;
-
-            padding: 15px;
-
-            border-radius: 12px;
-
-            background:
-              rgba(255, 255, 255, 0.07);
-
-            cursor: pointer;
-
-            transition:
-              background 0.2s ease,
-              transform 0.2s ease;
+            margin-bottom: 8px;
+            padding-top: 7px;
+            padding-bottom: 7px;
           }
 
-
-          .sidebar-user:hover {
-            background:
-              rgba(255, 255, 255, 0.11);
-
-            transform: translateY(-1px);
+          .sidebar-menu-list {
+            gap: 5px;
           }
 
-
-          .sidebar-user-name {
-            font-size: 14px;
-
-            font-weight: 600;
+          .sidebar-link,
+          .sidebar-parent-link {
+            min-height: 43px;
           }
 
-
-          .sidebar-user-role {
-            margin-top: 5px;
-
-            font-size: 11px;
-
-            color: #aad6b9;
+          .sidebar-submenu {
+            gap: 4px;
           }
 
-
-          .sidebar-user-hint {
-            margin-top: 9px;
-
-            font-size: 9px;
-
-            color:
-              rgba(255, 255, 255, 0.35);
+          .sidebar-sublink {
+            min-height: 34px;
+            font-size: 11.5px;
           }
 
-
-          /* =================================================
-             MENU
-          ================================================= */
-
-          .sidebar-menu {
-            margin-top: 28px;
-
-            display: flex;
-            flex-direction: column;
-
-            gap: 7px;
-
-            flex: 1;
+          .sidebar-system-card {
+            margin-top: 6px;
+            padding-top: 8px;
+            padding-bottom: 8px;
           }
-
-
-          .sidebar-menu-title {
-            padding: 0 10px;
-
-            margin-bottom: 5px;
-
-            font-size: 10px;
-
-            text-transform: uppercase;
-
-            letter-spacing: 1px;
-
-            color:
-              rgba(255, 255, 255, 0.45);
-          }
-
-
-          .sidebar-link {
-            display: flex;
-
-            align-items: center;
-
-            padding: 12px 13px;
-
-            border-radius: 9px;
-
-            color:
-              rgba(255, 255, 255, 0.75);
-
-            text-decoration: none;
-
-            font-size: 14px;
-
-            transition: 0.2s;
-          }
-
-
-          .sidebar-link:hover {
-            background:
-              rgba(255, 255, 255, 0.08);
-
-            color: white;
-          }
-
-
-          .sidebar-link.active {
-            background: #2a704b;
-
-            color: white;
-
-            font-weight: 600;
-          }
-
-
-          /* =================================================
-             COMING SOON
-          ================================================= */
-
-          .coming-soon {
-            margin-top: 18px;
-
-            padding: 13px;
-
-            border-radius: 10px;
-
-            background:
-              rgba(255, 255, 255, 0.05);
-
-            font-size: 12px;
-
-            color:
-              rgba(255, 255, 255, 0.55);
-
-            line-height: 1.5;
-          }
-
-
-          /* =================================================
-             FOOTER
-          ================================================= */
 
           .sidebar-footer {
-            padding-top: 20px;
-
-            border-top:
-              1px solid
-              rgba(255, 255, 255, 0.12);
+            margin-top: 6px;
+            padding-top: 7px;
           }
 
+          .sidebar-footer-brand {
+            margin-bottom: 5px;
+          }
 
           .sidebar-logout {
-            width: 100%;
+            min-height: 34px;
+          }
+        }
 
-            height: 42px;
 
-            border: none;
+        @media (max-height: 720px) {
+          .sidebar-brand-subtitle,
+          .sidebar-system-text,
+          .sidebar-footer-brand span {
+            display: none;
+          }
 
-            border-radius: 8px;
+          .sidebar-brand {
+            grid-template-rows: 1fr;
+            padding-bottom: 6px;
+          }
 
-            background:
-              rgba(255, 255, 255, 0.08);
+          .sidebar-brand-mark {
+            grid-row: 1;
+          }
 
-            color: white;
+          .sidebar-brand-title {
+            grid-row: 1;
+            align-self: center;
+          }
 
+          .sidebar-system-card {
+            padding: 7px 10px;
+          }
+
+          .sidebar-footer-brand {
+            margin-bottom: 4px;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .sidebar *,
+          .sidebar *::before,
+          .sidebar *::after {
+            animation-duration: .001ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: .001ms !important;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .sidebar {
+            width: 270px;
+            padding-left: 14px;
+            padding-right: 14px;
+          }
+
+          .sidebar-brand-mark {
+            width: 68px;
+            height: 68px;
+          }
+
+          .sidebar-brand-title {
+            font-size: 28px;
+          }
+
+          .sidebar-link,
+          .sidebar-parent-link {
+            min-height: 54px;
             font-size: 13px;
-
-            font-weight: 600;
-
-            cursor: pointer;
-
-            transition: 0.2s;
           }
 
-
-          .sidebar-logout:hover {
-            background: #9e3636;
+          .sidebar-submenu {
+            margin-left: 15px;
+            padding-left: 16px;
           }
 
-
-          /* =================================================
-             RESPONSIVE
-          ================================================= */
-
-          @media (max-width: 850px) {
-            .sidebar {
-              width: 220px;
-            }
+          .sidebar-sublink {
+            min-height: 43px;
+            font-size: 11px;
           }
-        `}
-      </style>
+
+          .sidebar-sublink::before {
+            left: -16px;
+            width: 11px;
+          }
+        }
+      `}</style>
 
       <aside className="sidebar">
-        {/* =================================================
-            LOGO
-        ================================================= */}
+        <div className="sidebar-brand">
+          <div className="sidebar-brand-mark">
+            <div className="sidebar-brand-steam" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
 
-        <div className="sidebar-logo">
-          <h2>
-            Smart Coffee
-            <br />
-            <span>Quality AI</span>
-          </h2>
+            <Icon name="coffee" size={37} strokeWidth={1.9} />
+          </div>
 
-          <p>Bean to Pack Quality Control</p>
+          <div className="sidebar-brand-title">Bean to Pack</div>
+
+          <div className="sidebar-brand-subtitle">
+            <Icon name="spark" size={16} />
+            AI Coffee Intelligence
+          </div>
         </div>
-
-        {/* =================================================
-            USER CARD
-        ================================================= */}
 
         <div
           className="sidebar-user"
           onClick={handleOpenProfile}
           title="Open My Profile"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              handleOpenProfile();
+            }
+          }}
         >
-          <div className="sidebar-user-name">
-            {user.first_name} {user.last_name}
+          <div className="sidebar-user-avatar">
+            {initials || <Icon name="user" size={18} />}
           </div>
 
-          <div className="sidebar-user-role">{getRoleLabel(user.role)}</div>
+          <div className="sidebar-user-copy">
+            <div className="sidebar-user-name">
+              {user.first_name} {user.last_name}
+            </div>
 
-          <div className="sidebar-user-hint">View My Profile →</div>
+            <div className="sidebar-user-role">{getRoleLabel(user.role)}</div>
+          </div>
+
+          <span className="sidebar-user-arrow">
+            <Icon name="chevron" size={15} />
+          </span>
         </div>
 
-        {/* =================================================
-            NAVIGATION
-        ================================================= */}
-
         <nav className="sidebar-menu">
-          <div className="sidebar-menu-title">Navigation</div>
+          <div className="sidebar-menu-title">Workspace</div>
 
-          {menuItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                isActive ? "sidebar-link active" : "sidebar-link"
+          <div className="sidebar-menu-list">
+            {menuItems.map((item) => {
+              if (item.type === "group") {
+                const isBeanGroup = item.key === "bean-quality";
+
+                const groupOpen = isBeanGroup ? beanMenuOpen : false;
+
+                const groupActive = isBeanGroup ? beanSectionActive : false;
+
+                return (
+                  <div className="sidebar-group" key={item.key}>
+                    <button
+                      type="button"
+                      className={`sidebar-parent-link ${
+                        groupActive ? "group-active" : ""
+                      }`}
+                      onClick={() => {
+                        if (isBeanGroup) {
+                          setBeanMenuOpen((previous) => !previous);
+                        }
+                      }}
+                      aria-expanded={groupOpen}
+                    >
+                      <span className="sidebar-link-icon">
+                        <Icon name={item.icon} size={19} />
+                      </span>
+
+                      <span>{item.label}</span>
+
+                      <span
+                        className={`sidebar-parent-chevron ${
+                          groupOpen ? "open" : ""
+                        }`}
+                      >
+                        <Icon name="chevron" size={15} />
+                      </span>
+                    </button>
+
+                    {groupOpen && (
+                      <div className="sidebar-submenu">
+                        {item.children.map((child) => (
+                          <NavLink
+                            key={child.path}
+                            to={child.path}
+                            end={child.end || false}
+                            className={({ isActive }) =>
+                              isActive
+                                ? "sidebar-sublink active"
+                                : "sidebar-sublink"
+                            }
+                          >
+                            <span className="sidebar-sublink-icon">
+                              <Icon name={child.icon} size={16} />
+                            </span>
+
+                            <span>{child.label}</span>
+
+                            <span className="sidebar-sublink-dot" />
+                          </NavLink>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
               }
-            >
-              {item.label}
-            </NavLink>
-          ))}
 
-          {/* ===============================================
-              POWDER MODULE
-          =============================================== */}
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.end || false}
+                  className={({ isActive }) =>
+                    isActive ? "sidebar-link active" : "sidebar-link"
+                  }
+                >
+                  <span className="sidebar-link-icon">
+                    <Icon name={item.icon} size={19} />
+                  </span>
 
-          {user.role === "POWDER_QUALITY_INSPECTOR" && (
-            <div className="coming-soon">
-              Powder Quality Module
-              <br />
-              Coming Soon
-            </div>
-          )}
+                  <span>{item.label}</span>
 
-          {/* ===============================================
-              PACKAGING MODULE
-          =============================================== */}
-
-          {user.role === "PACKAGING_QUALITY_INSPECTOR" && (
-            <div className="coming-soon">
-              Packaging Quality Module
-              <br />
-              Coming Soon
-            </div>
-          )}
-
-          {/* ===============================================
-              SALES MODULE
-          =============================================== */}
-
-          {user.role === "SALES_ANALYST" && (
-            <div className="coming-soon">
-              Sales Analysis Module
-              <br />
-              Coming Soon
-            </div>
-          )}
+                  <span className="sidebar-link-dot" />
+                </NavLink>
+              );
+            })}
+          </div>
         </nav>
 
-        {/* =================================================
-            LOGOUT
-        ================================================= */}
+        <div className="sidebar-system-card">
+          <span className="sidebar-system-dot" />
+
+          <div>
+            <div className="sidebar-system-title">System Online</div>
+            <div className="sidebar-system-text">
+              AI quality workspace active
+            </div>
+          </div>
+        </div>
 
         <div className="sidebar-footer">
+          <div className="sidebar-footer-brand">
+            <strong>Bean to Pack AI™</strong>
+            <span>Industrial coffee quality intelligence platform</span>
+          </div>
+
           <button
             type="button"
             className="sidebar-logout"
             onClick={handleLogout}
           >
-            Logout
+            <Icon name="logout" size={16} />
+            Sign Out
           </button>
         </div>
       </aside>

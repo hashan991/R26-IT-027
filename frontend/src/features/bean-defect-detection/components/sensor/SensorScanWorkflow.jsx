@@ -1,8 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 
+import { sendSensorIndicatorCommand } from "../../services/sensorService";
+
+
 import {
-  sendSensorIndicatorCommand,
-} from "../../services/sensorService";
+  SENSOR_THRESHOLDS,
+  TOTAL_VOTING_SENSORS,
+  SENSOR_VOTE_WEIGHT,
+  GOOD_MAX_BAD_VOTES,
+  REVIEW_BAD_VOTES,
+  BAD_MIN_BAD_VOTES,
+} from "/src/features/bean-defect-detection/config/sensorQualityConfig";
 
 // =========================================================
 // CONFIGURATION
@@ -13,25 +21,40 @@ import {
 const SAMPLE_EXPOSURE_TIME = 120;
 
 // =========================================================
-// SENSOR QUALITY SCORING
+// SENSOR QUALITY VOTING + SCORING
 // =========================================================
+//
+// Response (Δ) = Sample - Baseline
+//
+// Five sensors participate in the quality vote:
+//   1. MQ-2
+//   2. MQ-3
+//   3. MQ-135
+//   4. Moisture
+//   5. Humidity
+//
+// Temperature is retained as a supporting environmental
+// measurement only because the experimental GOOD/BAD ranges
+// overlapped.
 //
 // IMPORTANT:
-// These thresholds mirror the current backend quality-report
-// sensor scoring logic so Step 1 shows the same score/status
-// that will later appear in the Final Quality Report.
+// These are research-defined thresholds derived from the
+// collected experimental GOOD and BAD coffee-bean datasets.
+// They are NOT official coffee-industry grading thresholds.
 //
-// They are research-defined experimental thresholds, not an
-// official coffee-industry grading standard.
+// Keep these values identical to the backend quality-report
+// service when the backend is updated.
 // =========================================================
 
-const MQ2_GOOD_MAX = 44;
-const MQ2_BAD_THRESHOLD = 73;
-const MQ2_BAD_MAX = 277;
+const MQ2_BAD_THRESHOLD = SENSOR_THRESHOLDS.mq2.badThreshold;
 
-const MQ135_GOOD_MAX = 15;
-const MQ135_BAD_THRESHOLD = 22.5;
-const MQ135_BAD_MAX = 103;
+const MQ3_BAD_THRESHOLD = SENSOR_THRESHOLDS.mq3.badThreshold;
+
+const MQ135_BAD_THRESHOLD = SENSOR_THRESHOLDS.mq135.badThreshold;
+
+const MOISTURE_BAD_THRESHOLD = SENSOR_THRESHOLDS.moisture.badThreshold;
+
+const HUMIDITY_BAD_THRESHOLD = SENSOR_THRESHOLDS.humidity.badThreshold;
 
 function SensorScanWorkflow({
   sensorData,
@@ -54,9 +77,6 @@ function SensorScanWorkflow({
 
     sample-exposure
     sample-monitoring
-    sample-complete
-
-    recovery-monitoring
 
     complete
   */
@@ -71,8 +91,6 @@ function SensorScanWorkflow({
 
   const [sampleData, setSampleData] = useState(null);
 
-  const [recoveryData, setRecoveryData] = useState(null);
-
   // =========================================================
   // CAPTURE TIMES
   // =========================================================
@@ -80,8 +98,6 @@ function SensorScanWorkflow({
   const [baselineTime, setBaselineTime] = useState(null);
 
   const [sampleTime, setSampleTime] = useState(null);
-
-  const [recoveryTime, setRecoveryTime] = useState(null);
 
   // =========================================================
   // SAMPLE EXPOSURE TIMER
@@ -104,11 +120,9 @@ function SensorScanWorkflow({
 
       baseline: baselineData,
       sample: sampleData,
-      recovery: recoveryData,
 
       baselineCapturedAt: baselineTime?.toISOString?.() || null,
       sampleCapturedAt: sampleTime?.toISOString?.() || null,
-      recoveryCapturedAt: recoveryTime?.toISOString?.() || null,
 
       completed: stage === "complete",
     });
@@ -116,10 +130,8 @@ function SensorScanWorkflow({
     stage,
     baselineData,
     sampleData,
-    recoveryData,
     baselineTime,
     sampleTime,
-    recoveryTime,
     onWorkflowChange,
   ]);
 
@@ -185,11 +197,7 @@ function SensorScanWorkflow({
       ඇතුළත sensors stable වුණත්
       sample automatically capture වෙන්නේ නැහැ.
     */
-    const monitoringStages = [
-      "baseline-monitoring",
-      "sample-monitoring",
-      "recovery-monitoring",
-    ];
+    const monitoringStages = ["baseline-monitoring", "sample-monitoring"];
 
     if (!monitoringStages.includes(stage)) {
       return;
@@ -216,9 +224,10 @@ function SensorScanWorkflow({
 
       /*
         Baseline stable වුණා.
-        Live monitoring automatically stop කරනවා.
+        Baseline snapshot එක capture කරනවා.
+        Monitoring active තියාගන්නවා, sample exposure එකටත්
+        live values continue වෙන්න.
       */
-      
 
       setStage("baseline-complete");
 
@@ -236,31 +245,18 @@ function SensorScanWorkflow({
 
       /*
         Sample stable වුණා.
-        Monitoring stop කරනවා.
-      */
-      
-
-      setStage("sample-complete");
-
-      return;
-    }
-
-    // =====================================================
-    // 3. RECOVERY CAPTURE
-    // =====================================================
-
-    if (stage === "recovery-monitoring") {
-      setRecoveryData(capturedReading);
-
-      setRecoveryTime(capturedTime);
-
-      /*
-        Recovery stable වුණා.
-        Monitoring stop කරනවා.
+        Final sample reading capture කරලා
+        live monitoring stop කරනවා.
       */
       handleToggleMonitoring();
 
+      /*
+        Recovery stage එකක් නැහැ.
+        Sample capture වුණු ගමන් test complete.
+      */
       setStage("complete");
+
+      return;
     }
   }, [stabilityStatus, sensorData, autoReading, stage, handleToggleMonitoring]);
 
@@ -273,10 +269,7 @@ function SensorScanWorkflow({
     lastIndicatorCommandRef.current = null;
 
     sendSensorIndicatorCommand("RESET").catch((error) => {
-      console.error(
-        "Unable to reset Arduino indicator:",
-        error,
-      );
+      console.error("Unable to reset Arduino indicator:", error);
     });
 
     /*
@@ -288,13 +281,9 @@ function SensorScanWorkflow({
 
     setSampleData(null);
 
-    setRecoveryData(null);
-
     setBaselineTime(null);
 
     setSampleTime(null);
-
-    setRecoveryTime(null);
 
     setExposureTimeLeft(SAMPLE_EXPOSURE_TIME);
 
@@ -406,36 +395,6 @@ function SensorScanWorkflow({
   }, [stage, exposureTimeLeft, resetStabilityTracking]);
 
   // =========================================================
-  // END TASK
-  // =========================================================
-
-  const handleEndTask = () => {
-    if (stage !== "sample-complete") {
-      return;
-    }
-
-    captureLockRef.current = false;
-
-    /*
-      Recovery stage එකට කලින්
-      previous sample stability history
-      remove කරනවා.
-    */
-    if (resetStabilityTracking) {
-      resetStabilityTracking();
-    }
-
-    setStage("recovery-monitoring");
-
-    /*
-      Live monitoring START
-    */
-    if (!autoReading) {
-      handleToggleMonitoring();
-    }
-  };
-
-  // =========================================================
   // NEW TEST
   // =========================================================
 
@@ -444,10 +403,7 @@ function SensorScanWorkflow({
     lastIndicatorCommandRef.current = null;
 
     sendSensorIndicatorCommand("RESET").catch((error) => {
-      console.error(
-        "Unable to reset Arduino indicator:",
-        error,
-      );
+      console.error("Unable to reset Arduino indicator:", error);
     });
 
     /*
@@ -467,13 +423,9 @@ function SensorScanWorkflow({
 
     setSampleData(null);
 
-    setRecoveryData(null);
-
     setBaselineTime(null);
 
     setSampleTime(null);
-
-    setRecoveryTime(null);
 
     setExposureTimeLeft(SAMPLE_EXPOSURE_TIME);
 
@@ -501,39 +453,6 @@ function SensorScanWorkflow({
     }
 
     const difference = Number(sample) - Number(baseline);
-
-    if (decimals > 0) {
-      return difference >= 0
-        ? `+${difference.toFixed(decimals)}`
-        : difference.toFixed(decimals);
-    }
-
-    return difference >= 0
-      ? `+${Math.round(difference)}`
-      : `${Math.round(difference)}`;
-  };
-
-  // =========================================================
-  // RECOVERY DIFFERENCE
-  // =========================================================
-
-  /*
-    Recovery Error
-
-    Recovery - Baseline
-  */
-
-  const calculateRecoveryDifference = (recovery, baseline, decimals = 0) => {
-    if (
-      recovery === null ||
-      recovery === undefined ||
-      baseline === null ||
-      baseline === undefined
-    ) {
-      return "--";
-    }
-
-    const difference = Number(recovery) - Number(baseline);
 
     if (decimals > 0) {
       return difference >= 0
@@ -577,10 +496,16 @@ function SensorScanWorkflow({
   // =========================================================
   // SENSOR QUALITY ASSESSMENT
   // =========================================================
-
-  const clampScore = (value) => {
-    return Math.max(0, Math.min(100, Number(value)));
-  };
+  //
+  // Research method is controlled by sensorQualityConfig.js:
+  //
+  // Sensor Score = 100 - (BAD vote count × SENSOR_VOTE_WEIGHT)
+  //
+  // GOOD   -> badCount <= GOOD_MAX_BAD_VOTES
+  // REVIEW -> badCount === REVIEW_BAD_VOTES
+  // BAD    -> badCount >= BAD_MIN_BAD_VOTES
+  //
+  // =========================================================
 
   const calculateNumericDifference = (sample, baseline) => {
     if (
@@ -602,71 +527,19 @@ function SensorScanWorkflow({
     return Number((sampleValue - baselineValue).toFixed(2));
   };
 
-  const calculateMq2Score = (response) => {
-    if (response === null || response === undefined) {
-      return null;
-    }
-
-    const value = Number(response);
-
-    if (!Number.isFinite(value)) {
-      return null;
-    }
-
-    if (value <= MQ2_GOOD_MAX) {
-      return 100;
-    }
-
-    if (value < MQ2_BAD_THRESHOLD) {
-      const score =
-        100 -
-        (30 * (value - MQ2_GOOD_MAX)) /
-          (MQ2_BAD_THRESHOLD - MQ2_GOOD_MAX);
-
-      return Number(clampScore(score).toFixed(2));
-    }
-
-    const score =
-      (70 * (MQ2_BAD_MAX - value)) /
-      (MQ2_BAD_MAX - MQ2_BAD_THRESHOLD);
-
-    return Number(clampScore(score).toFixed(2));
-  };
-
-  const calculateMq135Score = (response) => {
-    if (response === null || response === undefined) {
-      return null;
-    }
-
-    const value = Number(response);
-
-    if (!Number.isFinite(value)) {
-      return null;
-    }
-
-    if (value <= MQ135_GOOD_MAX) {
-      return 100;
-    }
-
-    if (value < MQ135_BAD_THRESHOLD) {
-      const score =
-        100 -
-        (30 * (value - MQ135_GOOD_MAX)) /
-          (MQ135_BAD_THRESHOLD - MQ135_GOOD_MAX);
-
-      return Number(clampScore(score).toFixed(2));
-    }
-
-    const score =
-      (70 * (MQ135_BAD_MAX - value)) /
-      (MQ135_BAD_MAX - MQ135_BAD_THRESHOLD);
-
-    return Number(clampScore(score).toFixed(2));
-  };
+  // ---------------------------------------------------------
+  // RESPONSE VALUES
+  // Δ = Sample - Baseline
+  // ---------------------------------------------------------
 
   const mq2QualityResponse = calculateNumericDifference(
     sampleData?.mq2,
     baselineData?.mq2,
+  );
+
+  const mq3QualityResponse = calculateNumericDifference(
+    sampleData?.mq3,
+    baselineData?.mq3,
   );
 
   const mq135QualityResponse = calculateNumericDifference(
@@ -674,53 +547,130 @@ function SensorScanWorkflow({
     baselineData?.mq135,
   );
 
-  const mq2QualityScore = calculateMq2Score(mq2QualityResponse);
-
-  const mq135QualityScore = calculateMq135Score(mq135QualityResponse);
-
-  const availablePrimaryScores = [mq2QualityScore, mq135QualityScore].filter(
-    (score) => score !== null && score !== undefined,
+  const moistureQualityResponse = calculateNumericDifference(
+    sampleData?.moisture,
+    baselineData?.moisture,
   );
 
-  const sensorQualityScore = availablePrimaryScores.length
-    ? Number(
-        (
-          availablePrimaryScores.reduce((total, score) => total + score, 0) /
-          availablePrimaryScores.length
-        ).toFixed(2),
+  const humidityQualityResponse = calculateNumericDifference(
+    sampleData?.humidity,
+    baselineData?.humidity,
+  );
+
+  const temperatureQualityResponse = calculateNumericDifference(
+    sampleData?.temperature,
+    baselineData?.temperature,
+  );
+
+  // ---------------------------------------------------------
+  // CHECK THAT ALL 5 VOTING SENSOR RESPONSES ARE AVAILABLE
+  // ---------------------------------------------------------
+
+  const sensorResponsesAvailable =
+    mq2QualityResponse !== null &&
+    mq3QualityResponse !== null &&
+    mq135QualityResponse !== null &&
+    moistureQualityResponse !== null &&
+    humidityQualityResponse !== null;
+
+  // ---------------------------------------------------------
+  // INDIVIDUAL BAD VOTES
+  // ---------------------------------------------------------
+
+  const mq2Bad =
+    mq2QualityResponse !== null &&
+    mq2QualityResponse >= MQ2_BAD_THRESHOLD;
+
+  const mq3Bad =
+    mq3QualityResponse !== null &&
+    mq3QualityResponse >= MQ3_BAD_THRESHOLD;
+
+  const mq135Bad =
+    mq135QualityResponse !== null &&
+    mq135QualityResponse >= MQ135_BAD_THRESHOLD;
+
+  /*
+    Moisture response direction is opposite to the gas/humidity
+    sensors in the collected experimental data.
+
+    More-negative response = stronger BAD indication.
+  */
+  const moistureBad =
+    moistureQualityResponse !== null &&
+    moistureQualityResponse <= MOISTURE_BAD_THRESHOLD;
+
+  const humidityBad =
+    humidityQualityResponse !== null &&
+    humidityQualityResponse >= HUMIDITY_BAD_THRESHOLD;
+
+  // ---------------------------------------------------------
+  // COUNT BAD VOTES
+  // ---------------------------------------------------------
+
+  const badCount = [
+    mq2Bad,
+    mq3Bad,
+    mq135Bad,
+    moistureBad,
+    humidityBad,
+  ].filter(Boolean).length;
+
+  // ---------------------------------------------------------
+  // SENSOR SCORE
+  //
+  // Equal-weight voting sensors.
+  // Each BAD vote removes SENSOR_VOTE_WEIGHT points from config.
+  // ---------------------------------------------------------
+
+  const sensorQualityScore = sensorResponsesAvailable
+    ? Math.max(
+        0,
+        100 - badCount * SENSOR_VOTE_WEIGHT,
       )
     : 0;
 
+  // ---------------------------------------------------------
+  // SENSOR STATUS
+  // ---------------------------------------------------------
+
   const getSensorQualityStatus = () => {
-    if (mq2QualityResponse === null || mq135QualityResponse === null) {
+    // Missing data means the quality decision is not reliable.
+    if (!sensorResponsesAvailable) {
       return "REVIEW";
     }
 
-    if (
-      mq2QualityResponse < MQ2_BAD_THRESHOLD &&
-      mq135QualityResponse < MQ135_BAD_THRESHOLD
-    ) {
-      return "GOOD";
-    }
-
-    if (
-      mq2QualityResponse >= MQ2_BAD_THRESHOLD &&
-      mq135QualityResponse >= MQ135_BAD_THRESHOLD
-    ) {
+    if (badCount >= BAD_MIN_BAD_VOTES) {
       return "BAD";
     }
 
+    if (badCount === REVIEW_BAD_VOTES) {
+      return "REVIEW";
+    }
+
+    if (badCount <= GOOD_MAX_BAD_VOTES) {
+      return "GOOD";
+    }
+
+    // Safety fallback if future config values leave a gap.
     return "REVIEW";
   };
 
   const sensorQualityStatus = getSensorQualityStatus();
 
+  const getVoteLabel = (response, isBad) => {
+    if (response === null || response === undefined) {
+      return "NO DATA";
+    }
+
+    return isBad ? "BAD vote" : "GOOD vote";
+  };
+
   // =========================================================
   // AUTOMATIC HARDWARE QUALITY INDICATOR
   // =========================================================
   //
-  // GOOD   -> PASS  -> Green LED blinks
-  // BAD    -> FAIL  -> Red LED blinks + buzzer
+  // GOOD   -> PASS  -> Green quality indication
+  // BAD    -> FAIL  -> Red quality indication
   // REVIEW -> RESET -> All indicators OFF
   //
   // The command is sent only after both baseline and sample
@@ -750,30 +700,24 @@ function SensorScanWorkflow({
       try {
         const result = await sendSensorIndicatorCommand(command);
 
-        console.log(
-          "Arduino quality indicator:",
-          result,
-        );
+        console.log("Arduino quality indicator:", result);
       } catch (error) {
         // Allow a retry if the command failed.
         lastIndicatorCommandRef.current = null;
 
-        console.error(
-          "Unable to update Arduino quality indicator:",
-          error,
-        );
+        console.error("Unable to update Arduino quality indicator:", error);
       }
     };
 
     updateHardwareIndicator();
-  }, [
-    sensorQualityStatus,
-    baselineData,
-    sampleData,
-  ]);
+  }, [sensorQualityStatus, baselineData, sampleData]);
 
   const formatQualityNumber = (value, decimals = 2) => {
-    if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+    if (
+      value === null ||
+      value === undefined ||
+      !Number.isFinite(Number(value))
+    ) {
       return "--";
     }
 
@@ -803,7 +747,8 @@ function SensorScanWorkflow({
       return 2;
     }
 
-    return 3;
+    // complete stage එකේ cards දෙකම finished state එක පෙන්වන්න.
+    return 0;
   };
 
   const activeStage = getActiveStage();
@@ -838,8 +783,8 @@ function SensorScanWorkflow({
 
           <p>
             Capture the empty baseline, expose the sensors to the coffee bean
-            sample, scan the stable sample response, and verify sensor recovery
-            after removing the beans.
+            sample, scan the stable sample response, and calculate the final
+            sensor response relative to the baseline.
           </p>
         </div>
 
@@ -857,7 +802,7 @@ function SensorScanWorkflow({
       </div>
 
       {/* =====================================================
-          THREE STAGES
+          TWO STAGES
       ===================================================== */}
 
       <div className="scan-stage-grid">
@@ -902,28 +847,6 @@ function SensorScanWorkflow({
             <strong>Sample Scan</strong>
 
             <span>Coffee beans inside</span>
-          </div>
-        </div>
-
-        {/* ===================================================
-            STAGE 3 - RECOVERY
-        =================================================== */}
-
-        <div
-          className={`scan-stage-card ${
-            activeStage === 3
-              ? "scan-stage-active"
-              : recoveryData
-                ? "scan-stage-finished"
-                : ""
-          }`}
-        >
-          <div className="scan-stage-number">{recoveryData ? "✓" : "3"}</div>
-
-          <div>
-            <strong>Recovery</strong>
-
-            <span>Beans removed</span>
           </div>
         </div>
       </div>
@@ -1112,79 +1035,6 @@ function SensorScanWorkflow({
         )}
 
         {/* ===================================================
-            SAMPLE COMPLETE
-        =================================================== */}
-
-        {stage === "sample-complete" && (
-          <>
-            <div className="scan-success-box">
-              <div className="scan-success-icon">✓</div>
-
-              <div>
-                <strong>Sample Scan Complete</strong>
-
-                <span>
-                  Stable coffee bean sample reading captured at{" "}
-                  {formatTime(sampleTime)}.
-                </span>
-              </div>
-            </div>
-
-            <div className="scan-instruction">
-              <div className="scan-instruction-icon">3</div>
-
-              <div className="scan-instruction-text">
-                <strong>Remove the coffee beans</strong>
-
-                <span>
-                  Remove the coffee bean sample from the chamber. Then click End
-                  Task to start the sensor recovery measurement.
-                </span>
-              </div>
-
-              <button
-                className="scan-primary-button"
-                onClick={handleEndTask}
-                disabled={reading}
-              >
-                End Task →
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* ===================================================
-            RECOVERY MONITORING
-        =================================================== */}
-
-        {stage === "recovery-monitoring" && (
-          <div className="scan-monitoring-box">
-            <div className="scan-monitoring-left">
-              <div className="scan-pulse">
-                <span></span>
-              </div>
-
-              <div>
-                <strong>Checking Sensor Recovery</strong>
-
-                <span>
-                  Waiting for sensor readings to stabilize after removing the
-                  coffee bean sample.
-                </span>
-              </div>
-            </div>
-
-            <div className={`scan-stability-state scan-${stabilityStatus}`}>
-              {stabilityStatus === "stable"
-                ? "✓ Stable"
-                : stabilityStatus === "stabilizing"
-                  ? "● Recovering..."
-                  : "● Collecting..."}
-            </div>
-          </div>
-        )}
-
-        {/* ===================================================
             TEST COMPLETE
         =================================================== */}
 
@@ -1197,7 +1047,7 @@ function SensorScanWorkflow({
                 <strong>Coffee Bean Sensor Test Complete</strong>
 
                 <span>
-                  Baseline, sample, and recovery sensor readings were captured
+                  Baseline and stable coffee bean sample readings were captured
                   successfully.
                 </span>
               </div>
@@ -1218,12 +1068,6 @@ function SensorScanWorkflow({
                 <span>Sample</span>
 
                 <strong>{formatTime(sampleTime)}</strong>
-              </div>
-
-              <div>
-                <span>Recovery</span>
-
-                <strong>{formatTime(recoveryTime)}</strong>
               </div>
             </div>
 
@@ -1254,11 +1098,7 @@ function SensorScanWorkflow({
 
                       <th>Sample</th>
 
-                      <th>Recovery</th>
-
                       <th>Response</th>
-
-                      <th>Recovery Error</th>
                     </tr>
                   </thead>
 
@@ -1272,18 +1112,9 @@ function SensorScanWorkflow({
 
                       <td>{formatValue(sampleData?.mq2)}</td>
 
-                      <td>{formatValue(recoveryData?.mq2)}</td>
-
                       <td className="response-value">
                         {calculateDifference(
                           sampleData?.mq2,
-                          baselineData?.mq2,
-                        )}
-                      </td>
-
-                      <td className="recovery-value">
-                        {calculateRecoveryDifference(
-                          recoveryData?.mq2,
                           baselineData?.mq2,
                         )}
                       </td>
@@ -1298,18 +1129,9 @@ function SensorScanWorkflow({
 
                       <td>{formatValue(sampleData?.mq3)}</td>
 
-                      <td>{formatValue(recoveryData?.mq3)}</td>
-
                       <td className="response-value">
                         {calculateDifference(
                           sampleData?.mq3,
-                          baselineData?.mq3,
-                        )}
-                      </td>
-
-                      <td className="recovery-value">
-                        {calculateRecoveryDifference(
-                          recoveryData?.mq3,
                           baselineData?.mq3,
                         )}
                       </td>
@@ -1324,18 +1146,9 @@ function SensorScanWorkflow({
 
                       <td>{formatValue(sampleData?.mq135)}</td>
 
-                      <td>{formatValue(recoveryData?.mq135)}</td>
-
                       <td className="response-value">
                         {calculateDifference(
                           sampleData?.mq135,
-                          baselineData?.mq135,
-                        )}
-                      </td>
-
-                      <td className="recovery-value">
-                        {calculateRecoveryDifference(
-                          recoveryData?.mq135,
                           baselineData?.mq135,
                         )}
                       </td>
@@ -1350,18 +1163,9 @@ function SensorScanWorkflow({
 
                       <td>{formatValue(sampleData?.moisture)}</td>
 
-                      <td>{formatValue(recoveryData?.moisture)}</td>
-
                       <td className="response-value">
                         {calculateDifference(
                           sampleData?.moisture,
-                          baselineData?.moisture,
-                        )}
-                      </td>
-
-                      <td className="recovery-value">
-                        {calculateRecoveryDifference(
-                          recoveryData?.moisture,
                           baselineData?.moisture,
                         )}
                       </td>
@@ -1376,20 +1180,9 @@ function SensorScanWorkflow({
 
                       <td>{formatValue(sampleData?.temperature, 1)} °C</td>
 
-                      <td>{formatValue(recoveryData?.temperature, 1)} °C</td>
-
                       <td className="response-value">
                         {calculateDifference(
                           sampleData?.temperature,
-                          baselineData?.temperature,
-                          1,
-                        )}{" "}
-                        °C
-                      </td>
-
-                      <td className="recovery-value">
-                        {calculateRecoveryDifference(
-                          recoveryData?.temperature,
                           baselineData?.temperature,
                           1,
                         )}{" "}
@@ -1406,20 +1199,9 @@ function SensorScanWorkflow({
 
                       <td>{formatValue(sampleData?.humidity, 1)} %</td>
 
-                      <td>{formatValue(recoveryData?.humidity, 1)} %</td>
-
                       <td className="response-value">
                         {calculateDifference(
                           sampleData?.humidity,
-                          baselineData?.humidity,
-                          1,
-                        )}{" "}
-                        %
-                      </td>
-
-                      <td className="recovery-value">
-                        {calculateRecoveryDifference(
-                          recoveryData?.humidity,
                           baselineData?.humidity,
                           1,
                         )}{" "}
@@ -1443,12 +1225,12 @@ function SensorScanWorkflow({
                       SENSOR QUALITY ASSESSMENT
                     </span>
 
-                    <h4>Sensor Score & Status</h4>
+                    <h4>{TOTAL_VOTING_SENSORS}-Sensor Vote Score & Status</h4>
 
                     <p>
-                      Calculated from the stable sample response relative to the
-                      captured baseline using the same current scoring rules as
-                      the final quality report.
+                      {TOTAL_VOTING_SENSORS} sensor responses are compared with
+                      experimentally derived BAD thresholds. Each BAD vote removes{" "}
+                      {SENSOR_VOTE_WEIGHT} points from the sensor score.
                     </p>
                   </div>
 
@@ -1479,35 +1261,72 @@ function SensorScanWorkflow({
                         }}
                       ></div>
                     </div>
+
+                    <div className="sensor-quality-vote-count">
+                      {sensorResponsesAvailable
+                        ? `${badCount} / ${TOTAL_VOTING_SENSORS} BAD votes`
+                        : "Voting sensor data incomplete"}
+                    </div>
                   </div>
 
                   <div className="sensor-quality-detail-grid">
                     <div className="sensor-quality-detail-card">
-                      <span>MQ-2 Response</span>
-                      <strong>
-                        {formatQualityNumber(mq2QualityResponse)}
-                      </strong>
-                      <small>Sample − Baseline</small>
+                      <span>MQ-2</span>
+                      <strong>{formatQualityNumber(mq2QualityResponse)}</strong>
+                      <small>
+                        {getVoteLabel(mq2QualityResponse, mq2Bad)} · BAD ≥{" "}
+                        {MQ2_BAD_THRESHOLD}
+                      </small>
                     </div>
 
                     <div className="sensor-quality-detail-card">
-                      <span>MQ-2 Score</span>
-                      <strong>{formatQualityNumber(mq2QualityScore)}</strong>
-                      <small>/100</small>
+                      <span>MQ-3</span>
+                      <strong>{formatQualityNumber(mq3QualityResponse)}</strong>
+                      <small>
+                        {getVoteLabel(mq3QualityResponse, mq3Bad)} · BAD ≥{" "}
+                        {MQ3_BAD_THRESHOLD}
+                      </small>
                     </div>
 
                     <div className="sensor-quality-detail-card">
-                      <span>MQ-135 Response</span>
+                      <span>MQ-135</span>
                       <strong>
                         {formatQualityNumber(mq135QualityResponse)}
                       </strong>
-                      <small>Sample − Baseline</small>
+                      <small>
+                        {getVoteLabel(mq135QualityResponse, mq135Bad)} · BAD ≥{" "}
+                        {MQ135_BAD_THRESHOLD}
+                      </small>
                     </div>
 
                     <div className="sensor-quality-detail-card">
-                      <span>MQ-135 Score</span>
-                      <strong>{formatQualityNumber(mq135QualityScore)}</strong>
-                      <small>/100</small>
+                      <span>Moisture</span>
+                      <strong>
+                        {formatQualityNumber(moistureQualityResponse)}
+                      </strong>
+                      <small>
+                        {getVoteLabel(moistureQualityResponse, moistureBad)} · BAD ≤{" "}
+                        {MOISTURE_BAD_THRESHOLD}
+                      </small>
+                    </div>
+
+                    <div className="sensor-quality-detail-card">
+                      <span>Humidity</span>
+                      <strong>
+                        {formatQualityNumber(humidityQualityResponse)}
+                      </strong>
+                      <small>
+                        {getVoteLabel(humidityQualityResponse, humidityBad)} · BAD ≥{" "}
+                        {HUMIDITY_BAD_THRESHOLD}
+                      </small>
+                    </div>
+
+                    <div className="sensor-quality-detail-card">
+                      <span>Temperature</span>
+                      <strong>
+                        {formatQualityNumber(temperatureQualityResponse)}
+                      </strong>
+                      <small>Supporting only · not used for voting</small>
                     </div>
                   </div>
                 </div>
@@ -1516,9 +1335,11 @@ function SensorScanWorkflow({
                   <span>i</span>
 
                   <p>
-                    This is the Step 1 sensor assessment only. The final coffee
-                    bean grade is calculated later by combining the sensor score
-                    with the Physical AI score.
+                    Status rule: 0-{GOOD_MAX_BAD_VOTES} BAD votes = GOOD,{" "}
+                    {REVIEW_BAD_VOTES} BAD votes = REVIEW, and{" "}
+                    {BAD_MIN_BAD_VOTES}-{TOTAL_VOTING_SENSORS} BAD votes = BAD.
+                    The final coffee bean grade is calculated later by combining
+                    this sensor score with the Physical AI score.
                   </p>
                 </div>
               </div>
@@ -1683,7 +1504,7 @@ function SensorScanWorkflow({
           display: grid;
 
           grid-template-columns:
-            repeat(3, 1fr);
+            repeat(2, 1fr);
 
           gap: 10px;
 
@@ -2567,7 +2388,7 @@ function SensorScanWorkflow({
           display: grid;
 
           grid-template-columns:
-            repeat(3, 1fr);
+            repeat(2, 1fr);
 
           gap: 9px;
 
@@ -2990,11 +2811,30 @@ function SensorScanWorkflow({
         }
 
 
+        .sensor-quality-vote-count {
+          margin-top: 10px;
+
+          color:
+            rgba(
+              255,
+              232,
+              204,
+              0.58
+            );
+
+          font-size: 9px;
+
+          font-weight: 850;
+
+          letter-spacing: 0.35px;
+        }
+
+
         .sensor-quality-detail-grid {
           display: grid;
 
           grid-template-columns:
-            repeat(4, minmax(0, 1fr));
+            repeat(3, minmax(0, 1fr));
 
           gap: 9px;
         }
@@ -3271,12 +3111,6 @@ function SensorScanWorkflow({
           font-weight: 900;
         }
 
-
-        .recovery-value {
-          color: #ffd39d !important;
-
-          font-weight: 850;
-        }
 
 
         /* ===================================================

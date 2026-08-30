@@ -1,3 +1,9 @@
+import {
+  SENSOR_THRESHOLDS,
+  TOTAL_VOTING_SENSORS,
+  SENSOR_VOTE_WEIGHT,
+} from "/src/features/bean-defect-detection/config/sensorQualityConfig";
+
 function SensorAssessmentCard({ sensorAssessment = {} }) {
   // =========================================================
   // OVERALL SENSOR STATUS
@@ -8,13 +14,45 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
   const statusClass = String(status).toLowerCase().replace(/\s+/g, "-");
 
   // =========================================================
-  // OVERALL SENSOR SCORE
+  // EXPERIMENTALLY DERIVED FIVE-SENSOR THRESHOLDS
+  // =========================================================
+  //
+  // Response = Sample - Baseline
+  //
+  // Voting sensors:
+  //
+  // MQ-2      BAD when response >= 129.5
+  // MQ-3      BAD when response >= 38.5
+  // MQ-135    BAD when response >= 9.5
+  // Moisture  BAD when response <= -16
+  // Humidity  BAD when response >= 10.7
+  //
+  // Temperature is supporting environmental information only.
   // =========================================================
 
-  const sensorScore = Math.max(
-    0,
-    Math.min(100, Number(sensorAssessment.sensor_score ?? 0)),
-  );
+  const thresholds = {
+    mq2: Number(
+      sensorAssessment.mq2_threshold ?? SENSOR_THRESHOLDS.mq2.badThreshold,
+    ),
+
+    mq3: Number(
+      sensorAssessment.mq3_threshold ?? SENSOR_THRESHOLDS.mq3.badThreshold,
+    ),
+
+    mq135: Number(
+      sensorAssessment.mq135_threshold ?? SENSOR_THRESHOLDS.mq135.badThreshold,
+    ),
+
+    moisture: Number(
+      sensorAssessment.moisture_threshold ??
+        SENSOR_THRESHOLDS.moisture.badThreshold,
+    ),
+
+    humidity: Number(
+      sensorAssessment.humidity_threshold ??
+        SENSOR_THRESHOLDS.humidity.badThreshold,
+    ),
+  };
 
   // =========================================================
   // FORMAT VALUE
@@ -27,117 +65,51 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
 
     const number = Number(value);
 
-    if (Number.isNaN(number)) {
+    if (!Number.isFinite(number)) {
       return value;
     }
 
     return number.toFixed(decimals);
   };
 
+  const formatThreshold = (value) => {
+    const number = Number(value);
+
+    if (!Number.isFinite(number)) {
+      return "-";
+    }
+
+    return Number.isInteger(number) ? number.toString() : number.toFixed(1);
+  };
+
   // =========================================================
-  // INDIVIDUAL SENSOR RANGE STATUS
-  // =========================================================
-  //
-  // Current research-defined ranges:
-  //
-  // MQ-2
-  // <= 44       GOOD RANGE
-  // 44 - 73     REVIEW RANGE
-  // >= 73       BAD RANGE
-  //
-  // MQ-135
-  // <= 15       GOOD RANGE
-  // 15 - 22.5   REVIEW RANGE
-  // >= 22.5     BAD RANGE
-  //
-  // Other sensors are currently supporting indicators.
-  //
+  // SENSOR VOTE HELPERS
   // =========================================================
 
-  const getSensorRangeStatus = (sensorName, response) => {
+  const calculateBadVote = ({ response, backendBad, threshold, direction }) => {
+    if (typeof backendBad === "boolean") {
+      return backendBad;
+    }
+
     if (response === null || response === undefined || response === "") {
-      return {
-        label: "NO DATA",
-        className: "no-data",
-        description: "No sensor response available",
-      };
+      return null;
     }
 
-    const value = Number(response);
+    const numericResponse = Number(response);
+    const numericThreshold = Number(threshold);
 
-    if (Number.isNaN(value)) {
-      return {
-        label: "NO DATA",
-        className: "no-data",
-        description: "Invalid sensor response",
-      };
+    if (
+      !Number.isFinite(numericResponse) ||
+      !Number.isFinite(numericThreshold)
+    ) {
+      return null;
     }
 
-    // =======================================================
-    // MQ-2
-    // =======================================================
-
-    if (sensorName === "MQ-2") {
-      if (value <= 44) {
-        return {
-          label: "GOOD RANGE",
-          className: "good",
-          description: "Response is within the current good range.",
-        };
-      }
-
-      if (value < 73) {
-        return {
-          label: "REVIEW RANGE",
-          className: "review",
-          description: "Response is within the review range.",
-        };
-      }
-
-      return {
-        label: "BAD RANGE",
-        className: "bad",
-        description: "Response has reached the current bad threshold.",
-      };
+    if (direction === "low") {
+      return numericResponse <= numericThreshold;
     }
 
-    // =======================================================
-    // MQ-135
-    // =======================================================
-
-    if (sensorName === "MQ-135") {
-      if (value <= 15) {
-        return {
-          label: "GOOD RANGE",
-          className: "good",
-          description: "Response is within the current good range.",
-        };
-      }
-
-      if (value < 22.5) {
-        return {
-          label: "REVIEW RANGE",
-          className: "review",
-          description: "Response is within the review range.",
-        };
-      }
-
-      return {
-        label: "BAD RANGE",
-        className: "bad",
-        description: "Response has reached the current bad threshold.",
-      };
-    }
-
-    // =======================================================
-    // SUPPORTING SENSORS
-    // =======================================================
-
-    return {
-      label: "SUPPORTING",
-      className: "supporting",
-      description: "Supporting sensor indicator.",
-    };
+    return numericResponse >= numericThreshold;
   };
 
   // =========================================================
@@ -146,47 +118,185 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
 
   const sensors = [
     {
+      key: "mq2",
       name: "MQ-2",
       type: "Gas Sensor",
       response: sensorAssessment.mq2_response,
-      score: sensorAssessment.mq2_score,
+      threshold: thresholds.mq2,
+      direction: "high",
+      bad: sensorAssessment.mq2_bad,
+      voting: true,
     },
 
     {
-      name: "MQ-135",
-      type: "Gas Sensor",
-      response: sensorAssessment.mq135_response,
-      score: sensorAssessment.mq135_score,
-    },
-
-    {
+      key: "mq3",
       name: "MQ-3",
       type: "Gas Sensor",
       response: sensorAssessment.mq3_response,
-      score: null,
+      threshold: thresholds.mq3,
+      direction: "high",
+      bad: sensorAssessment.mq3_bad,
+      voting: true,
     },
 
     {
+      key: "mq135",
+      name: "MQ-135",
+      type: "Gas Sensor",
+      response: sensorAssessment.mq135_response,
+      threshold: thresholds.mq135,
+      direction: "high",
+      bad: sensorAssessment.mq135_bad,
+      voting: true,
+    },
+
+    {
+      key: "moisture",
       name: "Moisture",
       type: "Moisture Sensor",
       response: sensorAssessment.moisture_response,
-      score: null,
+      threshold: thresholds.moisture,
+      direction: "low",
+      bad: sensorAssessment.moisture_bad,
+      voting: true,
     },
 
     {
-      name: "Temperature",
-      type: "Environmental",
-      response: sensorAssessment.temperature_response,
-      score: null,
-    },
-
-    {
+      key: "humidity",
       name: "Humidity",
       type: "Environmental",
       response: sensorAssessment.humidity_response,
-      score: null,
+      threshold: thresholds.humidity,
+      direction: "high",
+      bad: sensorAssessment.humidity_bad,
+      voting: true,
+    },
+
+    {
+      key: "temperature",
+      name: "Temperature",
+      type: "Environmental",
+      response: sensorAssessment.temperature_response,
+      threshold: null,
+      direction: null,
+      bad: null,
+      voting: false,
     },
   ];
+
+  const sensorsWithVotes = sensors.map((sensor) => {
+    if (!sensor.voting) {
+      return {
+        ...sensor,
+        badVote: null,
+      };
+    }
+
+    return {
+      ...sensor,
+      badVote: calculateBadVote({
+        response: sensor.response,
+        backendBad: sensor.bad,
+        threshold: sensor.threshold,
+        direction: sensor.direction,
+      }),
+    };
+  });
+
+  // =========================================================
+  // VOTING SUMMARY
+  // =========================================================
+
+  const calculatedValidVoteCount = sensorsWithVotes.filter(
+    (sensor) => sensor.voting && sensor.badVote !== null,
+  ).length;
+
+  const calculatedBadCount = sensorsWithVotes.filter(
+    (sensor) => sensor.voting && sensor.badVote === true,
+  ).length;
+
+  const backendValidVoteCount = Number(sensorAssessment.valid_vote_count);
+  const backendBadCount = Number(sensorAssessment.bad_count);
+  const backendTotalVotingSensors = Number(
+    sensorAssessment.total_voting_sensors,
+  );
+
+  const validVoteCount = Number.isFinite(backendValidVoteCount)
+    ? backendValidVoteCount
+    : calculatedValidVoteCount;
+
+  const badCount = Number.isFinite(backendBadCount)
+    ? backendBadCount
+    : calculatedBadCount;
+
+  const totalVotingSensors =
+    Number.isFinite(backendTotalVotingSensors) && backendTotalVotingSensors > 0
+      ? backendTotalVotingSensors
+      : TOTAL_VOTING_SENSORS;
+
+  // =========================================================
+  // OVERALL SENSOR SCORE
+  // =========================================================
+
+  const backendSensorScore = Number(sensorAssessment.sensor_score);
+
+  const fallbackSensorScore =
+    validVoteCount === totalVotingSensors
+      ? 100 - badCount * SENSOR_VOTE_WEIGHT
+      : 0;
+
+  const sensorScore = Math.max(
+    0,
+    Math.min(
+      100,
+      Number.isFinite(backendSensorScore)
+        ? backendSensorScore
+        : fallbackSensorScore,
+    ),
+  );
+
+  // =========================================================
+  // INDIVIDUAL SENSOR STATUS
+  // =========================================================
+
+  const getSensorVoteStatus = (sensor) => {
+    if (!sensor.voting) {
+      return {
+        label: "SUPPORTING",
+        className: "supporting",
+        description:
+          "Temperature is recorded as supporting environmental information and does not cast a quality vote.",
+      };
+    }
+
+    if (sensor.badVote === null) {
+      return {
+        label: "NO DATA",
+        className: "no-data",
+        description:
+          "A valid response was not available for this voting sensor.",
+      };
+    }
+
+    const thresholdText =
+      sensor.direction === "low"
+        ? `BAD when Δ ≤ ${formatThreshold(sensor.threshold)}`
+        : `BAD when Δ ≥ ${formatThreshold(sensor.threshold)}`;
+
+    if (sensor.badVote) {
+      return {
+        label: "BAD VOTE",
+        className: "bad",
+        description: `${thresholdText}. This sensor contributes one BAD vote.`,
+      };
+    }
+
+    return {
+      label: "GOOD VOTE",
+      className: "good",
+      description: `${thresholdText}. The response remains on the GOOD side of the decision boundary.`,
+    };
+  };
 
   // =========================================================
   // SENSOR ICON
@@ -233,8 +343,9 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
           <h3>Sensor Quality Analysis</h3>
 
           <p>
-            Quality assessment generated from the collected coffee bean sensor
-            responses.
+            Five experimentally derived sensor decision boundaries are used for
+            voting. Temperature is shown separately as supporting environmental
+            information.
           </p>
         </div>
       </div>
@@ -260,18 +371,73 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
             <strong>{status}</strong>
           </div>
 
-          <p>Overall decision from the sensor-based quality assessment.</p>
+          <p>
+            0-1 BAD votes = GOOD, 2 BAD votes = REVIEW, and 3-5 BAD votes = BAD.
+          </p>
         </div>
 
-        {/* SCORE SECONDARY */}
+        <div className="status-metrics">
+          <div className="status-score">
+            <span>SENSOR SCORE</span>
 
-        <div className="status-score">
-          <span>SENSOR SCORE</span>
+            <div>
+              <strong>{sensorScore.toFixed(2)}</strong>
 
+              <small>/100</small>
+            </div>
+          </div>
+
+          <div className="status-score vote-count-score">
+            <span>BAD VOTES</span>
+
+            <div>
+              <strong>{badCount}</strong>
+
+              <small>/{totalVotingSensors}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* =====================================================
+          VOTING SUMMARY
+      ===================================================== */}
+
+      <div className="sensor-voting-summary">
+        <div className="voting-summary-heading">
           <div>
-            <strong>{sensorScore.toFixed(2)}</strong>
+            <span>FIVE-SENSOR VOTING</span>
 
-            <small>/100</small>
+            <h4>Decision Summary</h4>
+          </div>
+
+          <p>
+            Each valid voting sensor contributes one equal 20-point share to the
+            sensor score.
+          </p>
+        </div>
+
+        <div className="voting-summary-grid">
+          <div className="voting-summary-card">
+            <span>Valid Votes</span>
+            <strong>
+              {validVoteCount}/{totalVotingSensors}
+            </strong>
+          </div>
+
+          <div className="voting-summary-card">
+            <span>BAD Votes</span>
+            <strong>{badCount}</strong>
+          </div>
+
+          <div className="voting-summary-card">
+            <span>GOOD Votes</span>
+            <strong>{Math.max(0, validVoteCount - badCount)}</strong>
+          </div>
+
+          <div className="voting-summary-card">
+            <span>Score Rule</span>
+            <strong>100 - BAD × 20</strong>
           </div>
         </div>
       </div>
@@ -288,8 +454,8 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
         </div>
 
         <p>
-          Each sensor is displayed using the same card layout. Defined response
-          ranges are highlighted where available.
+          Δ represents Sample - Baseline. Five sensors cast GOOD/BAD votes;
+          temperature does not participate in the quality decision.
         </p>
       </div>
 
@@ -298,19 +464,16 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
       ===================================================== */}
 
       <div className="sensor-grid">
-        {sensors.map((sensor) => {
-          const rangeStatus = getSensorRangeStatus(
-            sensor.name,
-            sensor.response,
-          );
+        {sensorsWithVotes.map((sensor) => {
+          const voteStatus = getSensorVoteStatus(sensor);
 
           return (
             <div
               className={`
-                  sensor-item-card
-                  sensor-card-${rangeStatus.className}
-                `}
-              key={sensor.name}
+                sensor-item-card
+                sensor-card-${voteStatus.className}
+              `}
+              key={sensor.key}
             >
               {/* ===========================================
                     SENSOR CARD HEADER
@@ -329,17 +492,15 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
                   </div>
                 </div>
 
-                {/* RANGE STATUS */}
-
                 <span
                   className={`
-                      individual-sensor-status
-                      individual-${rangeStatus.className}
-                    `}
+                    individual-sensor-status
+                    individual-${voteStatus.className}
+                  `}
                 >
                   <span className="individual-status-dot" />
 
-                  {rangeStatus.label}
+                  {voteStatus.label}
                 </span>
               </div>
 
@@ -348,24 +509,24 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
                 =========================================== */}
 
               <div className="sensor-response">
-                <span>RESPONSE</span>
+                <span>RESPONSE Δ</span>
 
                 <strong>{formatValue(sensor.response)}</strong>
               </div>
 
               {/* ===========================================
-                    RANGE DESCRIPTION
+                    VOTE DESCRIPTION
                 =========================================== */}
 
               <div className="sensor-range-description">
                 <span
                   className={`
-                      range-marker
-                      range-marker-${rangeStatus.className}
-                    `}
+                    range-marker
+                    range-marker-${voteStatus.className}
+                  `}
                 />
 
-                <p>{rangeStatus.description}</p>
+                <p>{voteStatus.description}</p>
               </div>
 
               {/* ===========================================
@@ -373,20 +534,20 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
                 =========================================== */}
 
               <div className="sensor-card-footer">
-                {sensor.score !== null && sensor.score !== undefined ? (
+                {sensor.voting ? (
                   <>
-                    <span>Quality Score</span>
+                    <span>Decision Boundary</span>
 
                     <strong>
-                      {formatValue(sensor.score)}
-                      /100
+                      {sensor.direction === "low" ? "≤ " : "≥ "}
+                      {formatThreshold(sensor.threshold)}
                     </strong>
                   </>
                 ) : (
                   <>
                     <span>Assessment Role</span>
 
-                    <strong>Supporting Indicator</strong>
+                    <strong>Supporting Only</strong>
                   </>
                 )}
               </div>
@@ -396,12 +557,12 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
       </div>
 
       {/* =====================================================
-          SENSOR RANGE LEGEND
+          SENSOR VOTE LEGEND
       ===================================================== */}
 
       <div className="sensor-range-legend">
         <div className="legend-heading">
-          <span>RESPONSE RANGE GUIDE</span>
+          <span>VOTING GUIDE</span>
         </div>
 
         <div className="legend-items">
@@ -409,19 +570,12 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
             <span className="legend-dot legend-good" />
 
             <div>
-              <strong>Good Range</strong>
+              <strong>GOOD Vote</strong>
 
-              <small>Response inside the current good range</small>
-            </div>
-          </div>
-
-          <div>
-            <span className="legend-dot legend-review" />
-
-            <div>
-              <strong>Review Range</strong>
-
-              <small>Response requires additional attention</small>
+              <small>
+                Response remains on the acceptable side of the experimental
+                decision boundary
+              </small>
             </div>
           </div>
 
@@ -429,9 +583,25 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
             <span className="legend-dot legend-bad" />
 
             <div>
-              <strong>Bad Range</strong>
+              <strong>BAD Vote</strong>
 
-              <small>Response reaches the current bad threshold</small>
+              <small>
+                Response reaches or crosses the experimental BAD decision
+                boundary
+              </small>
+            </div>
+          </div>
+
+          <div>
+            <span className="legend-dot legend-supporting" />
+
+            <div>
+              <strong>Supporting Only</strong>
+
+              <small>
+                Recorded for environmental context but excluded from quality
+                voting
+              </small>
             </div>
           </div>
         </div>
@@ -445,9 +615,12 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
         <span className="sensor-note-icon">i</span>
 
         <p>
-          The overall sensor status is the primary quality result. Individual
-          range colors are currently applied only where the research methodology
-          defines decision ranges. Other sensors remain supporting indicators.
+          The five voting sensors are MQ-2, MQ-3, MQ-135, Moisture, and
+          Humidity. Each BAD vote reduces the sensor score by 20 points.
+          Temperature is not used as a vote because the experimental GOOD and
+          BAD temperature response ranges overlapped. These thresholds are
+          research-defined from the collected experimental dataset and are not
+          presented as an official coffee-industry grading standard.
         </p>
       </div>
 
@@ -897,6 +1070,185 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
             );
 
           font-size: 8px;
+        }
+
+
+
+        /* =================================================
+           STATUS METRICS
+        ================================================= */
+
+        .status-metrics {
+          display: flex;
+
+          align-items: stretch;
+
+          gap: 10px;
+
+          flex-shrink: 0;
+        }
+
+
+        .vote-count-score {
+          min-width: 125px;
+        }
+
+
+        /* =================================================
+           FIVE-SENSOR VOTING SUMMARY
+        ================================================= */
+
+        .sensor-voting-summary {
+          margin-top: 15px;
+
+          padding: 15px;
+
+          border-radius: 15px;
+
+          background:
+            rgba(
+              0,
+              0,
+              0,
+              0.09
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              220,
+              170,
+              0.055
+            );
+        }
+
+
+        .voting-summary-heading {
+          display: flex;
+
+          align-items: flex-end;
+
+          justify-content: space-between;
+
+          gap: 18px;
+        }
+
+
+        .voting-summary-heading > div > span {
+          color: #dca05e;
+
+          font-size: 7px;
+
+          font-weight: 900;
+
+          letter-spacing: 1.3px;
+        }
+
+
+        .voting-summary-heading h4 {
+          margin: 4px 0 0;
+
+          color: #f1ddc0;
+
+          font-size: 14px;
+        }
+
+
+        .voting-summary-heading p {
+          max-width: 330px;
+
+          margin: 0;
+
+          color:
+            rgba(
+              255,
+              235,
+              207,
+              0.28
+            );
+
+          font-size: 8px;
+
+          text-align: right;
+
+          line-height: 1.45;
+        }
+
+
+        .voting-summary-grid {
+          margin-top: 11px;
+
+          display: grid;
+
+          grid-template-columns:
+            repeat(
+              4,
+              minmax(
+                0,
+                1fr
+              )
+            );
+
+          gap: 9px;
+        }
+
+
+        .voting-summary-card {
+          padding: 11px;
+
+          border-radius: 11px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.025
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.045
+            );
+        }
+
+
+        .voting-summary-card span {
+          display: block;
+
+          color:
+            rgba(
+              255,
+              235,
+              207,
+              0.27
+            );
+
+          font-size: 7px;
+
+          font-weight: 800;
+
+          letter-spacing: 0.6px;
+
+          text-transform: uppercase;
+        }
+
+
+        .voting-summary-card strong {
+          display: block;
+
+          margin-top: 6px;
+
+          color: #ffe0aa;
+
+          font-size: 15px;
+
+          font-weight: 900;
         }
 
 
@@ -1749,6 +2101,17 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
         }
 
 
+        .legend-supporting {
+          background:
+            rgba(
+              255,
+              224,
+              182,
+              0.4
+            );
+        }
+
+
         .legend-items strong {
           display: block;
 
@@ -1885,6 +2248,24 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
 
 
         @media (
+          max-width: 1000px
+        ) {
+
+          .voting-summary-grid {
+            grid-template-columns:
+              repeat(
+                2,
+                minmax(
+                  0,
+                  1fr
+                )
+              );
+          }
+
+        }
+
+
+        @media (
           max-width: 700px
         ) {
 
@@ -1914,10 +2295,34 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
           }
 
 
+          .status-metrics {
+            width: 100%;
+
+            flex-direction: column;
+          }
+
+
           .status-score {
             width: 100%;
 
             text-align: left;
+          }
+
+
+          .voting-summary-heading {
+            flex-direction: column;
+
+            align-items: flex-start;
+          }
+
+
+          .voting-summary-heading p {
+            text-align: left;
+          }
+
+
+          .voting-summary-grid {
+            grid-template-columns: 1fr;
           }
 
 

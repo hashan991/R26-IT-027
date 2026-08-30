@@ -6,6 +6,7 @@ import SensorMetricCard from "./SensorMetricCard";
 import {
   getSensorStatus,
   getLatestSensorReading,
+  sendSensorIndicatorCommand,
 } from "../../services/sensorService";
 
 import SensorScanWorkflow from "./SensorScanWorkflow";
@@ -26,8 +27,8 @@ function SensorAnalysis({ onComplete }) {
     Repeated experiments වලින් පස්සේ tune කරන්න.
   */
   const STABILITY_THRESHOLDS = {
-    mq2Percent: 3,
-    mq3Percent: 3,
+    mq2Percent: 6,
+    mq3Percent: 6,
     mq135Percent: 3,
     moisturePercent: 1,
 
@@ -86,7 +87,7 @@ function SensorAnalysis({ onComplete }) {
   // =========================================================
   //
   // SensorScanWorkflow component එකේ capture වෙන
-  // Baseline / Sample / Recovery data parent component එකේ
+  // Baseline / Sample data parent component එකේ
   // save කරගෙන Final Quality Report එකට pass කරනවා.
   //
   // =========================================================
@@ -96,11 +97,9 @@ function SensorAnalysis({ onComplete }) {
 
     baseline: null,
     sample: null,
-    recovery: null,
 
     baselineCapturedAt: null,
     sampleCapturedAt: null,
-    recoveryCapturedAt: null,
 
     completed: false,
   });
@@ -616,7 +615,7 @@ function SensorAnalysis({ onComplete }) {
   // COMPLETE SENSOR STEP
   // =========================================================
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     setError("");
 
     // Sensor data nathnam
@@ -627,15 +626,10 @@ function SensorAnalysis({ onComplete }) {
       return;
     }
 
-    // Complete Baseline -> Sample -> Recovery workflow first
-    if (
-      !scanResult.completed ||
-      !scanResult.baseline ||
-      !scanResult.sample ||
-      !scanResult.recovery
-    ) {
+    // Complete Baseline -> Sample workflow first
+    if (!scanResult.completed || !scanResult.baseline || !scanResult.sample) {
       setError(
-        "Complete the full Baseline → Sample → Recovery sensor workflow before continuing to Physical AI Analysis.",
+        "Complete the Baseline → Sample sensor workflow before continuing to Physical AI Analysis.",
       );
       return;
     }
@@ -643,7 +637,7 @@ function SensorAnalysis({ onComplete }) {
     // Monitoring thama run wenawanam
     if (autoReading) {
       setError(
-        "Sensor monitoring is still active. Wait until the recovery reading is captured and the task is complete.",
+        "Sensor monitoring is still active. Wait until the sample reading is captured and the task is complete.",
       );
       return;
     }
@@ -657,7 +651,7 @@ function SensorAnalysis({ onComplete }) {
     // Snapshot lock wela nathnam
     if (!lockedAt) {
       setError(
-        "The final recovery reading has not been locked yet. Please wait until the sensor task is complete.",
+        "The final sample reading has not been locked yet. Please wait until the sensor task is complete.",
       );
       return;
     }
@@ -665,7 +659,7 @@ function SensorAnalysis({ onComplete }) {
     // Sensors stable nathnam
     if (stabilityStatus !== "stable") {
       setError(
-        "The final recovery readings are not stable yet. Wait until all sensors become stable.",
+        "The final sample readings are not stable yet. Wait until all sensors become stable.",
       );
       return;
     }
@@ -700,8 +694,6 @@ function SensorAnalysis({ onComplete }) {
       baseline: scanResult.baseline,
 
       sample: scanResult.sample,
-
-      recovery: scanResult.recovery,
 
       /*
         comparison intentionally stays null here.
@@ -744,8 +736,6 @@ function SensorAnalysis({ onComplete }) {
 
       sampleCapturedAt: scanResult.sampleCapturedAt,
 
-      recoveryCapturedAt: scanResult.recoveryCapturedAt,
-
       lockedAt: lockedAt.toISOString(),
 
       collectedAt: new Date().toISOString(),
@@ -755,6 +745,29 @@ function SensorAnalysis({ onComplete }) {
 
     console.log("STEP 1 SENSOR RESULT JSON:", JSON.stringify(result, null, 2));
 
+    // =========================================================
+    // TURN OFF RESULT LED BEFORE PHYSICAL AI ANALYSIS
+    // =========================================================
+    //
+    // GOOD result  -> Green LED remains ON on the result screen.
+    // BAD result   -> Red LED remains ON on the result screen.
+    // When the user clicks Continue to Physical AI Analysis,
+    // RESET is sent to Arduino before moving to Step 2.
+    //
+    // =========================================================
+
+    try {
+      await sendSensorIndicatorCommand("RESET");
+
+      console.log("Arduino indicator reset before Physical AI Analysis");
+    } catch (error) {
+      console.error(
+        "Unable to reset Arduino indicator before Physical AI Analysis:",
+        error,
+      );
+    }
+
+    // Continue to Step 2 after the RESET attempt.
     onComplete(result);
   };
 
@@ -1216,15 +1229,17 @@ function SensorAnalysis({ onComplete }) {
             SAMPLE SCAN WORKFLOW
           =================================================== */}
 
-        <SensorScanWorkflow
-          sensorData={sensorData}
-          stabilityStatus={stabilityStatus}
-          autoReading={autoReading}
-          reading={reading}
-          handleToggleMonitoring={handleToggleMonitoring}
-          resetStabilityTracking={resetStabilityTracking}
-          onWorkflowChange={setScanResult}
-        />
+        <div className="scan-workflow-dark-wrap">
+          <SensorScanWorkflow
+            sensorData={sensorData}
+            stabilityStatus={stabilityStatus}
+            autoReading={autoReading}
+            reading={reading}
+            handleToggleMonitoring={handleToggleMonitoring}
+            resetStabilityTracking={resetStabilityTracking}
+            onWorkflowChange={setScanResult}
+          />
+        </div>
 
         {/* ===================================================
             STABILITY INDICATOR
@@ -1472,18 +1487,18 @@ function SensorAnalysis({ onComplete }) {
         <div className="sensor-actions">
           <div className="sensor-helper">
             {!scanResult.completed
-              ? "Complete the Baseline → Sample → Recovery sensor workflow first."
+              ? "Complete the Baseline → Sample sensor workflow first."
               : !sensorData
                 ? "Sensor data is not available."
                 : autoReading
-                  ? "Sensor monitoring is still active. Wait until the recovery stage is complete."
+                  ? "Sensor monitoring is still active. Wait until the sample stage is complete."
                   : reading
                     ? "Sensor reading is still in progress."
                     : !lockedAt
-                      ? "Waiting for the final recovery reading to be locked."
+                      ? "Waiting for the final sample reading to be locked."
                       : stabilityStatus !== "stable"
-                        ? "Final recovery readings are not stable yet."
-                        : "Sensor test complete. Baseline, sample, and recovery data are ready for the Final Quality Report."}
+                        ? "Final sample readings are not stable yet."
+                        : "Sensor test complete. Baseline and sample data are ready for the Final Quality Report."}
           </div>
 
           <button
@@ -1492,7 +1507,6 @@ function SensorAnalysis({ onComplete }) {
               !scanResult.completed ||
               !scanResult.baseline ||
               !scanResult.sample ||
-              !scanResult.recovery ||
               !sensorData ||
               autoReading ||
               reading ||
@@ -2936,6 +2950,787 @@ function SensorAnalysis({ onComplete }) {
               scale(1.15);
           }
 
+        }
+
+
+
+
+        /* ===================================================
+           LIGHT SENSOR ANALYSIS + DARK IMPORTED CARDS
+           White/Cream outer area, espresso child cards
+        =================================================== */
+
+        .sensor-analysis {
+          margin-top: 30px;
+          color: #30231d;
+        }
+
+        .sensor-main-card {
+          padding: 28px;
+          border-radius: 26px;
+          border: 1px solid rgba(90, 55, 38, 0.10);
+          background:
+            radial-gradient(
+              circle at 100% 0%,
+              rgba(197, 138, 77, 0.08),
+              transparent 30%
+            ),
+            linear-gradient(
+              180deg,
+              #fffdf9 0%,
+              #fbf6ef 100%
+            );
+          backdrop-filter: none;
+          box-shadow:
+            0 14px 34px rgba(43, 24, 18, 0.07),
+            inset 0 1px 0 rgba(255,255,255,.90);
+        }
+
+        /* ---------- HEADER ---------- */
+
+        .sensor-step-label {
+          color: #8a5b3d;
+        }
+
+        .sensor-heading h2 {
+          color: #2b1812;
+          font-family: Georgia, "Times New Roman", serif;
+        }
+
+        .sensor-heading p {
+          color: #75665d;
+        }
+
+        .monitor-status-chip {
+          color: #75665d;
+          background: #f7efe7;
+          border-color: rgba(90,55,38,.09);
+        }
+
+        .monitor-status-dot {
+          background: #b9a79a;
+        }
+
+        .monitor-status-live {
+          color: #45694b;
+          background: #edf4ed;
+          border-color: #d5e5d7;
+        }
+
+        .monitor-dot-live {
+          background: #628267;
+          box-shadow: 0 0 10px rgba(98,130,103,.35);
+        }
+
+        .monitor-status-locked {
+          color: #7a563d;
+          background: #f3e7da;
+          border-color: #e6d3bf;
+        }
+
+        .monitor-dot-locked {
+          background: #b97843;
+        }
+
+        .header-stability-collecting {
+          color: #816139;
+          background: #f8efdf;
+          border-color: #ead8b9;
+        }
+
+        .header-stability-stabilizing {
+          color: #965d34;
+          background: #f7e6d8;
+          border-color: #e8cdb6;
+        }
+
+        .header-stability-stable {
+          color: #44694a;
+          background: #edf4ed;
+          border-color: #d5e5d7;
+        }
+
+        /* ===================================================
+           DARK IMPORTED DEVICE CARD
+        =================================================== */
+
+        .sensor-main-card .device-status-card {
+          color: #fff2df !important;
+          background:
+            radial-gradient(
+              circle at 96% 0%,
+              rgba(217, 146, 70, 0.09),
+              transparent 34%
+            ),
+            linear-gradient(
+              145deg,
+              #4a2b1f 0%,
+              #382018 58%,
+              #2a1710 100%
+            ) !important;
+          border: 1px solid rgba(255,222,178,.10) !important;
+          box-shadow:
+            0 10px 26px rgba(43,24,18,.13),
+            inset 0 1px 0 rgba(255,255,255,.04) !important;
+        }
+
+        .sensor-main-card .device-icon {
+          color: #2b170c !important;
+          background:
+            linear-gradient(
+              145deg,
+              #f3c66f,
+              #d48a39
+            ) !important;
+          border-color: rgba(255,225,176,.18) !important;
+        }
+
+        .sensor-main-card .device-label {
+          color: #dca467 !important;
+        }
+
+        .sensor-main-card .device-left strong {
+          color: #fff3df !important;
+        }
+
+        .sensor-main-card .device-meta span {
+          color: #ead3bc !important;
+          background: rgba(255,255,255,.045) !important;
+          border-color: rgba(255,222,178,.08) !important;
+        }
+
+        .sensor-main-card .device-meta small {
+          color: rgba(255,226,194,.48) !important;
+        }
+
+        .sensor-main-card .device-connected {
+          color: #a7e7ae !important;
+          background: rgba(61,168,76,.11) !important;
+          border-color: rgba(90,200,104,.18) !important;
+        }
+
+        .sensor-main-card .device-disconnected {
+          color: #ffaaa0 !important;
+          background: rgba(196,60,50,.11) !important;
+          border-color: rgba(218,79,67,.18) !important;
+        }
+
+        /* ---------- SENSOR TOOLBAR ---------- */
+
+        .toolbar-title {
+          color: #34231c;
+        }
+
+        .toolbar-description {
+          color: #84736a;
+        }
+
+        .start-monitor-button {
+          color: #fff;
+          background: #4f6f53;
+          border-color: #4f6f53;
+        }
+
+        .start-monitor-button:hover {
+          background: #456449;
+        }
+
+        .stop-monitor-button {
+          color: #91463b;
+          background: #fff0ed;
+          border-color: #efcec8;
+        }
+
+        /* ===================================================
+           DARK SENSOR METRIC CARDS
+        =================================================== */
+
+        .sensor-main-card .sensor-metric-card {
+          min-height: 188px !important;
+          border-radius: 18px !important;
+          color: #fff2df !important;
+          background:
+            radial-gradient(
+              circle at 100% 0%,
+              rgba(217,146,70,.07),
+              transparent 36%
+            ),
+            linear-gradient(
+              145deg,
+              #4a2b1f 0%,
+              #392119 60%,
+              #2d1912 100%
+            ) !important;
+          border: 1px solid rgba(255,222,178,.10) !important;
+          box-shadow:
+            0 9px 24px rgba(43,24,18,.12),
+            inset 0 1px 0 rgba(255,255,255,.035) !important;
+        }
+
+        .sensor-main-card .sensor-metric-card:hover {
+          transform: translateY(-3px);
+          border-color: rgba(239,181,112,.20) !important;
+          box-shadow:
+            0 13px 31px rgba(43,24,18,.16),
+            inset 0 1px 0 rgba(255,255,255,.05) !important;
+        }
+
+        .sensor-main-card .sensor-icon {
+          color: #ffe0a3 !important;
+          background: rgba(221,149,77,.13) !important;
+          border-color: rgba(255,210,150,.12) !important;
+        }
+
+        .sensor-main-card .sensor-name {
+          color: #ead3bc !important;
+        }
+
+        .sensor-main-card .sensor-value-row strong {
+          color: #fff4e1 !important;
+        }
+
+        .sensor-main-card .sensor-value-row span {
+          color: #dca467 !important;
+        }
+
+        .sensor-main-card .sensor-metric-card p {
+          color: rgba(255,239,214,.48) !important;
+        }
+
+        .sensor-main-card .sensor-measured {
+          color: #a6e8ae !important;
+          background: rgba(78,180,91,.12) !important;
+          border-color: rgba(107,210,119,.18) !important;
+        }
+
+        .sensor-main-card .sensor-waiting {
+          color: #ffd48f !important;
+          background: rgba(222,153,55,.10) !important;
+          border-color: rgba(237,168,74,.15) !important;
+        }
+
+        /* ===================================================
+           DARK SENSOR SCAN WORKFLOW CARD
+        =================================================== */
+
+        .scan-workflow-dark-wrap {
+          margin-top: 18px;
+          padding: 12px;
+          border-radius: 22px;
+          color: #fff2df;
+          background:
+            radial-gradient(
+              circle at 96% 0%,
+              rgba(217,146,70,.07),
+              transparent 34%
+            ),
+            linear-gradient(
+              145deg,
+              #46271c 0%,
+              #351e16 58%,
+              #28160f 100%
+            );
+          border: 1px solid rgba(255,222,178,.10);
+          box-shadow:
+            0 10px 28px rgba(43,24,18,.13),
+            inset 0 1px 0 rgba(255,255,255,.04);
+        }
+
+        .scan-workflow-dark-wrap > * {
+          margin-top: 0 !important;
+        }
+
+        /* ---------- ERROR / STABILITY STAY LIGHT ---------- */
+
+        .sensor-error {
+          color: #94443c;
+          background: #fff0ed;
+          border-color: #efcec8;
+        }
+
+        .sensor-error-icon {
+          color: #94443c;
+          background: #f8dfdb;
+        }
+
+        .sensor-error strong {
+          color: #8f4037;
+        }
+
+        .sensor-error span,
+        .sensor-error small {
+          color: #866b65;
+        }
+
+        .stability-panel {
+          border-radius: 16px;
+        }
+
+        .stability-panel-collecting {
+          background: #f8efdf;
+          border-color: #ead8b9;
+        }
+
+        .stability-panel-stabilizing {
+          background: #f7e7da;
+          border-color: #e8cdb6;
+        }
+
+        .stability-panel-stable {
+          background: #edf4ed;
+          border-color: #d5e5d7;
+        }
+
+        .stability-content strong {
+          color: #3a2921;
+        }
+
+        .stability-content p {
+          color: #77665d;
+        }
+
+        .stability-progress-track {
+          background: rgba(90,55,38,.09);
+        }
+
+        .stability-progress-fill {
+          background:
+            linear-gradient(
+              90deg,
+              #9a6338,
+              #c58a4d
+            );
+        }
+
+        /* ---------- CHARTS LIGHT ---------- */
+
+        .stability-chart-header strong {
+          color: #34231c;
+        }
+
+        .stability-chart-header p {
+          color: #7d6d63;
+        }
+
+        .stability-chart-card {
+          background: #fffdf9;
+          border-color: rgba(90,55,38,.09);
+          box-shadow: 0 6px 18px rgba(43,24,18,.035);
+        }
+
+        .stability-chart-card-collecting {
+          background: #fcf6ec;
+          border-color: #ead8b9;
+        }
+
+        .stability-chart-card-stabilizing {
+          background: #fbf0e8;
+          border-color: #e8cdb6;
+        }
+
+        .stability-chart-card-stable {
+          background: #f2f7f2;
+          border-color: #d5e5d7;
+        }
+
+        .chart-sensor-name,
+        .chart-current-value {
+          color: #34231c;
+        }
+
+        .chart-sensor-description {
+          color: #8a796e;
+        }
+
+        .chart-current-unit {
+          color: #9a6338;
+        }
+
+        .chart-box,
+        .chart-meta-item {
+          background: #f7f1ea;
+          border-color: rgba(90,55,38,.07);
+        }
+
+        .chart-base-line {
+          stroke: rgba(90,55,38,.12);
+        }
+
+        .chart-empty-state,
+        .chart-meta-item span {
+          color: #97877d;
+        }
+
+        .chart-meta-item strong {
+          color: #4a372e;
+        }
+
+        /* ---------- SUCCESS / ACTION ---------- */
+
+        .sensor-success {
+          background: #edf4ed;
+          border-color: #d5e5d7;
+        }
+
+        .sensor-locked-success {
+          background: #f6eadc;
+          border-color: #e6d3bf;
+        }
+
+        .sensor-success strong {
+          color: #3f6345;
+        }
+
+        .sensor-success span {
+          color: #657267;
+        }
+
+        .sensor-locked-success strong {
+          color: #6d4934;
+        }
+
+        .sensor-locked-success span {
+          color: #7c685b;
+        }
+
+        .sensor-actions {
+          border-top-color: rgba(90,55,38,.09);
+        }
+
+        .sensor-helper {
+          color: #78685f;
+        }
+
+        .continue-button {
+          min-height: 46px;
+          color: #fffaf3;
+          background:
+            linear-gradient(
+              135deg,
+              #5a3726,
+              #7a4b33,
+              #a86c40
+            );
+          box-shadow: 0 11px 24px rgba(43,24,18,.16);
+        }
+
+        .continue-button:disabled {
+          color: #a49388;
+          background: #e8ddd2;
+          box-shadow: none;
+          opacity: 1;
+        }
+
+        @media (max-width: 620px) {
+          .sensor-main-card {
+            padding: 18px;
+          }
+
+          .scan-workflow-dark-wrap {
+            padding: 8px;
+          }
+        }
+
+
+
+
+        /* ===================================================
+           FINAL DARK CARD FIX
+           Keep outer Sensor Analysis light, but make all
+           internal status / stability / chart cards espresso.
+        =================================================== */
+
+        /* Collecting / Stabilizing / Stable main panel */
+        .stability-panel {
+          border: 1px solid rgba(255, 222, 178, 0.10) !important;
+
+          background:
+            radial-gradient(
+              circle at 96% 0%,
+              rgba(217, 146, 70, 0.07),
+              transparent 34%
+            ),
+            linear-gradient(
+              145deg,
+              #48291d 0%,
+              #382018 58%,
+              #2b1811 100%
+            ) !important;
+
+          box-shadow:
+            0 9px 24px rgba(43, 24, 18, 0.12),
+            inset 0 1px 0 rgba(255,255,255,.035);
+        }
+
+        .stability-panel-collecting {
+          border-color: rgba(232, 174, 104, 0.16) !important;
+        }
+
+        .stability-panel-stabilizing {
+          border-color: rgba(224, 125, 63, 0.17) !important;
+        }
+
+        .stability-panel-stable {
+          border-color: rgba(95, 183, 107, 0.18) !important;
+        }
+
+        .stability-content strong {
+          color: #fff0dc !important;
+        }
+
+        .stability-content p {
+          color: rgba(255, 237, 211, 0.52) !important;
+        }
+
+        .stability-icon-collecting {
+          color: #ffd18c !important;
+          background: rgba(215,145,52,.14) !important;
+        }
+
+        .stability-icon-stabilizing {
+          color: #ffb476 !important;
+          background: rgba(207,105,42,.14) !important;
+        }
+
+        .stability-icon-stable {
+          color: #9ee7a8 !important;
+          background: rgba(62,167,76,.15) !important;
+        }
+
+        .stability-badge-collecting {
+          color: #ffd18c !important;
+          background: rgba(215,145,52,.11) !important;
+        }
+
+        .stability-badge-stabilizing {
+          color: #ffb476 !important;
+          background: rgba(207,105,42,.11) !important;
+        }
+
+        .stability-badge-stable {
+          color: #9ee7a8 !important;
+          background: rgba(62,167,76,.13) !important;
+        }
+
+        .stability-progress-track {
+          background: rgba(255,255,255,.075) !important;
+        }
+
+        .stability-progress-fill {
+          background:
+            linear-gradient(
+              90deg,
+              #a96538,
+              #e8ad64,
+              #ffd18b
+            ) !important;
+        }
+
+        /* Section title remains dark because it sits on light outer background */
+        .stability-chart-header strong {
+          color: #34231c !important;
+        }
+
+        .stability-chart-header p {
+          color: #7d6d63 !important;
+        }
+
+        /* All 6 individual sensor stability cards */
+        .stability-chart-card {
+          color: #fff2df !important;
+
+          background:
+            radial-gradient(
+              circle at 100% 0%,
+              rgba(217,146,70,.065),
+              transparent 38%
+            ),
+            linear-gradient(
+              145deg,
+              #492a1e 0%,
+              #392119 60%,
+              #2c1912 100%
+            ) !important;
+
+          border:
+            1px solid rgba(255, 222, 178, 0.10) !important;
+
+          box-shadow:
+            0 9px 24px rgba(43, 24, 18, 0.115),
+            inset 0 1px 0 rgba(255,255,255,.035) !important;
+        }
+
+        .stability-chart-card:hover {
+          transform: translateY(-3px);
+
+          border-color:
+            rgba(235, 177, 108, 0.20) !important;
+
+          box-shadow:
+            0 13px 30px rgba(43,24,18,.16),
+            inset 0 1px 0 rgba(255,255,255,.045) !important;
+        }
+
+        .stability-chart-card-collecting {
+          background:
+            linear-gradient(
+              145deg,
+              #4b2b1e,
+              #392119,
+              #2c1912
+            ) !important;
+
+          border-color:
+            rgba(226, 177, 96, 0.18) !important;
+        }
+
+        .stability-chart-card-stabilizing {
+          background:
+            linear-gradient(
+              145deg,
+              #4b281c,
+              #392018,
+              #2b1811
+            ) !important;
+
+          border-color:
+            rgba(230, 138, 79, 0.18) !important;
+        }
+
+        .stability-chart-card-stable {
+          background:
+            linear-gradient(
+              145deg,
+              #3e2a20,
+              #30231a,
+              #281a14
+            ) !important;
+
+          border-color:
+            rgba(92, 190, 103, 0.19) !important;
+        }
+
+        .chart-sensor-name {
+          color: #fff1de !important;
+        }
+
+        .chart-sensor-description {
+          color: rgba(255, 237, 211, 0.48) !important;
+        }
+
+        .chart-current-value {
+          color: #fff4e2 !important;
+        }
+
+        .chart-current-unit {
+          color: #e0a565 !important;
+        }
+
+        .chart-status-collecting {
+          color: #ffd18c !important;
+          background: rgba(215,145,52,.12) !important;
+        }
+
+        .chart-status-stabilizing {
+          color: #ffb476 !important;
+          background: rgba(207,105,42,.12) !important;
+        }
+
+        .chart-status-stable {
+          color: #9ee7a8 !important;
+          background: rgba(62,167,76,.13) !important;
+        }
+
+        .chart-status-collecting .chart-status-dot {
+          background: #e7ad62 !important;
+        }
+
+        .chart-status-stabilizing .chart-status-dot {
+          background: #dc824c !important;
+        }
+
+        .chart-status-stable .chart-status-dot {
+          background: #70d87e !important;
+        }
+
+        /* Graph area */
+        .chart-box {
+          background:
+            rgba(0, 0, 0, 0.17) !important;
+
+          border:
+            1px solid rgba(255, 220, 170, 0.075) !important;
+        }
+
+        .chart-base-line {
+          stroke: rgba(255, 220, 170, 0.12) !important;
+        }
+
+        .chart-empty-state {
+          color: rgba(255, 237, 211, 0.39) !important;
+        }
+
+        /* Variation / Threshold cards */
+        .chart-meta-item {
+          background:
+            rgba(255, 255, 255, 0.045) !important;
+
+          border:
+            1px solid rgba(255, 220, 170, 0.075) !important;
+        }
+
+        .chart-meta-item span {
+          color: rgba(255, 237, 211, 0.42) !important;
+        }
+
+        .chart-meta-item strong {
+          color: #f3d3aa !important;
+        }
+
+        /* Bottom live / locked sensor status card */
+        .sensor-success {
+          color: #d5edd8 !important;
+
+          background:
+            linear-gradient(
+              145deg,
+              #3b2a20,
+              #2e2119
+            ) !important;
+
+          border:
+            1px solid rgba(95, 183, 107, 0.18) !important;
+
+          box-shadow:
+            0 8px 22px rgba(43,24,18,.10);
+        }
+
+        .sensor-success strong {
+          color: #bcebc2 !important;
+        }
+
+        .sensor-success span {
+          color: rgba(211,239,215,.58) !important;
+        }
+
+        .sensor-locked-success {
+          background:
+            linear-gradient(
+              145deg,
+              #42291c,
+              #302019
+            ) !important;
+
+          border-color:
+            rgba(230,158,89,.18) !important;
+        }
+
+        .sensor-locked-success strong {
+          color: #f1c892 !important;
+        }
+
+        .sensor-locked-success span {
+          color: rgba(255,225,190,.56) !important;
         }
 
 

@@ -10,7 +10,10 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    model_validator,
 )
+
+from .. import sensor_quality_config as sensor_config
 
 
 # =========================================================
@@ -450,16 +453,37 @@ class GenerateQualityReportRequest(BaseModel):
 class SensorScoreBreakdown(BaseModel):
 
     # -----------------------------------------------------
-    # MAIN SENSOR RESPONSES
+    # SENSOR RESPONSES
+    #
+    # Response = Sample - Baseline
     # -----------------------------------------------------
 
     mq2_response: Optional[float] = None
 
+    mq3_response: Optional[float] = None
+
     mq135_response: Optional[float] = None
+
+    moisture_response: Optional[float] = None
+
+    humidity_response: Optional[float] = None
+
+    # Temperature is retained as supporting environmental
+    # information only. It is NOT one of the five quality
+    # voting sensors because the experimental GOOD and BAD
+    # ranges overlapped.
+    temperature_response: Optional[float] = None
 
 
     # -----------------------------------------------------
-    # INDIVIDUAL SCORES
+    # LEGACY / COMPATIBILITY INDIVIDUAL SCORES
+    #
+    # Existing frontend components may still read these
+    # fields. The new final sensor score is NOT calculated
+    # by averaging these values.
+    #
+    # service.py uses the five-sensor voting method for the
+    # authoritative sensor score.
     # -----------------------------------------------------
 
     mq2_score: float = 0.0
@@ -469,6 +493,17 @@ class SensorScoreBreakdown(BaseModel):
 
     # -----------------------------------------------------
     # FINAL SENSOR SCORE
+    #
+    # Five voting sensors have equal weight:
+    #
+    # Sensor Score = 100 - (BAD vote count x 20)
+    #
+    # 0 BAD votes -> 100
+    # 1 BAD vote  -> 80
+    # 2 BAD votes -> 60
+    # 3 BAD votes -> 40
+    # 4 BAD votes -> 20
+    # 5 BAD votes -> 0
     # -----------------------------------------------------
 
     sensor_score: float = 0.0
@@ -476,6 +511,10 @@ class SensorScoreBreakdown(BaseModel):
 
     # -----------------------------------------------------
     # SENSOR DECISION
+    #
+    # 0-1 BAD votes -> GOOD
+    # 2 BAD votes   -> REVIEW
+    # 3-5 BAD votes -> BAD
     # -----------------------------------------------------
 
     status: Literal[
@@ -487,25 +526,157 @@ class SensorScoreBreakdown(BaseModel):
 
 
     # -----------------------------------------------------
-    # CURRENT EXPERIMENTAL THRESHOLDS
+    # EXPERIMENTALLY DERIVED BAD-DECISION THRESHOLDS
+    #
+    # Delta = Sample - Baseline
+    #
+    # These are research-defined thresholds derived from
+    # the collected GOOD / BAD coffee bean experiments.
+    # They are not presented as official coffee-industry
+    # grading standards.
     # -----------------------------------------------------
 
-    mq2_threshold: float = 73.0
+    mq2_threshold: float = (
+        sensor_config.MQ2_BAD_THRESHOLD
+    )
 
-    mq135_threshold: float = 22.5
+    mq3_threshold: float = (
+        sensor_config.MQ3_BAD_THRESHOLD
+    )
+
+    mq135_threshold: float = (
+        sensor_config.MQ135_BAD_THRESHOLD
+    )
+
+    moisture_threshold: float = (
+        sensor_config.MOISTURE_BAD_THRESHOLD
+    )
+
+    humidity_threshold: float = (
+        sensor_config.HUMIDITY_BAD_THRESHOLD
+    )
 
 
     # -----------------------------------------------------
-    # SUPPORTING SENSOR INFORMATION
+    # INDIVIDUAL FIVE-SENSOR VOTES
+    #
+    # True  = this sensor gives a BAD vote
+    # False = this sensor gives a GOOD vote
+    # None  = response unavailable / invalid
     # -----------------------------------------------------
 
-    mq3_response: Optional[float] = None
+    mq2_bad: Optional[bool] = None
 
-    humidity_response: Optional[float] = None
+    mq3_bad: Optional[bool] = None
 
-    moisture_response: Optional[float] = None
+    mq135_bad: Optional[bool] = None
 
-    temperature_response: Optional[float] = None
+    moisture_bad: Optional[bool] = None
+
+    humidity_bad: Optional[bool] = None
+
+
+    # -----------------------------------------------------
+    # VOTING SUMMARY
+    # -----------------------------------------------------
+
+    bad_count: int = 0
+
+    valid_vote_count: int = 0
+
+    total_voting_sensors: int = (
+    sensor_config.TOTAL_VOTING_SENSORS
+    )
+
+    # Explicit methodology flag for report/UI clarity.
+    temperature_used_for_decision: bool = False
+
+
+    # -----------------------------------------------------
+    # AUTOMATIC VOTE METADATA
+    #
+    # The backend service remains responsible for the final
+    # score and GOOD / REVIEW / BAD status.
+    #
+    # This validator derives the per-sensor vote metadata
+    # from the returned responses so the Final Report can
+    # show BAD Votes X/5 without requiring duplicate logic
+    # in the frontend.
+    # -----------------------------------------------------
+
+    @model_validator(mode="after")
+    def populate_sensor_vote_metadata(self):
+
+        if self.status == "SKIPPED":
+            self.mq2_bad = None
+            self.mq3_bad = None
+            self.mq135_bad = None
+            self.moisture_bad = None
+            self.humidity_bad = None
+
+            self.bad_count = 0
+            self.valid_vote_count = 0
+            self.total_voting_sensors = 5
+            self.temperature_used_for_decision = False
+
+            return self
+
+
+        self.mq2_bad = (
+            None
+            if self.mq2_response is None
+            else self.mq2_response >= self.mq2_threshold
+        )
+
+        self.mq3_bad = (
+            None
+            if self.mq3_response is None
+            else self.mq3_response >= self.mq3_threshold
+        )
+
+        self.mq135_bad = (
+            None
+            if self.mq135_response is None
+            else self.mq135_response >= self.mq135_threshold
+        )
+
+        self.moisture_bad = (
+            None
+            if self.moisture_response is None
+            else self.moisture_response <= self.moisture_threshold
+        )
+
+        self.humidity_bad = (
+            None
+            if self.humidity_response is None
+            else self.humidity_response >= self.humidity_threshold
+        )
+
+
+        votes = [
+            self.mq2_bad,
+            self.mq3_bad,
+            self.mq135_bad,
+            self.moisture_bad,
+            self.humidity_bad,
+        ]
+
+
+        self.valid_vote_count = sum(
+            vote is not None
+            for vote in votes
+        )
+
+        self.bad_count = sum(
+            vote is True
+            for vote in votes
+        )
+
+        self.total_voting_sensors = 5
+
+        self.temperature_used_for_decision = False
+
+        return self
 
 
 # =========================================================
@@ -742,7 +913,13 @@ class QualityReportResponse(BaseModel):
     methodology: str = (
         "The final quality score uses an equal 50/50 "
         "fusion of sensor-based quality assessment and "
-        "physical AI quality assessment."
+        "physical AI quality assessment. The sensor "
+        "assessment uses five equally weighted voting "
+        "sensors: MQ-2, MQ-3, MQ-135, moisture, and "
+        "humidity. Each BAD vote reduces the sensor score "
+        "by 20 points. Temperature is retained as supporting "
+        "environmental information and is not used as a "
+        "quality vote."
     )
 
 

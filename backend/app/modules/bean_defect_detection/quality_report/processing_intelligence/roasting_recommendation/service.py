@@ -1,72 +1,31 @@
-from typing import Any, Dict
+from typing import List
 
-from .schema import RoastingRecommendation
+from ..defect_profile import (
+    DefectProfile,
+)
+
+from .schema import (
+    RoastingReadinessTrigger,
+    RoastingRecommendation,
+)
 
 
 # =========================================================
-# ROASTING RECOMMENDATION SERVICE
+# ROASTING READINESS RECOMMENDATION SERVICE
+# =========================================================
+#
+# New design:
+#
+#   Detected defect
+#       -> defect-specific readiness trigger
+#       -> required pre-roast action
+#
+# final_score, grade, quality_status, sensor_status and
+# physical_status DO NOT trigger these recommendations.
+#
 # =========================================================
 
 class RoastingRecommendationService:
-
-    # =====================================================
-    # RESEARCH-DEFINED RULE THRESHOLDS
-    # =====================================================
-    #
-    # These values are used only for this research system's
-    # decision-support logic.
-    #
-    # They are NOT official SCA roasting standards.
-    # =====================================================
-
-    BROKEN_LOW_THRESHOLD = 5.0
-    BROKEN_HIGH_THRESHOLD = 15.0
-
-    SEVERE_LOW_THRESHOLD = 5.0
-    SEVERE_HIGH_THRESHOLD = 20.0
-
-    UNKNOWN_WARNING_THRESHOLD = 3.0
-
-
-    # =====================================================
-    # SAFE INTEGER
-    # =====================================================
-
-    @staticmethod
-    def _safe_int(
-        value: Any,
-        default: int = 0,
-    ) -> int:
-
-        try:
-            return int(value)
-
-        except (
-            TypeError,
-            ValueError,
-        ):
-            return default
-
-
-    # =====================================================
-    # SAFE FLOAT
-    # =====================================================
-
-    @staticmethod
-    def _safe_float(
-        value: Any,
-        default: float = 0.0,
-    ) -> float:
-
-        try:
-            return float(value)
-
-        except (
-            TypeError,
-            ValueError,
-        ):
-            return default
-
 
     # =====================================================
     # PERCENTAGE
@@ -92,769 +51,623 @@ class RoastingRecommendationService:
 
 
     # =====================================================
-    # GENERATE ROASTING RECOMMENDATION
+    # ADD TRIGGER
+    # =====================================================
+
+    @staticmethod
+    def _add_trigger(
+        triggers: List[
+            RoastingReadinessTrigger
+        ],
+        *,
+        defect: str,
+        readiness: str,
+        title: str,
+        reason: str,
+        required_action: str,
+        evidence_class: str,
+        detected_count=None,
+    ) -> None:
+
+        triggers.append(
+            RoastingReadinessTrigger(
+                defect=defect,
+                readiness=readiness,
+                title=title,
+                reason=reason,
+                required_action=(
+                    required_action
+                ),
+                evidence_class=(
+                    evidence_class
+                ),
+                detected_count=(
+                    detected_count
+                ),
+            )
+        )
+
+
+    # =====================================================
+    # GENERATE
     # =====================================================
 
     def generate(
         self,
         *,
-        sensor_status: str,
-        physical_status: str,
-        final_score: float,
-        grade: str,
-        quality_status: str,
-        counts: Dict[str, Any],
+        defect_profile: DefectProfile,
     ) -> RoastingRecommendation:
 
-        # -------------------------------------------------
-        # NORMALIZE INPUTS
-        # -------------------------------------------------
-
-        sensor_status = (
-            sensor_status
-            or "SKIPPED"
-        ).upper()
-
-
-        physical_status = (
-            physical_status
-            or "NO_DATA"
-        ).upper()
-
-
-        quality_status = (
-            quality_status
-            or "Needs Review"
+        sensor = (
+            defect_profile.sensor
         )
 
-
-        grade = (
-            grade
-            or "Reject"
+        physical = (
+            defect_profile.physical
         )
 
-
-        final_score = self._safe_float(
-            final_score
+        yield_counts = (
+            defect_profile.yield_counts
         )
 
+        inspection = (
+            defect_profile.inspection
+        )
 
-        # -------------------------------------------------
-        # DEFECT COUNTS
-        # -------------------------------------------------
+        triggers: List[
+            RoastingReadinessTrigger
+        ] = []
 
-        total = self._safe_int(
-            counts.get(
-                "total_beans",
-                0,
+        reasons: List[str] = []
+
+        prerequisites: List[str] = []
+
+        warnings: List[str] = []
+
+
+        # =================================================
+        # INSPECTION COMPLETENESS
+        # =================================================
+        #
+        # Missing data is NOT treated as a coffee defect.
+        # It is only a readiness gate.
+        #
+        # =================================================
+
+        if (
+            not inspection.sensor_complete
+            or
+            not inspection.physical_complete
+        ):
+
+            if (
+                not inspection.sensor_complete
+            ):
+                reasons.append(
+                    (
+                        "The required voting-sensor "
+                        "inspection data is incomplete."
+                    )
+                )
+
+                prerequisites.append(
+                    (
+                        "Complete the sensor inspection "
+                        "before a direct roasting release "
+                        "decision is made."
+                    )
+                )
+
+            if (
+                not inspection.physical_complete
+            ):
+                reasons.append(
+                    (
+                        "The physical AI inspection does "
+                        "not contain a valid bean sample."
+                    )
+                )
+
+                prerequisites.append(
+                    (
+                        "Complete the physical AI "
+                        "inspection before roasting."
+                    )
+                )
+
+
+        # =================================================
+        # 1. MQ2 ABNORMAL
+        # =================================================
+
+        if sensor.mq2_abnormal:
+
+            self._add_trigger(
+                triggers,
+                defect="MQ2_ABNORMAL",
+                readiness="CONDITIONAL",
+                title=(
+                    "Verify Smoke or Combustible "
+                    "Volatile Exposure"
+                ),
+                reason=(
+                    "An abnormal MQ-2 response was "
+                    "detected. MQ-2 is a broad smoke and "
+                    "flammable-gas sensor, so this signal "
+                    "requires verification rather than "
+                    "being treated as a confirmed coffee "
+                    "defect."
+                ),
+                required_action=(
+                    "Hold direct roasting temporarily, "
+                    "inspect for smoke, fuel or other "
+                    "combustible-vapour exposure, and "
+                    "repeat the sensor assessment in a "
+                    "clean environment."
+                ),
+                evidence_class=(
+                    "SENSOR_TECHNICAL_RULE"
+                ),
             )
-        )
 
 
-        broken = self._safe_int(
-            counts.get(
-                "broken",
-                0,
+        # =================================================
+        # 2. MQ3 ABNORMAL
+        # =================================================
+
+        if sensor.mq3_abnormal:
+
+            self._add_trigger(
+                triggers,
+                defect="MQ3_ABNORMAL",
+                readiness="CONDITIONAL",
+                title=(
+                    "Verify Alcohol-Sensitive "
+                    "Volatile Condition"
+                ),
+                reason=(
+                    "An abnormal MQ-3 response was "
+                    "detected. MQ-3 is alcohol-sensitive "
+                    "and does not by itself confirm coffee "
+                    "fermentation."
+                ),
+                required_action=(
+                    "Inspect for unusual fermentative "
+                    "odour or external alcohol/solvent "
+                    "vapours and repeat the sensor "
+                    "assessment before roasting."
+                ),
+                evidence_class=(
+                    "SENSOR_TECHNICAL_RULE"
+                ),
             )
-        )
 
 
-        black = self._safe_int(
-            counts.get(
-                "black",
-                0,
+        # =================================================
+        # 3. MQ135 ABNORMAL
+        # =================================================
+
+        if sensor.mq135_abnormal:
+
+            self._add_trigger(
+                triggers,
+                defect="MQ135_ABNORMAL",
+                readiness="CONDITIONAL",
+                title=(
+                    "Verify Environmental VOC "
+                    "or Odour Exposure"
+                ),
+                reason=(
+                    "An abnormal MQ-135 response was "
+                    "detected. MQ-135 responds broadly to "
+                    "air-quality gases and vapours and is "
+                    "not coffee-defect-specific."
+                ),
+                required_action=(
+                    "Inspect storage for chemicals, fuels, "
+                    "smoke or strong odours, move the "
+                    "sample to a clean ventilated area if "
+                    "needed, and repeat the assessment."
+                ),
+                evidence_class=(
+                    "SENSOR_TECHNICAL_RULE"
+                ),
             )
-        )
 
 
-        black_and_broken = self._safe_int(
-            counts.get(
-                "black_and_broken",
-                0,
+        # =================================================
+        # 4. MOISTURE DEFECT
+        # =================================================
+
+        if sensor.moisture_defect:
+
+            self._add_trigger(
+                triggers,
+                defect="MOISTURE_DEFECT",
+                readiness="NOT_READY",
+                title=(
+                    "Verify and Correct Moisture "
+                    "Before Roasting"
+                ),
+                reason=(
+                    "The experimental moisture sensor "
+                    "response indicates a moisture anomaly. "
+                    "The current raw sensor response does "
+                    "not identify whether actual bean "
+                    "moisture is too high or too low."
+                ),
+                required_action=(
+                    "Do not roast directly. Verify actual "
+                    "bean moisture using an appropriate "
+                    "calibrated/reference method, correct "
+                    "the moisture condition as required, "
+                    "and reassess the batch."
+                ),
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
             )
-        )
 
 
-        unknown = self._safe_int(
-            counts.get(
-                "unknown",
-                0,
+        # =================================================
+        # 5. TEMPERATURE ABNORMAL
+        # =================================================
+
+        if sensor.temperature_abnormal:
+
+            self._add_trigger(
+                triggers,
+                defect="TEMPERATURE_ABNORMAL",
+                readiness="CONDITIONAL",
+                title=(
+                    "Stabilize Pre-Roast "
+                    "Environmental Temperature"
+                ),
+                reason=(
+                    "An abnormal environmental temperature "
+                    "condition was flagged by a separately "
+                    "validated temperature rule."
+                ),
+                required_action=(
+                    "Stabilize the storage and pre-roast "
+                    "environment and reassess the batch "
+                    "before direct roasting."
+                ),
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
             )
+
+
+        # =================================================
+        # 6. HUMIDITY ABNORMAL
+        # =================================================
+
+        if sensor.humidity_abnormal:
+
+            self._add_trigger(
+                triggers,
+                defect="HUMIDITY_ABNORMAL",
+                readiness="CONDITIONAL",
+                title=(
+                    "Stabilize Humidity and Check "
+                    "for Moisture Reabsorption"
+                ),
+                reason=(
+                    "The experimental humidity response "
+                    "indicates abnormal humidity exposure, "
+                    "which can contribute to moisture "
+                    "reabsorption and storage-quality "
+                    "deterioration."
+                ),
+                required_action=(
+                    "Move the batch to a dry, ventilated "
+                    "environment, prevent further humidity "
+                    "exposure, and recheck bean moisture "
+                    "before roasting."
+                ),
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+            )
+
+
+        # =================================================
+        # 7. BROKEN BEANS
+        # =================================================
+        #
+        # physical.broken already includes:
+        #
+        #   original broken
+        #   +
+        #   black_and_broken
+        #
+        # =================================================
+
+        if physical.broken > 0:
+
+            self._add_trigger(
+                triggers,
+                defect="BROKEN_BEANS",
+                readiness="CONDITIONAL",
+                title=(
+                    "Sort Broken Beans Before Roasting"
+                ),
+                reason=(
+                    f"{physical.broken} beans show a "
+                    "broken-shape defect in the normalized "
+                    "recommendation profile. Broken beans "
+                    "can roast faster than whole beans and "
+                    "increase uneven-roast or charring risk."
+                ),
+                required_action=(
+                    "Perform secondary sorting and separate "
+                    "the broken fraction before selecting "
+                    "the final roasting lot."
+                ),
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+                detected_count=(
+                    physical.broken
+                ),
+            )
+
+
+        # =================================================
+        # 8. BLACK BEANS
+        # =================================================
+        #
+        # physical.black already includes:
+        #
+        #   original black
+        #   +
+        #   black_and_broken
+        #
+        # =================================================
+
+        if physical.black > 0:
+
+            self._add_trigger(
+                triggers,
+                defect="BLACK_BEANS",
+                readiness="CONDITIONAL",
+                title=(
+                    "Remove Black Beans Before Roasting"
+                ),
+                reason=(
+                    f"{physical.black} beans show a "
+                    "black-colour defect in the normalized "
+                    "recommendation profile. Black beans "
+                    "are a recognized green-coffee defect "
+                    "with significant sensory-quality "
+                    "concern."
+                ),
+                required_action=(
+                    "Remove the detected black-bean "
+                    "fraction and reassess the remaining "
+                    "coffee lot before roasting."
+                ),
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+                detected_count=(
+                    physical.black
+                ),
+            )
+
+
+        # =================================================
+        # BUILD EXPLAINABILITY ARRAYS
+        # =================================================
+
+        for trigger in triggers:
+
+            reasons.append(
+                trigger.reason
+            )
+
+            prerequisites.append(
+                trigger.required_action
+            )
+
+            if (
+                trigger.readiness
+                ==
+                "NOT_READY"
+            ):
+                warnings.append(
+                    trigger.title
+                )
+
+
+        # =================================================
+        # AGGREGATE FINAL READINESS
+        # =================================================
+        #
+        # Research-defined priority:
+        #
+        #   NOT_READY
+        #       >
+        #   CONDITIONAL
+        #       >
+        #   READY
+        #
+        # Every individual defect trigger remains visible.
+        #
+        # =================================================
+
+        inspection_complete = (
+            inspection.sensor_complete
+            and
+            inspection.physical_complete
+        )
+
+        has_not_ready = any(
+            trigger.readiness
+            ==
+            "NOT_READY"
+            for trigger in triggers
+        )
+
+        has_conditional = any(
+            trigger.readiness
+            ==
+            "CONDITIONAL"
+            for trigger in triggers
         )
 
 
-        # -------------------------------------------------
-        # PERCENTAGES
-        # -------------------------------------------------
+        if has_not_ready:
+
+            readiness_status = (
+                "NOT_READY"
+            )
+
+            roasting_eligibility = (
+                "NOT_RECOMMENDED"
+            )
+
+            direct_roasting_allowed = False
+
+            recommended_direction = (
+                "CORRECT_AND_REASSESS_BEFORE_ROASTING"
+            )
+
+            title = (
+                "Batch Not Ready for Roasting"
+            )
+
+            summary = (
+                "At least one detected defect requires "
+                "correction and reassessment before the "
+                "batch should proceed to roasting."
+            )
+
+
+        elif (
+            has_conditional
+            or
+            not inspection_complete
+        ):
+
+            readiness_status = (
+                "CONDITIONAL"
+            )
+
+            roasting_eligibility = (
+                "CONDITIONAL"
+            )
+
+            direct_roasting_allowed = False
+
+            recommended_direction = (
+                "COMPLETE_REQUIRED_ACTIONS_BEFORE_ROASTING"
+            )
+
+            title = (
+                "Conditional Roasting Readiness"
+            )
+
+            summary = (
+                "The batch should proceed to roasting only "
+                "after the listed defect-specific actions "
+                "and any missing inspections are completed."
+            )
+
+
+        else:
+
+            readiness_status = (
+                "READY"
+            )
+
+            roasting_eligibility = (
+                "READY"
+            )
+
+            direct_roasting_allowed = True
+
+            recommended_direction = (
+                "STANDARD_PRE_ROAST_PREPARATION"
+            )
+
+            title = (
+                "Batch Ready for Roasting"
+            )
+
+            summary = (
+                "No active Processing Intelligence defect "
+                "was detected and the required inspection "
+                "data is complete. Normal pre-roast quality "
+                "controls can continue."
+            )
+
+            prerequisites.append(
+                (
+                    "Complete normal pre-roast cleaning "
+                    "and standard factory quality controls."
+                )
+            )
+
+
+        # =================================================
+        # COMPATIBILITY PERCENTAGES
+        # =================================================
+
+        total = (
+            yield_counts.total_beans
+        )
 
         broken_percentage = (
             self._percentage(
-                broken,
+                physical.broken,
                 total,
             )
         )
-
-
-        severe_defect_count = (
-            black
-            + black_and_broken
-        )
-
 
         severe_defect_percentage = (
             self._percentage(
-                severe_defect_count,
+                physical.black,
                 total,
-            )
-        )
-
-
-        unknown_percentage = (
-            self._percentage(
-                unknown,
-                total,
-            )
-        )
-
-
-        # -------------------------------------------------
-        # COMMON OUTPUT ARRAYS
-        # -------------------------------------------------
-
-        reasons = []
-
-        prerequisites = []
-
-        warnings = []
-
-
-        # =================================================
-        # NO PHYSICAL DATA
-        # =================================================
-
-        if (
-            total <= 0
-            or
-            physical_status == "NO_DATA"
-        ):
-
-            return RoastingRecommendation(
-
-                roasting_eligibility=(
-                    "CONDITIONAL"
-                ),
-
-                direct_roasting_allowed=False,
-
-                recommended_direction=(
-                    "RE_INSPECT_BEFORE_ROASTING"
-                ),
-
-                title=(
-                    "Physical Inspection Required "
-                    "Before Roasting"
-                ),
-
-                summary=(
-                    "The system does not have enough "
-                    "physical AI inspection data to "
-                    "support a direct roasting decision."
-                ),
-
-                reasons=[
-                    (
-                        "Physical bean quality data "
-                        "is unavailable or incomplete."
-                    ),
-                ],
-
-                prerequisites=[
-                    (
-                        "Complete the physical AI "
-                        "inspection."
-                    ),
-                    (
-                        "Generate a new quality "
-                        "assessment before roasting."
-                    ),
-                ],
-
-                warnings=[
-                    (
-                        "Direct roasting is not "
-                        "recommended without complete "
-                        "physical quality evidence."
-                    ),
-                ],
-
-                broken_percentage=0.0,
-
-                severe_defect_percentage=0.0,
-
-                unknown_percentage=0.0,
-
-                methodology_note=(
-                    "This roasting recommendation is "
-                    "a research-defined decision-support "
-                    "output based on the available raw "
-                    "bean quality assessment. It is not "
-                    "an official roasting standard."
-                ),
-            )
-
-
-        # =================================================
-        # BUILD REASONS
-        # =================================================
-
-        if (
-            severe_defect_percentage
-            > 0
-        ):
-            reasons.append(
-                (
-                    f"{severe_defect_percentage:.2f}% "
-                    "of inspected beans contain severe "
-                    "black or black-and-broken defects."
-                )
-            )
-
-
-        if (
-            broken_percentage
-            > 0
-        ):
-            reasons.append(
-                (
-                    f"{broken_percentage:.2f}% "
-                    "of inspected beans were classified "
-                    "as broken or chipped."
-                )
-            )
-
-
-        if (
-            unknown_percentage
-            > 0
-        ):
-            reasons.append(
-                (
-                    f"{unknown_percentage:.2f}% "
-                    "of inspected beans remain "
-                    "uncertain."
-                )
-            )
-
-
-        if (
-            sensor_status == "GOOD"
-        ):
-            reasons.append(
-                (
-                    "The sensor assessment is "
-                    "consistent with the experimental "
-                    "good-bean profile."
-                )
-            )
-
-
-        elif (
-            sensor_status == "REVIEW"
-        ):
-            reasons.append(
-                (
-                    "The sensor assessment requires "
-                    "additional review."
-                )
-            )
-
-
-        elif (
-            sensor_status == "BAD"
-        ):
-            reasons.append(
-                (
-                    "The sensor assessment indicates "
-                    "a defective bean profile."
-                )
-            )
-
-
-        elif (
-            sensor_status == "SKIPPED"
-        ):
-            reasons.append(
-                (
-                    "The sensor quality assessment "
-                    "was skipped."
-                )
-            )
-
-
-        # =================================================
-        # CRITICAL / REJECT CONDITION
-        # =================================================
-
-        if (
-            grade == "Reject"
-            or
-            (
-                sensor_status == "BAD"
-                and
-                physical_status == "POOR"
-            )
-        ):
-
-            prerequisites.extend(
-                [
-                    (
-                        "Do not send the current batch "
-                        "directly to roasting."
-                    ),
-                    (
-                        "Perform intensive re-sorting "
-                        "or reject the affected batch."
-                    ),
-                    (
-                        "Repeat sensor and physical AI "
-                        "quality inspections after any "
-                        "corrective action."
-                    ),
-                ]
-            )
-
-
-            warnings.append(
-                (
-                    "The current quality condition "
-                    "presents a high risk of producing "
-                    "an inconsistent or defective "
-                    "roasted batch."
-                )
-            )
-
-
-            return RoastingRecommendation(
-
-                roasting_eligibility=(
-                    "NOT_RECOMMENDED"
-                ),
-
-                direct_roasting_allowed=False,
-
-                recommended_direction=(
-                    "DO_NOT_ROAST"
-                ),
-
-                title=(
-                    "Roasting Not Recommended"
-                ),
-
-                summary=(
-                    "The current raw coffee bean batch "
-                    "does not meet the research system's "
-                    "minimum condition for direct "
-                    "roasting."
-                ),
-
-                reasons=reasons,
-
-                prerequisites=prerequisites,
-
-                warnings=warnings,
-
-                broken_percentage=(
-                    broken_percentage
-                ),
-
-                severe_defect_percentage=(
-                    severe_defect_percentage
-                ),
-
-                unknown_percentage=(
-                    unknown_percentage
-                ),
-
-                methodology_note=(
-                    "The recommendation is generated "
-                    "using research-defined raw-bean "
-                    "quality rules. Exact roast "
-                    "temperature and time are not "
-                    "generated from the current inputs."
-                ),
-            )
-
-
-        # =================================================
-        # SEVERE PHYSICAL DEFECT CONDITION
-        # =================================================
-
-        if (
-            physical_status == "POOR"
-            or
-            severe_defect_percentage
-            >= self.SEVERE_HIGH_THRESHOLD
-        ):
-
-            prerequisites.extend(
-                [
-                    (
-                        "Remove black beans before "
-                        "roasting."
-                    ),
-                    (
-                        "Remove black-and-broken beans "
-                        "before roasting."
-                    ),
-                    (
-                        "Perform secondary sorting."
-                    ),
-                    (
-                        "Repeat physical AI inspection "
-                        "after sorting."
-                    ),
-                ]
-            )
-
-
-            if (
-                sensor_status
-                in {
-                    "BAD",
-                    "REVIEW",
-                    "SKIPPED",
-                }
-            ):
-                prerequisites.append(
-                    (
-                        "Repeat the sensor assessment "
-                        "before releasing the batch to "
-                        "roasting."
-                    )
-                )
-
-
-            warnings.append(
-                (
-                    "Direct roasting may carry a high "
-                    "quality risk because severe "
-                    "physical defects are present."
-                )
-            )
-
-
-            return RoastingRecommendation(
-
-                roasting_eligibility=(
-                    "CONDITIONAL"
-                ),
-
-                direct_roasting_allowed=False,
-
-                recommended_direction=(
-                    "RE_SORT_BEFORE_ROASTING"
-                ),
-
-                title=(
-                    "Re-Sort Before Roasting"
-                ),
-
-                summary=(
-                    "The batch may only be considered "
-                    "for roasting after severe defects "
-                    "are removed and the batch is "
-                    "re-inspected."
-                ),
-
-                reasons=reasons,
-
-                prerequisites=prerequisites,
-
-                warnings=warnings,
-
-                broken_percentage=(
-                    broken_percentage
-                ),
-
-                severe_defect_percentage=(
-                    severe_defect_percentage
-                ),
-
-                unknown_percentage=(
-                    unknown_percentage
-                ),
-
-                methodology_note=(
-                    "This recommendation uses "
-                    "research-defined defect severity "
-                    "rules and does not represent an "
-                    "official SCA roast profile."
-                ),
-            )
-
-
-        # =================================================
-        # SENSOR BAD / REVIEW CONDITION
-        # =================================================
-
-        if (
-            sensor_status
-            in {
-                "BAD",
-                "REVIEW",
-                "SKIPPED",
-            }
-        ):
-
-            prerequisites.append(
-                (
-                    "Repeat or review the sensor "
-                    "assessment before roasting."
-                )
-            )
-
-
-            prerequisites.append(
-                (
-                    "Confirm that the batch passes "
-                    "quality inspection after review."
-                )
-            )
-
-
-            warnings.append(
-                (
-                    "The sensor condition does not "
-                    "support unconditional release "
-                    "for roasting."
-                )
-            )
-
-
-            return RoastingRecommendation(
-
-                roasting_eligibility=(
-                    "CONDITIONAL"
-                ),
-
-                direct_roasting_allowed=False,
-
-                recommended_direction=(
-                    "RE_INSPECT_BEFORE_ROASTING"
-                ),
-
-                title=(
-                    "Quality Reinspection Required"
-                ),
-
-                summary=(
-                    "Physical quality may be acceptable, "
-                    "but the sensor assessment requires "
-                    "review before the batch proceeds "
-                    "to roasting."
-                ),
-
-                reasons=reasons,
-
-                prerequisites=prerequisites,
-
-                warnings=warnings,
-
-                broken_percentage=(
-                    broken_percentage
-                ),
-
-                severe_defect_percentage=(
-                    severe_defect_percentage
-                ),
-
-                unknown_percentage=(
-                    unknown_percentage
-                ),
-
-                methodology_note=(
-                    "The roasting release decision "
-                    "requires both sensor and physical "
-                    "quality information. This is a "
-                    "research-defined decision rule."
-                ),
-            )
-
-
-        # =================================================
-        # MODERATE DEFECT CONDITION
-        # =================================================
-
-        if (
-            broken_percentage
-            >= self.BROKEN_LOW_THRESHOLD
-            or
-            severe_defect_percentage
-            >= self.SEVERE_LOW_THRESHOLD
-            or
-            unknown_percentage
-            >= self.UNKNOWN_WARNING_THRESHOLD
-            or
-            grade in {
-                "B",
-                "C",
-            }
-            or
-            quality_status
-            == "Needs Review"
-        ):
-
-            if (
-                severe_defect_percentage
-                > 0
-            ):
-                prerequisites.append(
-                    (
-                        "Remove identified black and "
-                        "black-and-broken defects."
-                    )
-                )
-
-
-            if (
-                broken_percentage
-                >= self.BROKEN_LOW_THRESHOLD
-            ):
-                prerequisites.append(
-                    (
-                        "Perform secondary sorting "
-                        "to reduce broken beans."
-                    )
-                )
-
-
-            if (
-                unknown_percentage
-                >= self.UNKNOWN_WARNING_THRESHOLD
-            ):
-                prerequisites.append(
-                    (
-                        "Manually inspect uncertain "
-                        "bean classifications."
-                    )
-                )
-
-
-            prerequisites.append(
-                (
-                    "Verify the batch condition before "
-                    "starting the roasting stage."
-                )
-            )
-
-
-            warnings.append(
-                (
-                    "The batch contains quality "
-                    "variation that may reduce roasting "
-                    "uniformity."
-                )
-            )
-
-
-            return RoastingRecommendation(
-
-                roasting_eligibility=(
-                    "CONDITIONAL"
-                ),
-
-                direct_roasting_allowed=False,
-
-                recommended_direction=(
-                    "CONTROLLED_ROASTING"
-                ),
-
-                title=(
-                    "Conditional Roasting Recommended"
-                ),
-
-                summary=(
-                    "The batch can potentially proceed "
-                    "to roasting after the recommended "
-                    "quality preparation steps are "
-                    "completed."
-                ),
-
-                reasons=reasons,
-
-                prerequisites=prerequisites,
-
-                warnings=warnings,
-
-                broken_percentage=(
-                    broken_percentage
-                ),
-
-                severe_defect_percentage=(
-                    severe_defect_percentage
-                ),
-
-                unknown_percentage=(
-                    unknown_percentage
-                ),
-
-                methodology_note=(
-                    "Controlled roasting refers to "
-                    "additional process attention and "
-                    "quality monitoring. Exact roast "
-                    "temperature, time, and curve are "
-                    "not predicted by the current "
-                    "quality model."
-                ),
-            )
-
-
-        # =================================================
-        # HIGH-QUALITY CONDITION
-        # =================================================
-
-        reasons.append(
-            (
-                f"The final quality score is "
-                f"{final_score:.2f}/100 with "
-                f"research-defined Grade {grade}."
-            )
-        )
-
-
-        prerequisites.append(
-            (
-                "Complete the normal pre-roast "
-                "cleaning and preparation process."
             )
         )
 
 
         return RoastingRecommendation(
 
-            roasting_eligibility="READY",
+            readiness_status=(
+                readiness_status
+            ),
 
-            direct_roasting_allowed=True,
+            roasting_eligibility=(
+                roasting_eligibility
+            ),
+
+            direct_roasting_allowed=(
+                direct_roasting_allowed
+            ),
 
             recommended_direction=(
-                "STANDARD_ROASTING"
+                recommended_direction
             ),
 
-            title=(
-                "Batch Ready for Roasting"
-            ),
+            title=title,
 
-            summary=(
-                "The combined sensor and physical "
-                "quality assessment supports release "
-                "of the batch to the roasting stage."
+            summary=summary,
+
+            triggers=triggers,
+
+            active_defect_count=(
+                defect_profile
+                .active_defect_count
             ),
 
             reasons=reasons,
 
             prerequisites=prerequisites,
 
-            warnings=[],
+            warnings=warnings,
 
             broken_percentage=(
                 broken_percentage
@@ -864,17 +677,25 @@ class RoastingRecommendationService:
                 severe_defect_percentage
             ),
 
-            unknown_percentage=(
-                unknown_percentage
+            unknown_percentage=0.0,
+
+            inspection_complete=(
+                inspection_complete
             ),
 
             methodology_note=(
-                "This is a research-defined roasting "
-                "release recommendation based on raw "
-                "bean quality. Roast temperature, "
-                "duration, and detailed roast curve "
-                "require additional roasting-specific "
-                "inputs."
+                "Roasting readiness is generated from "
+                "explicit defect evidence, not from the "
+                "final quality score, grade, overall "
+                "sensor status or physical status. "
+                "MQ sensor rules are sensor-technical "
+                "verification rules because the MQ devices "
+                "are broad gas sensors and do not confirm a "
+                "specific coffee defect. Moisture, humidity "
+                "and physical-defect actions are "
+                "standard-supported research rules. The "
+                "READY / CONDITIONAL / NOT_READY aggregation "
+                "priority is research-defined."
             ),
         )
 

@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from app.modules.packet_seal_detection.history_routes import router as history_router
 
 from app.database import (
     check_database_connection,
@@ -132,6 +133,10 @@ app.include_router(
     seal_router,
     prefix="/api/seals",
     tags=["Packet Seal Detection"],
+)
+
+app.include_router(
+    history_router,
 )
 
 app.include_router(

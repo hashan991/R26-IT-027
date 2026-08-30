@@ -4,6 +4,11 @@ from .schema import (
     ProcessingIntelligence,
 )
 
+from .defect_profile import (
+    DefectProfile,
+    build_defect_profile,
+)
+
 from .roasting_recommendation.service import (
     roasting_recommendation_service,
 )
@@ -24,13 +29,57 @@ from .usable_yield.service import (
     usable_yield_service,
 )
 
-from .production_decision.service import (
-    production_decision_service,
-)
+
+# =========================================================
+# OPTIONAL FUTURE MODULE IMPORTS
+# =========================================================
+#
+# Modules 6 and 7 may not exist yet while the migration is
+# in progress.
+#
+# This keeps THIS orchestrator file stable. When the new
+# module files are later added, Uvicorn reload will import
+# them automatically and no change to this service.py is
+# required.
+#
+# =========================================================
+
+try:
+    from .storage_handling.service import (
+        storage_handling_service,
+    )
+
+except ImportError:
+    storage_handling_service = None
+
+
+try:
+    from .preventive_guidance.service import (
+        preventive_guidance_service,
+    )
+
+except ImportError:
+    preventive_guidance_service = None
 
 
 # =========================================================
 # PROCESSING INTELLIGENCE SERVICE
+# =========================================================
+#
+# FINAL ORCHESTRATOR SHAPE
+#
+# 1. Roasting Readiness Recommendation
+# 2. Pre-Roast Corrective Actions
+# 3. Roast Quality Risks
+# 4. Batch Usage Recommendation
+# 5. Usable Yield Estimation
+# 6. Storage & Handling Recommendation
+# 7. Preventive Process Guidance
+#
+# IMPORTANT:
+# This file is intentionally migration-safe so it does not
+# need to be edited again while Modules 3-7 are migrated.
+#
 # =========================================================
 
 class ProcessingIntelligenceService:
@@ -110,6 +159,257 @@ class ProcessingIntelligenceService:
 
 
     # =====================================================
+    # MODULE 3 COMPATIBILITY GENERATOR
+    # =====================================================
+    #
+    # New Module 3 will use:
+    #
+    #     generate(defect_profile=defect_profile)
+    #
+    # Until that migration is completed, the old service
+    # still accepts legacy quality-summary parameters.
+    #
+    # =====================================================
+
+    @staticmethod
+    def _generate_roast_risk(
+        *,
+        defect_profile: DefectProfile,
+        sensor_status: str,
+        physical_status: str,
+        final_score: float,
+        grade: str,
+        quality_status: str,
+        normalized_counts: Dict[str, int],
+    ):
+
+        try:
+            return (
+                roast_quality_risk_service
+                .generate(
+                    defect_profile=(
+                        defect_profile
+                    ),
+                )
+            )
+
+        except TypeError as error:
+
+            if (
+                "defect_profile"
+                not in str(error)
+            ):
+                raise
+
+            return (
+                roast_quality_risk_service
+                .generate(
+
+                    sensor_status=(
+                        sensor_status
+                    ),
+
+                    physical_status=(
+                        physical_status
+                    ),
+
+                    final_score=(
+                        final_score
+                    ),
+
+                    grade=(
+                        grade
+                    ),
+
+                    quality_status=(
+                        quality_status
+                    ),
+
+                    counts=(
+                        normalized_counts
+                    ),
+                )
+            )
+
+
+    # =====================================================
+    # MODULE 4 COMPATIBILITY GENERATOR
+    # =====================================================
+
+    @staticmethod
+    def _generate_batch_usage(
+        *,
+        defect_profile: DefectProfile,
+        sensor_status: str,
+        physical_status: str,
+        final_score: float,
+        grade: str,
+        quality_status: str,
+        normalized_counts: Dict[str, int],
+    ):
+
+        try:
+            return (
+                batch_usage_service
+                .generate(
+                    defect_profile=(
+                        defect_profile
+                    ),
+                )
+            )
+
+        except TypeError as error:
+
+            if (
+                "defect_profile"
+                not in str(error)
+            ):
+                raise
+
+            return (
+                batch_usage_service
+                .generate(
+
+                    sensor_status=(
+                        sensor_status
+                    ),
+
+                    physical_status=(
+                        physical_status
+                    ),
+
+                    final_score=(
+                        final_score
+                    ),
+
+                    grade=(
+                        grade
+                    ),
+
+                    quality_status=(
+                        quality_status
+                    ),
+
+                    counts=(
+                        normalized_counts
+                    ),
+                )
+            )
+
+
+    # =====================================================
+    # MODULE 5 COMPATIBILITY GENERATOR
+    # =====================================================
+    #
+    # Final Module 5 will use defect_profile.yield_counts.
+    #
+    # Until migrated, the existing service receives raw
+    # counts plus the sample-weight fields.
+    #
+    # =====================================================
+
+    @staticmethod
+    def _generate_usable_yield(
+        *,
+        defect_profile: DefectProfile,
+        normalized_counts: Dict[str, int],
+        sample_weight: Optional[float],
+        weight_calibrated: bool,
+    ):
+
+        try:
+            return (
+                usable_yield_service
+                .generate(
+
+                    defect_profile=(
+                        defect_profile
+                    ),
+
+                    sample_weight=(
+                        sample_weight
+                    ),
+
+                    weight_calibrated=(
+                        weight_calibrated
+                    ),
+                )
+            )
+
+        except TypeError as error:
+
+            if (
+                "defect_profile"
+                not in str(error)
+            ):
+                raise
+
+            return (
+                usable_yield_service
+                .generate(
+
+                    counts=(
+                        normalized_counts
+                    ),
+
+                    sample_weight=(
+                        sample_weight
+                    ),
+
+                    weight_calibrated=(
+                        weight_calibrated
+                    ),
+                )
+            )
+
+
+    # =====================================================
+    # MODULE 6 GENERATOR
+    # =====================================================
+
+    @staticmethod
+    def _generate_storage_handling(
+        *,
+        defect_profile: DefectProfile,
+    ):
+
+        if storage_handling_service is None:
+            return None
+
+        return (
+            storage_handling_service
+            .generate(
+                defect_profile=(
+                    defect_profile
+                ),
+            )
+        )
+
+
+    # =====================================================
+    # MODULE 7 GENERATOR
+    # =====================================================
+
+    @staticmethod
+    def _generate_preventive_guidance(
+        *,
+        defect_profile: DefectProfile,
+    ):
+
+        if preventive_guidance_service is None:
+            return None
+
+        return (
+            preventive_guidance_service
+            .generate(
+                defect_profile=(
+                    defect_profile
+                ),
+            )
+        )
+
+
+    # =====================================================
     # GENERATE COMPLETE PROCESSING INTELLIGENCE
     # =====================================================
 
@@ -124,10 +424,13 @@ class ProcessingIntelligenceService:
         counts: Dict[str, Any],
         sample_weight: Optional[float] = None,
         weight_calibrated: bool = False,
+        defect_profile: Optional[
+            DefectProfile
+        ] = None,
     ) -> ProcessingIntelligence:
 
         # -------------------------------------------------
-        # NORMALIZE COMMON INPUTS
+        # NORMALIZE LEGACY COMPATIBILITY INPUTS
         # -------------------------------------------------
 
         normalized_counts = (
@@ -182,76 +485,75 @@ class ProcessingIntelligenceService:
         )
 
 
+        # -------------------------------------------------
+        # DEFECT PROFILE FALLBACK
+        # -------------------------------------------------
+        #
+        # Updated quality_report/service.py should always
+        # pass the real defect_profile.
+        #
+        # This fallback exists only to prevent an immediate
+        # crash from an older caller during migration.
+        #
+        # -------------------------------------------------
+
+        if defect_profile is None:
+
+            defect_profile = (
+                build_defect_profile(
+                    sensor_defects={},
+                    counts=(
+                        normalized_counts
+                    ),
+                    sensor_complete=False,
+                    physical_complete=(
+                        normalized_counts[
+                            "total_beans"
+                        ]
+                        > 0
+                    ),
+                )
+            )
+
+
         # =================================================
-        # 1. ROASTING RECOMMENDATION
+        # 1. ROASTING READINESS RECOMMENDATION
         # =================================================
 
         roasting_recommendation = (
-            roasting_recommendation_service.generate(
-
-                sensor_status=(
-                    sensor_status
-                ),
-
-                physical_status=(
-                    physical_status
-                ),
-
-                final_score=(
-                    final_score
-                ),
-
-                grade=(
-                    grade
-                ),
-
-                quality_status=(
-                    quality_status
-                ),
-
-                counts=(
-                    normalized_counts
+            roasting_recommendation_service
+            .generate(
+                defect_profile=(
+                    defect_profile
                 ),
             )
         )
 
 
         # =================================================
-        # 2. PRE-ROAST PREPARATION PLAN
+        # 2. PRE-ROAST CORRECTIVE ACTIONS
         # =================================================
 
         pre_roast_plan = (
-            pre_roast_plan_service.generate(
-
-                sensor_status=(
-                    sensor_status
-                ),
-
-                physical_status=(
-                    physical_status
-                ),
-
-                grade=(
-                    grade
-                ),
-
-                quality_status=(
-                    quality_status
-                ),
-
-                counts=(
-                    normalized_counts
+            pre_roast_plan_service
+            .generate(
+                defect_profile=(
+                    defect_profile
                 ),
             )
         )
 
 
         # =================================================
-        # 3. ROAST QUALITY RISK
+        # 3. ROAST QUALITY RISKS
         # =================================================
 
         roast_quality_risk = (
-            roast_quality_risk_service.generate(
+            self._generate_roast_risk(
+
+                defect_profile=(
+                    defect_profile
+                ),
 
                 sensor_status=(
                     sensor_status
@@ -273,7 +575,7 @@ class ProcessingIntelligenceService:
                     quality_status
                 ),
 
-                counts=(
+                normalized_counts=(
                     normalized_counts
                 ),
             )
@@ -285,7 +587,11 @@ class ProcessingIntelligenceService:
         # =================================================
 
         batch_usage = (
-            batch_usage_service.generate(
+            self._generate_batch_usage(
+
+                defect_profile=(
+                    defect_profile
+                ),
 
                 sensor_status=(
                     sensor_status
@@ -307,7 +613,7 @@ class ProcessingIntelligenceService:
                     quality_status
                 ),
 
-                counts=(
+                normalized_counts=(
                     normalized_counts
                 ),
             )
@@ -315,13 +621,17 @@ class ProcessingIntelligenceService:
 
 
         # =================================================
-        # 5. USABLE YIELD
+        # 5. USABLE YIELD ESTIMATION
         # =================================================
 
         usable_yield = (
-            usable_yield_service.generate(
+            self._generate_usable_yield(
 
-                counts=(
+                defect_profile=(
+                    defect_profile
+                ),
+
+                normalized_counts=(
                     normalized_counts
                 ),
 
@@ -337,39 +647,26 @@ class ProcessingIntelligenceService:
 
 
         # =================================================
-        # 6. FINAL PRODUCTION DECISION
-        # =================================================
-        #
-        # IMPORTANT:
-        #
-        # Production Decision does not recalculate raw
-        # quality information.
-        #
-        # It consumes the previous five intelligence
-        # outputs and produces the factory-level decision.
+        # 6. STORAGE & HANDLING RECOMMENDATION
         # =================================================
 
-        production_decision = (
-            production_decision_service.generate(
-
-                roasting=(
-                    roasting_recommendation
+        storage_handling = (
+            self._generate_storage_handling(
+                defect_profile=(
+                    defect_profile
                 ),
+            )
+        )
 
-                pre_roast=(
-                    pre_roast_plan
-                ),
 
-                roast_risk=(
-                    roast_quality_risk
-                ),
+        # =================================================
+        # 7. PREVENTIVE PROCESS GUIDANCE
+        # =================================================
 
-                batch_usage=(
-                    batch_usage
-                ),
-
-                usable_yield=(
-                    usable_yield
+        preventive_process_guidance = (
+            self._generate_preventive_guidance(
+                defect_profile=(
+                    defect_profile
                 ),
             )
         )
@@ -401,8 +698,12 @@ class ProcessingIntelligenceService:
                 usable_yield
             ),
 
-            production_decision=(
-                production_decision
+            storage_handling=(
+                storage_handling
+            ),
+
+            preventive_process_guidance=(
+                preventive_process_guidance
             ),
         )
 

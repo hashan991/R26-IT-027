@@ -1,59 +1,120 @@
-from typing import List, Literal
+from typing import List, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 # =========================================================
-# ROASTING RECOMMENDATION RESPONSE
+# SINGLE DEFECT READINESS TRIGGER
+# =========================================================
+
+class RoastingReadinessTrigger(BaseModel):
+
+    defect: Literal[
+        "MQ2_ABNORMAL",
+        "MQ3_ABNORMAL",
+        "MQ135_ABNORMAL",
+        "MOISTURE_DEFECT",
+        "TEMPERATURE_ABNORMAL",
+        "HUMIDITY_ABNORMAL",
+        "BROKEN_BEANS",
+        "BLACK_BEANS",
+    ]
+
+    readiness: Literal[
+        "READY",
+        "CONDITIONAL",
+        "NOT_READY",
+    ]
+
+    title: str
+
+    reason: str
+
+    required_action: str
+
+    evidence_class: Literal[
+        "STANDARD_DIRECT",
+        "STANDARD_SUPPORTED_RESEARCH_RULE",
+        "SENSOR_TECHNICAL_RULE",
+        "RESEARCH_DEFINED_AGGREGATION",
+    ]
+
+    detected_count: Optional[int] = Field(
+        default=None,
+        ge=0,
+    )
+
+
+# =========================================================
+# ROASTING READINESS RECOMMENDATION RESPONSE
 # =========================================================
 
 class RoastingRecommendation(BaseModel):
 
-    # Can the current batch proceed toward roasting?
+    module: Literal[
+        "ROASTING_READINESS_RECOMMENDATION"
+    ] = "ROASTING_READINESS_RECOMMENDATION"
+
+    # New canonical readiness field.
+    readiness_status: Literal[
+        "READY",
+        "CONDITIONAL",
+        "NOT_READY",
+    ]
+
+    # Compatibility field retained for the existing frontend.
     roasting_eligibility: Literal[
         "READY",
         "CONDITIONAL",
         "NOT_RECOMMENDED",
     ]
 
-    # Is direct roasting allowed without another QC action?
     direct_roasting_allowed: bool
 
-    # High-level roasting direction.
-    #
-    # We intentionally avoid exact temperature/time values
-    # because the current system does not yet use enough
-    # roasting-specific variables such as density, variety,
-    # origin, processing method, and roaster characteristics.
-    recommended_direction: Literal[
-        "STANDARD_ROASTING",
-        "CONTROLLED_ROASTING",
-        "RE_SORT_BEFORE_ROASTING",
-        "RE_INSPECT_BEFORE_ROASTING",
-        "DO_NOT_ROAST",
-    ]
+    # Kept as string so the new rule engine can use
+    # descriptive directions without inventing roast curves.
+    recommended_direction: str
 
-    # Human-readable recommendation title.
     title: str
 
-    # Short overall explanation.
     summary: str
 
-    # Main reasons that produced the recommendation.
-    reasons: List[str]
+    # Every active defect produces its own trigger.
+    triggers: List[
+        RoastingReadinessTrigger
+    ] = Field(
+        default_factory=list
+    )
 
-    # Actions that must be completed before roasting.
-    prerequisites: List[str]
+    active_defect_count: int = Field(
+        default=0,
+        ge=0,
+    )
 
-    # Additional quality warnings.
-    warnings: List[str]
+    # Compatibility / explainability fields.
+    reasons: List[str] = Field(
+        default_factory=list
+    )
 
-    # Useful calculated values for transparency.
-    broken_percentage: float
+    prerequisites: List[str] = Field(
+        default_factory=list
+    )
 
-    severe_defect_percentage: float
+    warnings: List[str] = Field(
+        default_factory=list
+    )
 
-    unknown_percentage: float
+    # These are retained for the current UI.
+    # Recommendation physical counts can overlap because
+    # black-and-broken contributes to both black and broken.
+    broken_percentage: float = 0.0
 
-    # Research transparency note.
+    severe_defect_percentage: float = 0.0
+
+    # Unknown is not a Processing Intelligence defect.
+    # Field retained temporarily for frontend compatibility.
+    unknown_percentage: float = 0.0
+
+    inspection_complete: bool = True
+
     methodology_note: str
