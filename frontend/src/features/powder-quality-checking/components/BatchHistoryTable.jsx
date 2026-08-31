@@ -675,7 +675,7 @@ export default function BatchHistoryTable() {
 
                   tracking-[0.22em]
 
-                  text-[#D7A174]
+                  text-[#F6E6C8]
                 "
               >
                 Production Intelligence
@@ -694,19 +694,18 @@ export default function BatchHistoryTable() {
             >
 
               <h2
-                className="
-                  text-[26px]
-
-                  font-black
-
-                  tracking-[-0.035em]
-
-                  text-[#FFF3DE]
-
-                  sm:text-[30px]
-                "
+              style={{
+                color:"#FFE7B0"
+              }}
+              className="
+              text-[26px]
+              font-black
+              tracking-[-0.035em]
+              drop-shadow-[0_0_15px_rgba(246,200,95,0.25)]
+              sm:text-[30px]
+              "
               >
-                AI Production History
+              Production History Table
               </h2>
 
 

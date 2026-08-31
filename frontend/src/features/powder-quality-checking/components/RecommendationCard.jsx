@@ -171,7 +171,7 @@ function RecommendationCard() {
           "Production Ready – Packaging Approved",
 
         description:
-          "AI verification confirms that the batch satisfies current quality requirements.",
+          "Intelligent verification confirms that the batch satisfies current quality requirements.",
 
         risk: "LOW",
 
@@ -225,7 +225,7 @@ function RecommendationCard() {
           "RELEASE BLOCKED",
 
         summary:
-          "CoffeeSense AI recommends corrective recovery before packaging.",
+          "CoffeeSense Quality Intelligence recommends corrective recovery before packaging.",
 
         prevention: [
           "Optimize drying duration for future batches",
@@ -265,7 +265,7 @@ function RecommendationCard() {
         "QUALITY REVIEW",
 
       summary:
-        "CoffeeSense AI recommends additional verification.",
+        "CoffeeSense Quality Intelligence recommends additional verification.",
 
       prevention: [
         "Increase monitoring frequency for next batches",
@@ -563,7 +563,7 @@ function RecommendationCard() {
                 tracking-tight
               "
             >
-              Loading AI Intelligence
+              Loading Intelligent
             </h3>
 
             <p
@@ -893,8 +893,7 @@ function RecommendationCard() {
                   drop-shadow-[0_2px_10px_rgba(255,240,215,0.08)]
                 "
               >
-                AI Recovery Intelligence
-
+                Quality Recovery Intelligence
                 <Sparkles
                   size={20}
                   className="
@@ -1257,7 +1256,7 @@ function RecommendationCard() {
           {[
             {
               label:
-                "AI Decision",
+                "Intelligent Decision",
 
               value:
                 decision,
@@ -1279,7 +1278,7 @@ function RecommendationCard() {
 
             {
               label:
-                "AI Confidence",
+                "Intelligent Confidence",
 
               value:
                 `${confidence}%`,
@@ -1470,7 +1469,7 @@ function RecommendationCard() {
                   !text-[#FFF1DD]
                 "
               >
-                AI Diagnosis
+                Quality Diagnosis
               </h3>
 
             </div>
@@ -2218,7 +2217,7 @@ function RecommendationCard() {
                   !text-[#FFF1DD]
                 "
               >
-                AI Confidence Level
+                Intelligent Confidence Level
               </h3>
 
             </div>
@@ -2364,7 +2363,7 @@ function RecommendationCard() {
                   !text-[#FFF1DD]
                 "
               >
-                AI Recovery Workflow
+                Intelligent Recovery Workflow
               </h3>
 
             </div>
@@ -2623,8 +2622,7 @@ function RecommendationCard() {
               !text-[#B39882]
             "
           >
-            AI estimated recovery possibility based on current batch condition and
-            corrective action availability.
+            Recovery assessment estimated the possibility based on current batch condition and corrective action availability.
           </p>
 
         </div>
@@ -2977,7 +2975,7 @@ function RecommendationCard() {
               "
             />
 
-            CoffeeSense AI v4.2 • Real-time Decision Engine
+            CoffeeSense Quality Intelligence • Real-time Decision Engine
           </span>
 
           <span

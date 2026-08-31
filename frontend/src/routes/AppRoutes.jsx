@@ -29,6 +29,7 @@ import PowderDashboardLayout from "../features/powder-quality-checking/layouts/D
 
 import PowderDashboard from "../features/powder-quality-checking/pages/Dashboard";
 import BatchIntelligence from "../features/powder-quality-checking/pages/BatchIntelligence";
+import ReportsSystem from "../features/powder-quality-checking/pages/ReportsSystem";
 import CoffeeInspectionReport from "../features/powder-quality-checking/pages/report/CoffeeInspectionReport";
 
 import { RefreshProvider } from "../features/powder-quality-checking/context/RefreshContext";
@@ -160,26 +161,38 @@ function AppRoutes() {
       ===================================================== */}
 
       <Route
-        path="/powder"
-        element={
-          <RoleRoute allowedRoles={["ADMIN", "POWDER_QUALITY_INSPECTOR"]}>
+      path="/powder"
+      element={
+        <RoleRoute allowedRoles={["ADMIN","POWDER_QUALITY_INSPECTOR"]}>
             <RefreshProvider>
-              <PowderDashboardLayout />
+                <PowderDashboardLayout />
             </RefreshProvider>
-          </RoleRoute>
-        }
+        </RoleRoute>
+      }
       >
-        {/* Powder Dashboard */}
 
-        <Route index element={<PowderDashboard />} />
 
-        <Route path="dashboard" element={<PowderDashboard />} />
+      <Route index element={<PowderDashboard />} />
 
-        {/* Batch Intelligence */}
 
-        <Route path="batch-intelligence" element={<BatchIntelligence />} />
+      <Route 
+      path="dashboard" 
+      element={<PowderDashboard />} 
+      />
 
-      
+
+      <Route
+      path="batch-intelligence"
+      element={<BatchIntelligence />}
+      />
+
+
+      <Route
+      path="reports-system"
+      element={<ReportsSystem />}
+      />
+
+
       </Route>
 
       {/* =====================================================

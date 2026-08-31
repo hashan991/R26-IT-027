@@ -2,14 +2,11 @@ import {
     Coffee,
     LayoutDashboard,
     Database,
-    Sparkles
+    Sparkles,
+    FileText
 } from "lucide-react";
 
-
-import {
-    motion
-} from "framer-motion";
-
+import { motion } from "framer-motion";
 
 import {
     useNavigate,
@@ -18,43 +15,37 @@ import {
 
 
 
-
-
 export default function Sidebar(){
 
 
 const navigate = useNavigate();
-
 const location = useLocation();
-
-
 
 
 
 const menu = [
 
-
 {
 name:"Dashboard",
 path:"/powder",
-icon:<LayoutDashboard size={22}/>
+icon:<LayoutDashboard size={21}/>
 },
-
 
 
 {
 name:"Batch Intelligence",
 path:"/powder/batch-intelligence",
-icon:<Database size={22}/>
+icon:<Database size={21}/>
+},
+
+
+{
+name:"Quality Intelligence",
+path:"/powder/reports-system",
+icon:<FileText size={21}/>
 }
 
-
-
 ];
-
-
-
-
 
 
 
@@ -67,22 +58,20 @@ return(
 
 
 initial={{
-    x:-120,
-    opacity:0
+x:-100,
+opacity:0
 }}
 
 
 animate={{
-    x:0,
-    opacity:1
+x:0,
+opacity:1
 }}
 
 
 transition={{
-    duration:0.6,
-    ease:"easeOut"
+duration:0.5
 }}
-
 
 
 
@@ -95,37 +84,13 @@ left-0
 top-0
 
 
-w-[300px]
+w-[285px]
 
 
 min-h-screen
 
 
-
-bg-gradient-to-b
-
-from-[#170C05]
-
-via-[#241408]
-
-to-[#0E0703]
-
-
-
-border-r
-
-border-[#5A3518]
-
-
-
-px-7
-
-py-6
-
-
-
 z-50
-
 
 
 flex
@@ -134,11 +99,33 @@ flex-col
 
 
 
-shadow-[25px_0px_70px_rgba(0,0,0,0.65)]
+px-6
+
+py-5
 
 
+
+bg-gradient-to-b
+
+from-[#2A160B]
+
+via-[#1E1008]
+
+to-[#140904]
+
+
+
+border-r
+
+border-[#D89A32]/25
+
+
+
+shadow-[20px_0_60px_rgba(80,40,10,0.35)]
 
 "
+
+
 
 >
 
@@ -146,16 +133,10 @@ shadow-[25px_0px_70px_rgba(0,0,0,0.65)]
 
 
 
-
-
-{/* ===============================
- BRAND SECTION
-================================ */}
-
+{/* BRAND */}
 
 
 <div
-
 
 className="
 
@@ -166,34 +147,23 @@ flex-col
 items-center
 
 
-mb-12
+mb-7
 
 "
 
 >
 
 
-
-
-
-
 <div
-
 
 className="
 
+w-[68px]
 
-relative
-
-
-w-[82px]
-
-h-[82px]
+h-[68px]
 
 
-
-rounded-[28px]
-
+rounded-[22px]
 
 
 flex
@@ -203,54 +173,31 @@ items-center
 justify-center
 
 
-
-
-
 bg-gradient-to-br
 
-from-[#FFD76A]
+from-[#FFE7A8]
 
-via-[#D99A32]
+via-[#F6C85F]
 
-to-[#8B4513]
+to-[#C47A22]
 
 
+shadow-[0_12px_30px_rgba(246,200,95,.35)]
 
 
 border
 
-border-[#FFE9B0]/50
-
-
-
-
-
-shadow-[0_20px_45px_rgba(217,154,50,0.45)]
-
-
+border-[#FFF0C7]/50
 
 "
 
 >
 
-
-
 <Coffee
 
+size={34}
 
-size={42}
-
-
-strokeWidth={2.5}
-
-
-className="
-
-text-white
-
-drop-shadow-xl
-
-"
+className="text-[#4A260C]"
 
 />
 
@@ -261,44 +208,34 @@ drop-shadow-xl
 
 
 
-
-
 <h1
 
+style={{
 
-className="
+background:
+"linear-gradient(90deg,#FFF8E7 0%,#F6C85F 45%,#D88932 100%)",
 
+WebkitBackgroundClip:"text",
 
-mt-6
+WebkitTextFillColor:"transparent",
 
+backgroundClip:"text",
 
-text-[36px]
+fontSize:"42px",
 
+lineHeight:"1",
 
-font-black
+fontWeight:"900",
 
+letterSpacing:"-1px"
 
-tracking-tight
+}}
 
-
-text-[#FFF4DE]
-
-
-leading-none
-
-
-
-drop-shadow-[0_0_20px_rgba(255,244,222,.35)]
-
-
-
-"
+className="mt-3"
 
 >
 
-
 CoffeeSense
-
 
 </h1>
 
@@ -306,10 +243,7 @@ CoffeeSense
 
 
 
-
-
 <div
-
 
 className="
 
@@ -320,62 +254,49 @@ items-center
 gap-2
 
 
-mt-4
+mt-3
 
 "
 
 >
 
 
-
 <Sparkles
 
+size={15}
 
-size={16}
-
-
-className="
-
-text-[#F6C85F]
-
-"
+className="text-[#F6C85F]"
 
 />
 
 
 
-
-
 <p
-
 
 className="
 
-
 text-sm
 
-
 font-semibold
-
-
-text-[#D9B88A]
 
 
 tracking-wide
 
 
+text-[#E6C18B]
 
 "
 
 >
 
-
-AI Coffee Intelligence
-
+Coffee Intelligence
 
 </p>
 
 
+</div>
+
+
 
 </div>
 
@@ -383,55 +304,35 @@ AI Coffee Intelligence
 
 
 
-</div>
 
 
-
-
-
-
-
-
-
-
-
-{/* ===============================
- MENU
-================================ */}
+{/* MENU */}
 
 
 
 <nav
 
-
 className="
 
 flex-1
 
-space-y-4
+space-y-3
 
 "
 
 >
 
 
-
-
 {
-
 menu.map((item,index)=>{
 
 
 const active =
-
 location.pathname === item.path;
 
 
 
-
-
 return(
-
 
 
 <motion.button
@@ -440,33 +341,24 @@ return(
 key={index}
 
 
-
 onClick={()=>navigate(item.path)}
 
 
 
 whileHover={{
-
-x:8,
-
-scale:1.03
-
+x:5,
+scale:1.02
 }}
 
 
 
 whileTap={{
-
-scale:0.96
-
+scale:.97
 }}
 
 
 
-
-
 className={`
-
 
 relative
 
@@ -478,18 +370,16 @@ w-full
 
 flex
 
-
 items-center
 
 
-gap-5
+gap-4
 
 
+px-5
 
-px-6
 
-
-py-[18px]
+py-4
 
 
 
@@ -500,283 +390,135 @@ rounded-2xl
 transition-all
 
 
-duration-300
-
-
 
 ${
 
-
-
 active
 
-
-
 ?
-
 
 
 `
 
 bg-gradient-to-r
 
-
 from-[#F6C85F]
 
+via-[#DFA13C]
 
-via-[#D99A32]
-
-
-to-[#A85C20]
+to-[#C47A22]
 
 
-
-
-text-[#1B0D04]
-
+text-[#321806]
 
 
 font-bold
 
 
-
-shadow-[0_18px_40px_rgba(246,200,95,.35)]
-
-
+shadow-[0_12px_30px_rgba(246,200,95,.25)]
 
 `
-
-
-
-
 
 :
 
-
-
 `
 
-
-
-bg-[#211309]/80
-
+bg-[#FFFFFF08]
 
 
 border
 
-
-border-[#4A2C18]
-
+border-[#D89A32]/20
 
 
-text-[#E8D9C7]
+text-[#E8D6BC]
 
 
-
-hover:bg-[#352015]
-
-
-hover:border-[#D9A441]/50
+hover:bg-[#FFFFFF12]
 
 
-
-hover:text-white
-
+hover:border-[#F6C85F]/40
 
 
 `
 
 }
 
-
-
 `}
 
 
-
 >
 
 
-
-
-
-
-
-<motion.div
-
-
-
-animate={
-
-
-
-active
-
-
-
-?
-
-
-
-{
-
-scale:1.15,
-
-rotate:5
-
-}
-
-
-
-:
-
-
-
-{
-
-scale:1,
-
-rotate:0
-
-}
-
-
-
-}
-
-
-
-
-transition={{
-
-duration:.3
-
-}}
-
-
-
->
-
-
+<div>
 
 {item.icon}
 
-
-
-</motion.div>
-
-
-
-
+</div>
 
 
 
 
 <span
 
-
 className="
-
 
 text-[15px]
 
-
-tracking-wide
-
-
 font-semibold
 
+tracking-wide
 
 "
 
 >
 
-
-
 {item.name}
-
-
 
 </span>
 
 
 
 
-
-
-
-
 {
-
-
 
 active &&
 
-
-
-<motion.span
-
-
-
-layoutId="active-dot"
-
-
+<span
 
 className="
 
-
 absolute
 
-
-right-6
-
+right-5
 
 
-w-2.5
+w-2
 
-
-h-2.5
-
+h-2
 
 
 rounded-full
 
 
-
-bg-white
-
+bg-[#FFF3D0]
 
 
-shadow-[0_0_18px_white]
-
-
+shadow-[0_0_15px_#FFF3D0]
 
 "
 
-
-
 />
 
-
-
 }
-
-
-
 
 
 </motion.button>
 
 
-
-
 )
 
-
-
 })
-
-
 
 }
 
@@ -791,13 +533,7 @@ shadow-[0_0_18px_white]
 
 
 
-
-
-
-
-{/* ===============================
- SYSTEM STATUS
-================================ */}
+{/* SYSTEM STATUS */}
 
 
 
@@ -805,15 +541,15 @@ shadow-[0_0_18px_white]
 
 
 whileHover={{
-
-scale:1.04
-
+scale:1.02
 }}
 
 
 
-
 className="
+
+
+mt-5
 
 
 rounded-3xl
@@ -822,48 +558,31 @@ rounded-3xl
 p-5
 
 
-mb-6
-
-
-
-
 
 bg-gradient-to-br
 
+from-[#321B0E]
 
-from-[#29150A]
-
-
-to-[#130803]
-
-
+to-[#1B0D06]
 
 
 
 border
 
-
-border-[#5A3518]
-
-
+border-[#D89A32]/30
 
 
 
 shadow-xl
 
 
-
 "
-
 
 
 >
 
 
-
-
 <div
-
 
 className="
 
@@ -878,35 +597,19 @@ gap-3
 >
 
 
-
-
 <span
-
 
 className="
 
-
-block
-
-
 w-3
-
 
 h-3
 
-
-
 rounded-full
 
-
-
-bg-green-400
-
-
+bg-emerald-400
 
 animate-pulse
-
-
 
 "
 
@@ -914,78 +617,53 @@ animate-pulse
 
 
 
-
-
-
 <div>
 
 
-
 <p
-
 
 className="
 
-
-text-green-300
-
+text-emerald-300
 
 font-bold
 
-
 text-sm
-
 
 "
 
 >
 
-
 System Online
 
-
 </p>
-
-
-
 
 
 
 <p
 
-
 className="
-
 
 text-xs
 
-
-text-[#D6BFA5]
-
+text-[#D8B98D]
 
 mt-1
-
 
 "
 
 >
 
-
 IoT + AI Monitoring Active
-
 
 </p>
 
 
-
-
 </div>
 
 
 
-
 </div>
-
 
 
 </motion.div>
@@ -996,95 +674,64 @@ IoT + AI Monitoring Active
 
 
 
-
-
-
-
-
-{/* ===============================
- FOOTER
-================================ */}
+{/* FOOTER */}
 
 
 
 <div
 
-
 className="
+
+mt-5
+
+pt-4
 
 
 border-t
 
-
-border-[#5A3518]
-
-
-pt-5
-
+border-[#D89A32]/20
 
 "
 
 >
-
-
-
 
 
 <p
 
-
 className="
 
-
 text-sm
-
 
 font-black
 
 
-text-white
-
-
-tracking-wide
-
+text-[#FFF0D0]
 
 "
 
 >
 
-
 CoffeeSense AI™
-
 
 </p>
 
 
 
-
-
-
 <p
-
 
 className="
 
-
 text-xs
 
-
-text-[#C5A47E]
-
+text-[#C7A77A]
 
 mt-2
 
-
 leading-relaxed
-
 
 "
 
 >
-
 
 Industrial Coffee Quality
 
@@ -1096,11 +743,7 @@ Intelligence Platform
 
 Version 1.0
 
-
 </p>
-
-
-
 
 
 
@@ -1109,14 +752,9 @@ Version 1.0
 
 
 
-
-
-
-
 </motion.aside>
 
 
 )
-
 
 }

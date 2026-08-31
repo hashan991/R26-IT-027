@@ -30,7 +30,7 @@ import {
 
 import apiClient from "../api/apiClient";
 
-function QualityStatusCard() {
+function QualityStatusCard({ onViewRecommendation }) {
   const [sensor, setSensor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -421,7 +421,7 @@ function QualityStatusCard() {
           "border-emerald-400/25",
 
         message:
-          "AI approved batch quality - ready for production release.",
+          "Intelligent system approved batch quality - ready for production release.",
 
         badge:
           "bg-emerald-500/15 border-emerald-400/45 !text-emerald-400",
@@ -516,7 +516,7 @@ function QualityStatusCard() {
           "border-yellow-400/25",
 
         message:
-          "AI flagged quality concerns - review required before release.",
+          "Intelligent system flagged quality concerns - review required before release.",
 
         badge:
           "bg-yellow-500/15 border-yellow-400/45 !text-yellow-400",
@@ -610,7 +610,7 @@ function QualityStatusCard() {
         "border-rose-400/30",
 
       message:
-        "AI detected production risk and restricted batch release automatically.",
+        "Intelligent system detected production risk and restricted batch release automatically.",
 
       badge:
         "bg-rose-500/15 border-rose-400/50 !text-rose-400",
@@ -995,7 +995,7 @@ function QualityStatusCard() {
                   "
                 />
 
-                AI PRODUCTION ENGINE
+                PRODUCTION INTELLIGENCE ENGINE
 
                 <span
                   className="
@@ -1058,7 +1058,7 @@ function QualityStatusCard() {
                   drop-shadow-[0_2px_12px_rgba(255,244,222,0.18)]
                 "
               >
-                AI Production Intelligence
+                PRODUCTION INTELLIGENCE
               </h2>
 
 
@@ -1339,7 +1339,7 @@ function QualityStatusCard() {
                     "
                   />
 
-                  AI DECISION V3.0
+                  DECISION SUPPORT
 
                   <span
                     className="
@@ -1477,7 +1477,7 @@ function QualityStatusCard() {
                     "
                   />
 
-                  AI ENGINE
+                  COFFEE INTELLIGENCE ENGINE
 
                   <Cpu
                     className="
@@ -1587,7 +1587,7 @@ function QualityStatusCard() {
                         "
                       >
 
-                        AI DECISION STATUS
+                        QUALITY DECISION STATUS
 
                         <span
                           className={`
@@ -2002,6 +2002,65 @@ function QualityStatusCard() {
                     ${theme.dotGlow}
                   `}
                 />
+
+                
+                <button
+
+                onClick={() => {
+                    console.log("Recommendation button clicked");
+
+                    if(onViewRecommendation){
+                        onViewRecommendation();
+                    }
+                }}
+
+
+                className="
+                mt-6
+
+                flex
+                items-center
+                gap-3
+
+                px-6
+                py-3
+
+                rounded-2xl
+
+                bg-gradient-to-r
+
+                from-[#F6C85F]
+
+                to-[#B97832]
+
+
+                text-[#1A0D06]
+
+                font-black
+
+                shadow-[0_0_30px_rgba(246,200,95,0.35)]
+
+                hover:scale-105
+
+                transition-all
+                duration-300
+
+                "
+
+                >
+
+                <Brain
+                size={18}
+                />
+
+                View Quality Recovery Insights
+
+                <ArrowRight
+                size={18}
+                />
+
+                </button>
+
 
 
                 <p
@@ -2630,7 +2689,7 @@ function MetricCard({
               className="w-2 h-2"
             />
 
-            AI
+            Intelligence
 
             <Orbit
               className="w-2 h-2"

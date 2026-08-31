@@ -92,6 +92,13 @@ const latest = await apiClient.get(
 
 
 
+console.log(
+    "PDF REPORT DATA:",
+    latest.data
+);
+
+
+
 
 const trends = await apiClient.get(
 

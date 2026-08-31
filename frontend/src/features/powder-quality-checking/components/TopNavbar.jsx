@@ -315,7 +315,7 @@ drop-shadow-[0_0_18px_rgba(246,200,95,0.25)]
 
 >
 
-AI Coffee Quality Monitoring System
+Intelligent Coffee Quality Monitoring System
 
 </motion.h2>
 
@@ -687,21 +687,7 @@ border-[#5A3518]
 
 
 
-<span
 
-className="
-
-text-xs
-
-text-[#C8B49A]
-
-"
-
->
-
-IoT
-
-</span>
 
 
 

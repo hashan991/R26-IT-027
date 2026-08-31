@@ -691,7 +691,7 @@ export default function RGBCard({
 
                             >
 
-                                AI Analysis Complete
+                                Analysis Complete
 
                             </p>
 

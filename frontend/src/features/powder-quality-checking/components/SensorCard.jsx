@@ -354,7 +354,7 @@ export default function SensorCard({
                         ml-2
                     "
                 >
-                    AI MONITORING
+                    QUALITY MONITORING
                 </span>
 
             </div>

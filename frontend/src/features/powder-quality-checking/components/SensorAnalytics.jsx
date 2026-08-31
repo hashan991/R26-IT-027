@@ -1261,7 +1261,7 @@ function SensorAnalytics() {
                 sm:text-[32px]
               "
             >
-              AI Sensor Analytics
+              Sensor Analytics
             </h2>
 
 
