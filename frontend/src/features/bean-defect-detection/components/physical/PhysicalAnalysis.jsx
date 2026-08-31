@@ -1549,30 +1549,24 @@ function PhysicalAnalysis({
 
   return (
     <section className="physical-analysis">
-
       <div className="physical-main-card">
-
         {/* ===================================================
             HEADING
         =================================================== */}
 
         <div className="physical-heading">
-
           <div>
             <span className="physical-step-label">
               STEP 02 — COMPUTER VISION
             </span>
 
-            <h2>
-              Physical AI Analysis
-            </h2>
+            <h2>Physical AI Analysis</h2>
 
             <p>
-              Choose a quick single-image inspection or an optional
-              3-view inspection for broader top-surface coverage.
+              Choose a quick single-image inspection or an optional 3-view
+              inspection for broader top-surface coverage.
             </p>
           </div>
-
 
           <span className="physical-status-chip">
             {loading
@@ -1581,19 +1575,14 @@ function PhysicalAnalysis({
                 : "AI Processing..."
               : result
                 ? "Analysis Completed"
-                : analysisMode ===
-                    ANALYSIS_MODES.MULTI &&
-                  completedViewCount > 0
+                : analysisMode === ANALYSIS_MODES.MULTI &&
+                    completedViewCount > 0
                   ? `${completedViewCount} / ${REQUIRED_VIEWS} Views Completed`
-                  : imageSource ===
-                      "phone" &&
-                    phoneReady
+                  : imageSource === "phone" && phoneReady
                     ? "Phone Ready"
                     : "Waiting"}
           </span>
-
         </div>
-
 
         {/* ===================================================
             PHYSICAL ANALYSIS QUICK GUIDE
@@ -1615,7 +1604,9 @@ function PhysicalAnalysis({
               <span className="physical-guide-number">01</span>
               <div>
                 <strong>Measure Sample</strong>
-                <p>Zero the empty tray, add beans and capture the sample weight.</p>
+                <p>
+                  Zero the empty tray, add beans and capture the sample weight.
+                </p>
               </div>
             </div>
 
@@ -1623,7 +1614,10 @@ function PhysicalAnalysis({
               <span className="physical-guide-number">02</span>
               <div>
                 <strong>Choose Inspection</strong>
-                <p>Use one image for a quick check or three views for broader coverage.</p>
+                <p>
+                  Use one image for a quick check or three views for broader
+                  coverage.
+                </p>
               </div>
             </div>
 
@@ -1631,7 +1625,10 @@ function PhysicalAnalysis({
               <span className="physical-guide-number">03</span>
               <div>
                 <strong>Capture Bean Image</strong>
-                <p>Take a phone photo or upload a clear top-view coffee bean image.</p>
+                <p>
+                  Take a phone photo or upload a clear top-view coffee bean
+                  image.
+                </p>
               </div>
             </div>
 
@@ -1639,148 +1636,90 @@ function PhysicalAnalysis({
               <span className="physical-guide-number">04</span>
               <div>
                 <strong>Review AI Result</strong>
-                <p>Check bean categories, defects and the physical quality score.</p>
+                <p>
+                  Check bean categories, defects and the physical quality score.
+                </p>
               </div>
             </div>
           </div>
         </div>
-
 
         {/* ===================================================
             STEP 2.1 - SAMPLE WEIGHT
         =================================================== */}
 
         <PhysicalWeightCard
-          capturedWeight={
-            capturedWeight
-          }
-          onCaptureWeight={
-            setCapturedWeight
-          }
+          capturedWeight={capturedWeight}
+          onCaptureWeight={setCapturedWeight}
         />
-
 
         {/* ===================================================
             STEP 2.2 - ANALYSIS MODE
         =================================================== */}
 
         <div className="analysis-mode-card">
-
           <div className="analysis-mode-heading">
-
             <div>
-              <span>
-                ANALYSIS MODE
-              </span>
+              <span>ANALYSIS MODE</span>
 
-              <h3>
-                Choose Physical Inspection Method
-              </h3>
+              <h3>Choose Physical Inspection Method</h3>
 
               <p>
-                Single Image is the default. Select Multi-View only
-                when you want to inspect three different top-view
-                orientations of the same coffee bean sample.
+                Single Image is the default. Select Multi-View only when you
+                want to inspect three different top-view orientations of the
+                same coffee bean sample.
               </p>
             </div>
 
             <span className="analysis-mode-current">
-              {analysisMode ===
-              ANALYSIS_MODES.SINGLE
-                ? "Default"
-                : "3 Views"}
+              {analysisMode === ANALYSIS_MODES.SINGLE ? "Default" : "3 Views"}
             </span>
-
           </div>
-
 
           <div className="analysis-mode-options">
+            <button
+              type="button"
+              className={`analysis-mode-option ${
+                analysisMode === ANALYSIS_MODES.SINGLE ? "active" : ""
+              }`}
+              onClick={() => handleAnalysisModeChange(ANALYSIS_MODES.SINGLE)}
+              disabled={loading}
+            >
+              <div className="analysis-mode-icon">1</div>
+
+              <div className="analysis-mode-text">
+                <strong>Single Image</strong>
+
+                <small>Analyze one top-view image</small>
+              </div>
+
+              <span className="analysis-mode-badge">Default</span>
+            </button>
 
             <button
               type="button"
               className={`analysis-mode-option ${
-                analysisMode ===
-                ANALYSIS_MODES.SINGLE
-                  ? "active"
-                  : ""
+                analysisMode === ANALYSIS_MODES.MULTI ? "active" : ""
               }`}
-              onClick={() =>
-                handleAnalysisModeChange(
-                  ANALYSIS_MODES.SINGLE,
-                )
-              }
-              disabled={
-                loading
-              }
+              onClick={() => handleAnalysisModeChange(ANALYSIS_MODES.MULTI)}
+              disabled={loading}
             >
-
-              <div className="analysis-mode-icon">
-                1
-              </div>
+              <div className="analysis-mode-icon">3</div>
 
               <div className="analysis-mode-text">
-                <strong>
-                  Single Image
-                </strong>
+                <strong>Multi-View</strong>
 
-                <small>
-                  Analyze one top-view image
-                </small>
+                <small>Analyze three top-view orientations</small>
               </div>
 
-              <span className="analysis-mode-badge">
-                Default
-              </span>
-
+              <span className="analysis-mode-badge">Optional</span>
             </button>
-
-
-            <button
-              type="button"
-              className={`analysis-mode-option ${
-                analysisMode ===
-                ANALYSIS_MODES.MULTI
-                  ? "active"
-                  : ""
-              }`}
-              onClick={() =>
-                handleAnalysisModeChange(
-                  ANALYSIS_MODES.MULTI,
-                )
-              }
-              disabled={
-                loading
-              }
-            >
-
-              <div className="analysis-mode-icon">
-                3
-              </div>
-
-              <div className="analysis-mode-text">
-                <strong>
-                  Multi-View
-                </strong>
-
-                <small>
-                  Analyze three top-view orientations
-                </small>
-              </div>
-
-              <span className="analysis-mode-badge">
-                Optional
-              </span>
-
-            </button>
-
           </div>
-
         </div>
-
 
         {/* ===================================================
             STEP 2.3 - IMAGE SOURCE
-        =================================================== */}
+        =================================================== 
 
         <div className="image-source-card">
 
@@ -1887,186 +1826,125 @@ function PhysicalAnalysis({
 
           </div>
 
-        </div>
-
+        </div> */}
 
         {/* ===================================================
             OPTIONAL MULTI-VIEW STATUS
         =================================================== */}
 
-        {analysisMode ===
-          ANALYSIS_MODES.MULTI && (
-
+        {analysisMode === ANALYSIS_MODES.MULTI && (
           <div
-            className={`multi-view-card ${
-              multiViewComplete
-                ? "complete"
-                : ""
-            }`}
+            className={`multi-view-card ${multiViewComplete ? "complete" : ""}`}
           >
-
             <div className="multi-view-heading">
-
               <div>
-                <span>
-                  MULTI-VIEW INSPECTION
-                </span>
+                <span>MULTI-VIEW INSPECTION</span>
 
-                <h3>
-                  3-View Top-Surface Analysis
-                </h3>
+                <h3>3-View Top-Surface Analysis</h3>
 
                 <p>
-                  Each view is analyzed independently. Raw detections
-                  from different views are not added together; the
-                  category counts are averaged for the final result.
+                  Each view is analyzed independently. Raw detections from
+                  different views are not added together; the category counts
+                  are averaged for the final result.
                 </p>
               </div>
-
 
               <button
                 type="button"
                 className="multi-view-reset-button"
-                onClick={
-                  resetMultiViewInspection
-                }
+                onClick={resetMultiViewInspection}
                 disabled={
                   loading ||
-                  (completedViewCount ===
-                    0 &&
-                    !multiImages.some(
-                      Boolean,
-                    ))
+                  (completedViewCount === 0 && !multiImages.some(Boolean))
                 }
               >
                 ↻ Restart Views
               </button>
-
             </div>
-
 
             <div className="multi-view-progress-grid">
-
               {Array.from({
-                length:
-                  REQUIRED_VIEWS,
-              }).map(
-                (_, index) => {
-                  const viewNumber =
-                    index + 1;
+                length: REQUIRED_VIEWS,
+              }).map((_, index) => {
+                const viewNumber = index + 1;
 
-                  const completed =
-                    index <
-                    completedViewCount;
+                const completed = index < completedViewCount;
 
-                  const uploaded =
-                    imageSource ===
-                      "upload" &&
-                    Boolean(
-                      multiImages[index],
-                    );
+                const uploaded =
+                  imageSource === "upload" && Boolean(multiImages[index]);
 
-                  const active =
-                    imageSource ===
-                      "phone" &&
-                    !multiViewComplete &&
-                    viewNumber ===
-                      nextViewNumber;
+                const active =
+                  imageSource === "phone" &&
+                  !multiViewComplete &&
+                  viewNumber === nextViewNumber;
 
-                  return (
-                    <div
-                      className={`multi-view-progress-item ${
-                        completed
-                          ? "completed"
-                          : uploaded
-                            ? "uploaded"
-                            : active
-                              ? "active"
-                              : "pending"
-                      }`}
-                      key={
-                        viewNumber
-                      }
-                    >
+                return (
+                  <div
+                    className={`multi-view-progress-item ${
+                      completed
+                        ? "completed"
+                        : uploaded
+                          ? "uploaded"
+                          : active
+                            ? "active"
+                            : "pending"
+                    }`}
+                    key={viewNumber}
+                  >
+                    <span className="multi-view-number">
+                      {completed ? "✓" : viewNumber}
+                    </span>
 
-                      <span className="multi-view-number">
+                    <div>
+                      <strong>View {viewNumber}</strong>
+
+                      <small>
                         {completed
-                          ? "✓"
-                          : viewNumber}
-                      </span>
-
-                      <div>
-                        <strong>
-                          View {viewNumber}
-                        </strong>
-
-                        <small>
-                          {completed
-                            ? "Analyzed"
-                            : uploaded
-                              ? "Image selected"
-                              : active
-                                ? "Ready to capture"
-                                : "Waiting"}
-                        </small>
-                      </div>
-
+                          ? "Analyzed"
+                          : uploaded
+                            ? "Image selected"
+                            : active
+                              ? "Ready to capture"
+                              : "Waiting"}
+                      </small>
                     </div>
-                  );
-                },
-              )}
-
+                  </div>
+                );
+              })}
             </div>
 
-
-            {imageSource ===
-              "phone" &&
-              completedViewCount >
-                0 &&
+            {imageSource === "phone" &&
+              completedViewCount > 0 &&
               !multiViewComplete && (
+                <div className="multi-view-instruction">
+                  <span>↔</span>
 
-              <div className="multi-view-instruction">
-                <span>
-                  ↔
-                </span>
+                  <div>
+                    <strong>
+                      Change bean orientation before View {nextViewNumber}
+                    </strong>
 
-                <div>
-                  <strong>
-                    Change bean orientation before View {nextViewNumber}
-                  </strong>
-
-                  <p>
-                    Gently shake the tray for about 2–3 seconds,
-                    place it back in the same camera position,
-                    allow the beans to settle, then capture the
-                    next view.
-                  </p>
+                    <p>
+                      Gently shake the tray for about 2–3 seconds, place it back
+                      in the same camera position, allow the beans to settle,
+                      then capture the next view.
+                    </p>
+                  </div>
                 </div>
-              </div>
-
-            )}
-
+              )}
 
             {multiViewComplete && (
-
               <div className="multi-view-complete-box">
-                <strong>
-                  ✓ Multi-view inspection completed
-                </strong>
+                <strong>✓ Multi-view inspection completed</strong>
 
                 <span>
-                  View 1, View 2 and View 3 were analyzed
-                  independently and combined using representative
-                  average category counts.
+                  View 1, View 2 and View 3 were analyzed independently and
+                  combined using representative average category counts.
                 </span>
               </div>
-
             )}
-
           </div>
-
         )}
-
 
         {/* ===================================================
             INPUT + AI SUMMARY
@@ -2076,51 +1954,44 @@ function PhysicalAnalysis({
           <div>
             <span>CAPTURE & ANALYZE</span>
             <h3>Run the Physical AI Inspection</h3>
-            <p>Prepare one clear top-view image, run the AI, then review the result beside your input.</p>
+            <p>
+              Prepare one clear top-view image, run the AI, then review the
+              result beside your input.
+            </p>
           </div>
 
           <span className="physical-run-status">
-            {result && !loading ? "AI Result Ready" : loading ? "Analyzing..." : "Ready for Input"}
+            {result && !loading
+              ? "AI Result Ready"
+              : loading
+                ? "Analyzing..."
+                : "Ready for Input"}
           </span>
         </div>
 
         <div className="physical-top-grid">
-
           {/* =================================================
               INPUT
           ================================================= */}
 
           <div className="physical-section-card">
-
             {/* PHONE */}
 
-            {imageSource ===
-              "phone" && (
-
+            {imageSource === "phone" && (
               <div className="phone-camera-panel">
-
                 <div className="phone-camera-header">
-
                   <div>
-                    <span>
-                      ANDROID CAMERA
-                    </span>
+                    <span>ANDROID CAMERA</span>
 
-                    <h3>
-                      Native Phone Camera
-                    </h3>
+                    <h3>Native Phone Camera</h3>
                   </div>
-
 
                   <span
                     className={`phone-connection-chip ${
-                      phoneStatus.connected
-                        ? "connected"
-                        : "disconnected"
+                      phoneStatus.connected ? "connected" : "disconnected"
                     }`}
                   >
-                    <span className="phone-status-dot">
-                    </span>
+                    <span className="phone-status-dot"></span>
 
                     {checkingPhone
                       ? "Checking..."
@@ -2128,28 +1999,19 @@ function PhysicalAnalysis({
                         ? "Connected"
                         : "Disconnected"}
                   </span>
-
                 </div>
 
-
                 <p className="phone-camera-description">
-                  {analysisMode ===
-                  ANALYSIS_MODES.SINGLE
+                  {analysisMode === ANALYSIS_MODES.SINGLE
                     ? "Capture one original phone image and run the trained Physical AI models."
                     : "Capture three separate phone images. Change bean orientation manually between View 1, View 2 and View 3."}
                 </p>
 
-
                 <div className="phone-device-box">
-
-                  <div className="phone-device-icon">
-                    📱
-                  </div>
+                  <div className="phone-device-icon">📱</div>
 
                   <div className="phone-device-details">
-                    <span>
-                      CONNECTED DEVICE
-                    </span>
+                    <span>CONNECTED DEVICE</span>
 
                     <strong>
                       {phoneStatus.connected
@@ -2157,887 +2019,533 @@ function PhysicalAnalysis({
                         : "No Android Phone"}
                     </strong>
 
-                    <small>
-                      USB Debugging • Android Debug Bridge
-                    </small>
+                    <small>USB Debugging • Android Debug Bridge</small>
                   </div>
 
                   {phoneStatus.connected && (
-                    <div className="phone-device-check">
-                      ✓
-                    </div>
+                    <div className="phone-device-check">✓</div>
                   )}
-
                 </div>
 
-
                 {phoneError && (
-                  <div className="phone-camera-error">
-                    {phoneError}
-                  </div>
+                  <div className="phone-camera-error">{phoneError}</div>
                 )}
-
 
                 <button
                   type="button"
                   className="refresh-phone-button"
-                  onClick={
-                    checkPhoneStatus
-                  }
-                  disabled={
-                    checkingPhone ||
-                    loading
-                  }
+                  onClick={checkPhoneStatus}
+                  disabled={checkingPhone || loading}
                 >
                   {checkingPhone
                     ? "Checking Phone..."
                     : "↻ Refresh Phone Connection"}
                 </button>
 
-
                 {phoneCapture && (
                   <div className="phone-capture-success">
-
                     <div className="capture-success-heading">
                       <span>
-                        {analysisMode ===
-                        ANALYSIS_MODES.MULTI
+                        {analysisMode === ANALYSIS_MODES.MULTI
                           ? `VIEW ${completedViewCount} CAPTURED`
                           : "PHOTO CAPTURED"}
                       </span>
 
-                      <strong>
-                        ✓ Success
-                      </strong>
+                      <strong>✓ Success</strong>
                     </div>
 
                     <div className="capture-meta-row">
-                      <span>
-                        File
-                      </span>
+                      <span>File</span>
 
-                      <strong>
-                        {
-                          phoneCapture.phone_filename
-                        }
-                      </strong>
+                      <strong>{phoneCapture.phone_filename}</strong>
                     </div>
 
-                    {phoneCapture
-                      .file_size_bytes && (
+                    {phoneCapture.file_size_bytes && (
                       <div className="capture-meta-row">
-                        <span>
-                          Size
-                        </span>
+                        <span>Size</span>
 
                         <strong>
-                          {(
-                            phoneCapture.file_size_bytes /
-                            1024 /
-                            1024
-                          ).toFixed(2)}{" "}
+                          {(phoneCapture.file_size_bytes / 1024 / 1024).toFixed(
+                            2,
+                          )}{" "}
                           MB
                         </strong>
                       </div>
                     )}
-
                   </div>
                 )}
-
 
                 <button
                   type="button"
                   className="phone-capture-button"
-                  onClick={
-                    handlePredict
-                  }
+                  onClick={handlePredict}
                   disabled={
                     !phoneReady ||
                     loading ||
-                    (analysisMode ===
-                      ANALYSIS_MODES.MULTI &&
-                      multiViewComplete)
+                    (analysisMode === ANALYSIS_MODES.MULTI && multiViewComplete)
                   }
                 >
-
                   {loading ? (
                     <>
-                      <span className="physical-spinner">
-                      </span>
+                      <span className="physical-spinner"></span>
 
-                      {analysisMode ===
-                      ANALYSIS_MODES.MULTI
+                      {analysisMode === ANALYSIS_MODES.MULTI
                         ? `Capturing & Analyzing View ${processingView || nextViewNumber}...`
                         : "Capturing & Analyzing..."}
                     </>
                   ) : !phoneStatus.connected ? (
-                    <>
-                      📱 Connect Android Phone
-                    </>
-                  ) : analysisMode ===
-                      ANALYSIS_MODES.MULTI &&
+                    <>📱 Connect Android Phone</>
+                  ) : analysisMode === ANALYSIS_MODES.MULTI &&
                     multiViewComplete ? (
+                    <>✓ 3 Views Completed</>
+                  ) : analysisMode === ANALYSIS_MODES.MULTI ? (
                     <>
-                      ✓ 3 Views Completed
-                    </>
-                  ) : analysisMode ===
-                    ANALYSIS_MODES.MULTI ? (
-                    <>
-                      📸 Capture & Analyze View {nextViewNumber} / {REQUIRED_VIEWS}
+                      📸 Capture & Analyze View {nextViewNumber} /{" "}
+                      {REQUIRED_VIEWS}
                     </>
                   ) : (
-                    <>
-                      📸 Capture & Analyze Single Image
-                    </>
+                    <>📸 Capture & Analyze Single Image</>
                   )}
-
                 </button>
-
               </div>
-
             )}
-
 
             {/* UPLOAD - SINGLE */}
 
-            {imageSource ===
-              "upload" &&
-              analysisMode ===
-                ANALYSIS_MODES.SINGLE && (
+            {imageSource === "upload" &&
+              analysisMode === ANALYSIS_MODES.SINGLE && (
+                <>
+                  <ImageUploader
+                    selectedImage={selectedImage}
+                    preview={preview}
+                    dragActive={dragActive}
+                    onImageChange={handleImageChange}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  />
 
-              <>
-
-                <ImageUploader
-                  selectedImage={
-                    selectedImage
-                  }
-                  preview={
-                    preview
-                  }
-                  dragActive={
-                    dragActive
-                  }
-                  onImageChange={
-                    handleImageChange
-                  }
-                  onDragOver={
-                    handleDragOver
-                  }
-                  onDragLeave={
-                    handleDragLeave
-                  }
-                  onDrop={
-                    handleDrop
-                  }
-                />
-
-
-                <button
-                  type="button"
-                  className="run-ai-button"
-                  onClick={
-                    handlePredict
-                  }
-                  disabled={
-                    !selectedImage ||
-                    loading
-                  }
-                >
-                  {loading ? (
-                    <>
-                      <span className="physical-spinner">
-                      </span>
-
-                      AI is Analyzing...
-                    </>
-                  ) : !selectedImage ? (
-                    <>
-                      🖼 Upload Bean Image
-                    </>
-                  ) : (
-                    <>
-                      ⚡ Analyze Single Image
-                    </>
-                  )}
-                </button>
-
-              </>
-
-            )}
-
+                  <button
+                    type="button"
+                    className="run-ai-button"
+                    onClick={handlePredict}
+                    disabled={!selectedImage || loading}
+                  >
+                    {loading ? (
+                      <>
+                        <span className="physical-spinner"></span>
+                        AI is Analyzing...
+                      </>
+                    ) : !selectedImage ? (
+                      <>🖼 Upload Bean Image</>
+                    ) : (
+                      <>⚡ Analyze Single Image</>
+                    )}
+                  </button>
+                </>
+              )}
 
             {/* UPLOAD - MULTI */}
 
-            {imageSource ===
-              "upload" &&
-              analysisMode ===
-                ANALYSIS_MODES.MULTI && (
+            {imageSource === "upload" &&
+              analysisMode === ANALYSIS_MODES.MULTI && (
+                <div className="multi-upload-panel">
+                  <div className="multi-upload-intro">
+                    <span>THREE IMAGE INPUTS</span>
 
-              <div className="multi-upload-panel">
+                    <h3>Upload View 1, View 2 and View 3</h3>
 
-                <div className="multi-upload-intro">
-                  <span>
-                    THREE IMAGE INPUTS
-                  </span>
+                    <p>
+                      Select all three images first. Then click Analyze All 3
+                      Views once.
+                    </p>
+                  </div>
 
-                  <h3>
-                    Upload View 1, View 2 and View 3
-                  </h3>
-
-                  <p>
-                    Select all three images first. Then click
-                    Analyze All 3 Views once.
-                  </p>
-                </div>
-
-
-                <div className="multi-upload-grid">
-
-                  {Array.from({
-                    length:
-                      REQUIRED_VIEWS,
-                  }).map(
-                    (_, index) => (
-
+                  <div className="multi-upload-grid">
+                    {Array.from({
+                      length: REQUIRED_VIEWS,
+                    }).map((_, index) => (
                       <div
                         className="multi-upload-item"
                         key={`upload-view-${index + 1}`}
                       >
-
                         <div className="multi-upload-label">
-                          <strong>
-                            View {index + 1}
-                          </strong>
+                          <strong>View {index + 1}</strong>
 
                           <span>
-                            {multiImages[index]
-                              ? "✓ Selected"
-                              : "Required"}
+                            {multiImages[index] ? "✓ Selected" : "Required"}
                           </span>
                         </div>
 
-
                         <ImageUploader
-                          selectedImage={
-                            multiImages[index]
+                          selectedImage={multiImages[index]}
+                          preview={multiPreviews[index]}
+                          dragActive={multiDragActive[index]}
+                          onImageChange={(event) =>
+                            handleMultiImageChange(index, event)
                           }
-                          preview={
-                            multiPreviews[index]
+                          onDragOver={(event) =>
+                            handleMultiDragOver(index, event)
                           }
-                          dragActive={
-                            multiDragActive[index]
-                          }
-                          onImageChange={(
-                            event,
-                          ) =>
-                            handleMultiImageChange(
-                              index,
-                              event,
-                            )
-                          }
-                          onDragOver={(
-                            event,
-                          ) =>
-                            handleMultiDragOver(
-                              index,
-                              event,
-                            )
-                          }
-                          onDragLeave={() =>
-                            handleMultiDragLeave(
-                              index,
-                            )
-                          }
-                          onDrop={(
-                            event,
-                          ) =>
-                            handleMultiDrop(
-                              index,
-                              event,
-                            )
-                          }
+                          onDragLeave={() => handleMultiDragLeave(index)}
+                          onDrop={(event) => handleMultiDrop(index, event)}
                         />
-
                       </div>
+                    ))}
+                  </div>
 
-                    ),
-                  )}
-
+                  <button
+                    type="button"
+                    className="run-ai-button"
+                    onClick={handlePredict}
+                    disabled={!allMultiImagesSelected || loading}
+                  >
+                    {loading ? (
+                      <>
+                        <span className="physical-spinner"></span>
+                        Analyzing View {processingView || 1} / {REQUIRED_VIEWS}
+                        ...
+                      </>
+                    ) : !allMultiImagesSelected ? (
+                      <>🖼 Upload All 3 Views First</>
+                    ) : (
+                      <>⚡ Analyze All 3 Views</>
+                    )}
+                  </button>
                 </div>
-
-
-                <button
-                  type="button"
-                  className="run-ai-button"
-                  onClick={
-                    handlePredict
-                  }
-                  disabled={
-                    !allMultiImagesSelected ||
-                    loading
-                  }
-                >
-                  {loading ? (
-                    <>
-                      <span className="physical-spinner">
-                      </span>
-
-                      Analyzing View {processingView || 1} / {REQUIRED_VIEWS}...
-                    </>
-                  ) : !allMultiImagesSelected ? (
-                    <>
-                      🖼 Upload All 3 Views First
-                    </>
-                  ) : (
-                    <>
-                      ⚡ Analyze All 3 Views
-                    </>
-                  )}
-                </button>
-
-              </div>
-
-            )}
-
+              )}
           </div>
-
 
           {/* =================================================
               AI SUMMARY
           ================================================= */}
 
           <div className="physical-section-card">
-
-            {!result &&
-              !loading && (
-
+            {!result && !loading && (
               <div className="physical-waiting-state">
-
-                <div className="physical-ai-icon">
-                  AI
-                </div>
+                <div className="physical-ai-icon">AI</div>
 
                 <h3>
-                  {analysisMode ===
-                  ANALYSIS_MODES.SINGLE
+                  {analysisMode === ANALYSIS_MODES.SINGLE
                     ? "Ready for Single Image Analysis"
-                    : imageSource ===
-                        "phone" &&
-                      completedViewCount >
-                        0
+                    : imageSource === "phone" && completedViewCount > 0
                       ? `Prepare View ${nextViewNumber}`
                       : "Ready for Multi-View Analysis"}
                 </h3>
 
                 <p>
-                  {analysisMode ===
-                  ANALYSIS_MODES.SINGLE
+                  {analysisMode === ANALYSIS_MODES.SINGLE
                     ? "Analyze one top-view image to generate the physical quality result."
-                    : imageSource ===
-                        "phone"
-                      ? completedViewCount >
-                        0
+                    : imageSource === "phone"
+                      ? completedViewCount > 0
                         ? `View ${completedViewCount} is complete. Change bean orientation and capture View ${nextViewNumber}.`
                         : "Capture View 1, then change bean orientation before each next view."
                       : "Upload all three top-view images and click Analyze All 3 Views."}
                 </p>
-
               </div>
-
             )}
 
-
             {loading && (
-
               <div className="physical-loading-state">
-
                 <div className="physical-scanner">
-                  <div className="physical-scan-line">
-                  </div>
+                  <div className="physical-scan-line"></div>
                 </div>
 
                 <h3>
-                  {analysisMode ===
-                  ANALYSIS_MODES.MULTI
+                  {analysisMode === ANALYSIS_MODES.MULTI
                     ? `Analyzing View ${processingView || nextViewNumber}`
                     : "Analyzing Physical Quality"}
                 </h3>
 
                 <p>
-                  The AI pipeline is detecting coffee beans and
-                  analyzing their color and shape.
+                  The AI pipeline is detecting coffee beans and analyzing their
+                  color and shape.
                 </p>
-
               </div>
-
             )}
 
-
-            {result &&
-              !loading && (
-
+            {result && !loading && (
               <div className="final-result-summary">
-
                 <div className="final-result-summary-heading">
                   <span>
-                    {analysisMode ===
-                    ANALYSIS_MODES.MULTI
+                    {analysisMode === ANALYSIS_MODES.MULTI
                       ? "FINAL MULTI-VIEW RESULT"
                       : "SINGLE IMAGE RESULT"}
                   </span>
 
                   <h3>
-                    {analysisMode ===
-                    ANALYSIS_MODES.MULTI
+                    {analysisMode === ANALYSIS_MODES.MULTI
                       ? "Representative 3-View Average"
                       : "Physical AI Result"}
                   </h3>
 
                   <p>
-                    {analysisMode ===
-                    ANALYSIS_MODES.MULTI
+                    {analysisMode === ANALYSIS_MODES.MULTI
                       ? "The category counts below are the representative average of the three independently analyzed views."
                       : "The category counts below were calculated from the selected single image."}
                   </p>
                 </div>
 
-
-                <DetectionSummary
-                  result={
-                    result
-                  }
-                />
-
+                <DetectionSummary result={result} />
               </div>
-
             )}
-
           </div>
-
         </div>
-
 
         {/* ===================================================
             SINGLE ANNOTATED IMAGE
         =================================================== */}
 
-        {analysisMode ===
-          ANALYSIS_MODES.SINGLE &&
+        {analysisMode === ANALYSIS_MODES.SINGLE &&
           result &&
           !loading &&
-          result
-            .predicted_image_url && (
+          result.predicted_image_url && (
+            <div className="single-image-result-section">
+              <div className="section-title-row">
+                <div>
+                  <span>ANNOTATED AI RESULT</span>
 
-          <div className="single-image-result-section">
+                  <h3>Single Image Detection</h3>
+                </div>
+              </div>
 
-            <div className="section-title-row">
-              <div>
-                <span>
-                  ANNOTATED AI RESULT
-                </span>
-
-                <h3>
-                  Single Image Detection
-                </h3>
+              <div className="physical-section-card">
+                <DetectionResultImage
+                  imageUrl={getPredictionImageUrl(result.predicted_image_url)}
+                />
               </div>
             </div>
-
-
-            <div className="physical-section-card">
-              <DetectionResultImage
-                imageUrl={
-                  getPredictionImageUrl(
-                    result.predicted_image_url,
-                  )
-                }
-              />
-            </div>
-
-          </div>
-
-        )}
-
+          )}
 
         {/* ===================================================
             INDIVIDUAL MULTI-VIEW RESULTS
             (after image input, before physical assessment)
         =================================================== */}
 
-        {analysisMode ===
-          ANALYSIS_MODES.MULTI &&
-          completedViewCount >
-            0 && (
-
+        {analysisMode === ANALYSIS_MODES.MULTI && completedViewCount > 0 && (
           <div className="individual-view-results-section">
-
             <div className="individual-view-results-heading">
-
               <div>
-                <span>
-                  INDIVIDUAL VIEW RESULTS
-                </span>
+                <span>INDIVIDUAL VIEW RESULTS</span>
 
-                <h3>
-                  Independent Physical AI Results
-                </h3>
+                <h3>Independent Physical AI Results</h3>
 
                 <p>
-                  Each top-view image is shown separately because
-                  bean positions can change between View 1, View 2
-                  and View 3.
+                  Each top-view image is shown separately because bean positions
+                  can change between View 1, View 2 and View 3.
                 </p>
               </div>
-
 
               <span className="individual-view-count-chip">
                 {completedViewCount} / {REQUIRED_VIEWS} Completed
               </span>
-
             </div>
-
 
             <div className="individual-view-results-grid">
+              {viewResults.map((viewResult, index) => {
+                const counts = getResultCounts(viewResult);
 
-              {viewResults.map(
-                (
-                  viewResult,
-                  index,
-                ) => {
-                  const counts =
-                    getResultCounts(
-                      viewResult,
-                    );
+                const assessment = calculatePhysicalAssessment(viewResult);
 
-                  const assessment =
-                    calculatePhysicalAssessment(
-                      viewResult,
-                    );
+                return (
+                  <div
+                    className="individual-view-result-card"
+                    key={`physical-view-${index + 1}`}
+                  >
+                    <div className="individual-view-result-header">
+                      <div>
+                        <span>VIEW {index + 1}</span>
 
-                  return (
-
-                    <div
-                      className="individual-view-result-card"
-                      key={`physical-view-${index + 1}`}
-                    >
-
-                      <div className="individual-view-result-header">
-
-                        <div>
-                          <span>
-                            VIEW {index + 1}
-                          </span>
-
-                          <h4>
-                            Top-Surface Inspection
-                          </h4>
-                        </div>
-
-
-                        <span className="individual-view-status">
-                          {assessment.status}
-                        </span>
-
+                        <h4>Top-Surface Inspection</h4>
                       </div>
 
-
-                      <div className="individual-view-image-wrapper">
-
-                        <div className="individual-view-image-label">
-                          Annotated AI Image — View {index + 1}
-                        </div>
-
-                        {viewResult
-                          ?.predicted_image_url ? (
-
-                          <DetectionResultImage
-                            imageUrl={
-                              getPredictionImageUrl(
-                                viewResult
-                                  .predicted_image_url,
-                              )
-                            }
-                          />
-
-                        ) : (
-
-                          <div className="individual-view-image-missing">
-                            Annotated image is not available for this view.
-                          </div>
-
-                        )}
-
-                      </div>
-
-
-                      <div className="individual-view-category-grid">
-
-                        <div className="individual-view-category-item">
-                          <span>
-                            Good
-                          </span>
-
-                          <strong>
-                            {counts.good}
-                          </strong>
-                        </div>
-
-
-                        <div className="individual-view-category-item">
-                          <span>
-                            Broken
-                          </span>
-
-                          <strong>
-                            {counts.broken}
-                          </strong>
-                        </div>
-
-
-                        <div className="individual-view-category-item">
-                          <span>
-                            Black
-                          </span>
-
-                          <strong>
-                            {counts.black}
-                          </strong>
-                        </div>
-
-
-                        <div className="individual-view-category-item">
-                          <span>
-                            Black + Broken
-                          </span>
-
-                          <strong>
-                            {counts.blackAndBroken}
-                          </strong>
-                        </div>
-
-                      </div>
-
-
-                      <div className="individual-view-metrics">
-
-                        <div>
-                          <span>
-                            Total Beans
-                          </span>
-
-                          <strong>
-                            {counts.total}
-                          </strong>
-                        </div>
-
-
-                        <div>
-                          <span>
-                            Physical Score
-                          </span>
-
-                          <strong>
-                            {assessment.score.toFixed(
-                              2,
-                            )}
-                            <small>
-                              /100
-                            </small>
-                          </strong>
-                        </div>
-
-
-                        <div>
-                          <span>
-                            Defect Load
-                          </span>
-
-                          <strong>
-                            {assessment.defectLoadPercent.toFixed(
-                              2,
-                            )}
-                            %
-                          </strong>
-                        </div>
-
-                      </div>
-
+                      <span className="individual-view-status">
+                        {assessment.status}
+                      </span>
                     </div>
 
-                  );
-                },
-              )}
+                    <div className="individual-view-image-wrapper">
+                      <div className="individual-view-image-label">
+                        Annotated AI Image — View {index + 1}
+                      </div>
 
+                      {viewResult?.predicted_image_url ? (
+                        <DetectionResultImage
+                          imageUrl={getPredictionImageUrl(
+                            viewResult.predicted_image_url,
+                          )}
+                        />
+                      ) : (
+                        <div className="individual-view-image-missing">
+                          Annotated image is not available for this view.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="individual-view-category-grid">
+                      <div className="individual-view-category-item">
+                        <span>Good</span>
+
+                        <strong>{counts.good}</strong>
+                      </div>
+
+                      <div className="individual-view-category-item">
+                        <span>Broken</span>
+
+                        <strong>{counts.broken}</strong>
+                      </div>
+
+                      <div className="individual-view-category-item">
+                        <span>Black</span>
+
+                        <strong>{counts.black}</strong>
+                      </div>
+
+                      <div className="individual-view-category-item">
+                        <span>Black + Broken</span>
+
+                        <strong>{counts.blackAndBroken}</strong>
+                      </div>
+                    </div>
+
+                    <div className="individual-view-metrics">
+                      <div>
+                        <span>Total Beans</span>
+
+                        <strong>{counts.total}</strong>
+                      </div>
+
+                      <div>
+                        <span>Physical Score</span>
+
+                        <strong>
+                          {assessment.score.toFixed(2)}
+                          <small>/100</small>
+                        </strong>
+                      </div>
+
+                      <div>
+                        <span>Defect Load</span>
+
+                        <strong>
+                          {assessment.defectLoadPercent.toFixed(2)}%
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-
             {multiViewComplete && (
-
               <div className="final-multi-view-note">
                 <strong>
                   Final result combines numbers, not annotated images.
                 </strong>
 
                 <span>
-                  View 1, View 2 and View 3 have separate annotated
-                  images. The final multi-view result uses averaged
-                  category counts and the resulting physical score.
+                  View 1, View 2 and View 3 have separate annotated images. The
+                  final multi-view result uses averaged category counts and the
+                  resulting physical score.
                 </span>
               </div>
-
             )}
-
           </div>
-
         )}
-
 
         {/* ===================================================
             PHYSICAL QUALITY ASSESSMENT
         =================================================== */}
 
-        {result &&
-          !loading && (
-
+        {result && !loading && (
           <div
             className={`physical-quality-card physical-quality-${physicalAssessment.status
               .toLowerCase()
-              .replace(
-                /\s+/g,
-                "-",
-              )}`}
+              .replace(/\s+/g, "-")}`}
           >
-
             <div className="physical-quality-heading">
-
               <div>
-                <span>
-                  PHYSICAL QUALITY ASSESSMENT
-                </span>
+                <span>PHYSICAL QUALITY ASSESSMENT</span>
 
                 <h3>
-                  {analysisMode ===
-                  ANALYSIS_MODES.MULTI
+                  {analysisMode === ANALYSIS_MODES.MULTI
                     ? "Final Multi-View Physical Quality"
                     : "Single Image Physical Quality"}
                 </h3>
 
                 <p>
-                  {analysisMode ===
-                  ANALYSIS_MODES.MULTI
+                  {analysisMode === ANALYSIS_MODES.MULTI
                     ? "Weighted physical defect severity calculated from the representative average counts across three views."
                     : "Weighted physical defect severity calculated from the AI-detected bean categories in the single image."}
                 </p>
               </div>
 
-
               <span className="physical-quality-status">
                 {physicalAssessment.status}
               </span>
-
             </div>
 
-
             <div className="physical-quality-grid">
-
               <div className="physical-score-main">
                 <span className="physical-score-label">
-                  {analysisMode ===
-                  ANALYSIS_MODES.MULTI
+                  {analysisMode === ANALYSIS_MODES.MULTI
                     ? "Multi-View Physical Score"
                     : "Physical Quality Score"}
                 </span>
 
                 <div className="physical-score-value">
-                  <strong>
-                    {physicalAssessment.score.toFixed(
-                      2,
-                    )}
-                  </strong>
+                  <strong>{physicalAssessment.score.toFixed(2)}</strong>
 
-                  <span>
-                    / 100
-                  </span>
+                  <span>/ 100</span>
                 </div>
               </div>
 
-
               <div className="physical-score-detail">
-                <span>
-                  Quality Status
-                </span>
+                <span>Quality Status</span>
 
-                <strong>
-                  {physicalAssessment.status}
-                </strong>
+                <strong>{physicalAssessment.status}</strong>
               </div>
 
-
               <div className="physical-score-detail">
-                <span>
-                  Weighted Defect Load
-                </span>
+                <span>Weighted Defect Load</span>
 
-                <strong>
-                  {physicalAssessment.weightedDefects}
-                </strong>
+                <strong>{physicalAssessment.weightedDefects}</strong>
               </div>
 
-
               <div className="physical-score-detail">
-                <span>
-                  Defect Load
-                </span>
+                <span>Defect Load</span>
 
                 <strong>
-                  {physicalAssessment.defectLoadPercent.toFixed(
-                    2,
-                  )}
-                  %
+                  {physicalAssessment.defectLoadPercent.toFixed(2)}%
                 </strong>
               </div>
-
             </div>
-
           </div>
-
         )}
-
 
         {/* ===================================================
             ACTIONS
         =================================================== */}
 
         <div className="physical-actions">
-
           <button
             type="button"
             className="physical-back-button"
-            onClick={
-              onBack
-            }
+            onClick={onBack}
           >
             ← Back to Sensor Analysis
           </button>
 
-
           <button
             type="button"
             className="physical-continue-button"
-            disabled={
-              !result ||
-              loading
-            }
-            onClick={
-              handleContinue
-            }
+            disabled={!result || loading}
+            onClick={handleContinue}
           >
             Generate Final Quality Report →
           </button>
-
         </div>
-
       </div>
-
 
       {/* =====================================================
           STYLES
@@ -4030,7 +3538,6 @@ function PhysicalAnalysis({
         }
 
       `}</style>
-
     </section>
   );
 }

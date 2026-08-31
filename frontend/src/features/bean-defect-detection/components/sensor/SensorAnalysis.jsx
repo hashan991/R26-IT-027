@@ -29,8 +29,8 @@ function SensorAnalysis({ onComplete }) {
   const STABILITY_THRESHOLDS = {
     mq2Percent: 6,
     mq3Percent: 6,
-    mq135Percent: 3,
-    moisturePercent: 1,
+    mq135Percent: 5,
+    moisturePercent: 3,
 
     // Absolute range
     temperatureRange: 0.5,

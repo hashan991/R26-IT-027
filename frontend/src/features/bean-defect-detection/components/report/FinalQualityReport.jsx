@@ -1334,7 +1334,7 @@ function FinalQualityReport({
 
         {/* =================================================
             RECOMMENDATIONS
-        ================================================= */}
+        ================================================= 
 
         <div className="report-group-heading">
           <div className="report-group-number">04</div>
@@ -1349,7 +1349,7 @@ function FinalQualityReport({
 
         <div className="report-section-block">
           <Recommendations recommendations={report.recommendations || []} />
-        </div>
+        </div>*/}
 
         {/* =================================================
             PROCESSING INTELLIGENCE
