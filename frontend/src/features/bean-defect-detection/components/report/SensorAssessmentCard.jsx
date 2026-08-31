@@ -1,3 +1,9 @@
+import {
+  SENSOR_THRESHOLDS,
+  TOTAL_VOTING_SENSORS,
+  SENSOR_VOTE_WEIGHT,
+} from "/src/features/bean-defect-detection/config/sensorQualityConfig";
+
 function SensorAssessmentCard({ sensorAssessment = {} }) {
   // =========================================================
   // OVERALL SENSOR STATUS
@@ -8,13 +14,45 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
   const statusClass = String(status).toLowerCase().replace(/\s+/g, "-");
 
   // =========================================================
-  // OVERALL SENSOR SCORE
+  // EXPERIMENTALLY DERIVED FIVE-SENSOR THRESHOLDS
+  // =========================================================
+  //
+  // Response = Sample - Baseline
+  //
+  // Voting sensors:
+  //
+  // MQ-2      BAD when response >= 129.5
+  // MQ-3      BAD when response >= 38.5
+  // MQ-135    BAD when response >= 9.5
+  // Moisture  BAD when response <= -16
+  // Humidity  BAD when response >= 10.7
+  //
+  // Temperature is supporting environmental information only.
   // =========================================================
 
-  const sensorScore = Math.max(
-    0,
-    Math.min(100, Number(sensorAssessment.sensor_score ?? 0)),
-  );
+  const thresholds = {
+    mq2: Number(
+      sensorAssessment.mq2_threshold ?? SENSOR_THRESHOLDS.mq2.badThreshold,
+    ),
+
+    mq3: Number(
+      sensorAssessment.mq3_threshold ?? SENSOR_THRESHOLDS.mq3.badThreshold,
+    ),
+
+    mq135: Number(
+      sensorAssessment.mq135_threshold ?? SENSOR_THRESHOLDS.mq135.badThreshold,
+    ),
+
+    moisture: Number(
+      sensorAssessment.moisture_threshold ??
+        SENSOR_THRESHOLDS.moisture.badThreshold,
+    ),
+
+    humidity: Number(
+      sensorAssessment.humidity_threshold ??
+        SENSOR_THRESHOLDS.humidity.badThreshold,
+    ),
+  };
 
   // =========================================================
   // FORMAT VALUE
@@ -27,117 +65,51 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
 
     const number = Number(value);
 
-    if (Number.isNaN(number)) {
+    if (!Number.isFinite(number)) {
       return value;
     }
 
     return number.toFixed(decimals);
   };
 
+  const formatThreshold = (value) => {
+    const number = Number(value);
+
+    if (!Number.isFinite(number)) {
+      return "-";
+    }
+
+    return Number.isInteger(number) ? number.toString() : number.toFixed(1);
+  };
+
   // =========================================================
-  // INDIVIDUAL SENSOR RANGE STATUS
-  // =========================================================
-  //
-  // Current research-defined ranges:
-  //
-  // MQ-2
-  // <= 44       GOOD RANGE
-  // 44 - 73     REVIEW RANGE
-  // >= 73       BAD RANGE
-  //
-  // MQ-135
-  // <= 15       GOOD RANGE
-  // 15 - 22.5   REVIEW RANGE
-  // >= 22.5     BAD RANGE
-  //
-  // Other sensors are currently supporting indicators.
-  //
+  // SENSOR VOTE HELPERS
   // =========================================================
 
-  const getSensorRangeStatus = (sensorName, response) => {
+  const calculateBadVote = ({ response, backendBad, threshold, direction }) => {
+    if (typeof backendBad === "boolean") {
+      return backendBad;
+    }
+
     if (response === null || response === undefined || response === "") {
-      return {
-        label: "NO DATA",
-        className: "no-data",
-        description: "No sensor response available",
-      };
+      return null;
     }
 
-    const value = Number(response);
+    const numericResponse = Number(response);
+    const numericThreshold = Number(threshold);
 
-    if (Number.isNaN(value)) {
-      return {
-        label: "NO DATA",
-        className: "no-data",
-        description: "Invalid sensor response",
-      };
+    if (
+      !Number.isFinite(numericResponse) ||
+      !Number.isFinite(numericThreshold)
+    ) {
+      return null;
     }
 
-    // =======================================================
-    // MQ-2
-    // =======================================================
-
-    if (sensorName === "MQ-2") {
-      if (value <= 44) {
-        return {
-          label: "GOOD RANGE",
-          className: "good",
-          description: "Response is within the current good range.",
-        };
-      }
-
-      if (value < 73) {
-        return {
-          label: "REVIEW RANGE",
-          className: "review",
-          description: "Response is within the review range.",
-        };
-      }
-
-      return {
-        label: "BAD RANGE",
-        className: "bad",
-        description: "Response has reached the current bad threshold.",
-      };
+    if (direction === "low") {
+      return numericResponse <= numericThreshold;
     }
 
-    // =======================================================
-    // MQ-135
-    // =======================================================
-
-    if (sensorName === "MQ-135") {
-      if (value <= 15) {
-        return {
-          label: "GOOD RANGE",
-          className: "good",
-          description: "Response is within the current good range.",
-        };
-      }
-
-      if (value < 22.5) {
-        return {
-          label: "REVIEW RANGE",
-          className: "review",
-          description: "Response is within the review range.",
-        };
-      }
-
-      return {
-        label: "BAD RANGE",
-        className: "bad",
-        description: "Response has reached the current bad threshold.",
-      };
-    }
-
-    // =======================================================
-    // SUPPORTING SENSORS
-    // =======================================================
-
-    return {
-      label: "SUPPORTING",
-      className: "supporting",
-      description: "Supporting sensor indicator.",
-    };
+    return numericResponse >= numericThreshold;
   };
 
   // =========================================================
@@ -146,47 +118,185 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
 
   const sensors = [
     {
+      key: "mq2",
       name: "MQ-2",
       type: "Gas Sensor",
       response: sensorAssessment.mq2_response,
-      score: sensorAssessment.mq2_score,
+      threshold: thresholds.mq2,
+      direction: "high",
+      bad: sensorAssessment.mq2_bad,
+      voting: true,
     },
 
     {
-      name: "MQ-135",
-      type: "Gas Sensor",
-      response: sensorAssessment.mq135_response,
-      score: sensorAssessment.mq135_score,
-    },
-
-    {
+      key: "mq3",
       name: "MQ-3",
       type: "Gas Sensor",
       response: sensorAssessment.mq3_response,
-      score: null,
+      threshold: thresholds.mq3,
+      direction: "high",
+      bad: sensorAssessment.mq3_bad,
+      voting: true,
     },
 
     {
+      key: "mq135",
+      name: "MQ-135",
+      type: "Gas Sensor",
+      response: sensorAssessment.mq135_response,
+      threshold: thresholds.mq135,
+      direction: "high",
+      bad: sensorAssessment.mq135_bad,
+      voting: true,
+    },
+
+    {
+      key: "moisture",
       name: "Moisture",
       type: "Moisture Sensor",
       response: sensorAssessment.moisture_response,
-      score: null,
+      threshold: thresholds.moisture,
+      direction: "low",
+      bad: sensorAssessment.moisture_bad,
+      voting: true,
     },
 
     {
-      name: "Temperature",
-      type: "Environmental",
-      response: sensorAssessment.temperature_response,
-      score: null,
-    },
-
-    {
+      key: "humidity",
       name: "Humidity",
       type: "Environmental",
       response: sensorAssessment.humidity_response,
-      score: null,
+      threshold: thresholds.humidity,
+      direction: "high",
+      bad: sensorAssessment.humidity_bad,
+      voting: true,
+    },
+
+    {
+      key: "temperature",
+      name: "Temperature",
+      type: "Environmental",
+      response: sensorAssessment.temperature_response,
+      threshold: null,
+      direction: null,
+      bad: null,
+      voting: false,
     },
   ];
+
+  const sensorsWithVotes = sensors.map((sensor) => {
+    if (!sensor.voting) {
+      return {
+        ...sensor,
+        badVote: null,
+      };
+    }
+
+    return {
+      ...sensor,
+      badVote: calculateBadVote({
+        response: sensor.response,
+        backendBad: sensor.bad,
+        threshold: sensor.threshold,
+        direction: sensor.direction,
+      }),
+    };
+  });
+
+  // =========================================================
+  // VOTING SUMMARY
+  // =========================================================
+
+  const calculatedValidVoteCount = sensorsWithVotes.filter(
+    (sensor) => sensor.voting && sensor.badVote !== null,
+  ).length;
+
+  const calculatedBadCount = sensorsWithVotes.filter(
+    (sensor) => sensor.voting && sensor.badVote === true,
+  ).length;
+
+  const backendValidVoteCount = Number(sensorAssessment.valid_vote_count);
+  const backendBadCount = Number(sensorAssessment.bad_count);
+  const backendTotalVotingSensors = Number(
+    sensorAssessment.total_voting_sensors,
+  );
+
+  const validVoteCount = Number.isFinite(backendValidVoteCount)
+    ? backendValidVoteCount
+    : calculatedValidVoteCount;
+
+  const badCount = Number.isFinite(backendBadCount)
+    ? backendBadCount
+    : calculatedBadCount;
+
+  const totalVotingSensors =
+    Number.isFinite(backendTotalVotingSensors) && backendTotalVotingSensors > 0
+      ? backendTotalVotingSensors
+      : TOTAL_VOTING_SENSORS;
+
+  // =========================================================
+  // OVERALL SENSOR SCORE
+  // =========================================================
+
+  const backendSensorScore = Number(sensorAssessment.sensor_score);
+
+  const fallbackSensorScore =
+    validVoteCount === totalVotingSensors
+      ? 100 - badCount * SENSOR_VOTE_WEIGHT
+      : 0;
+
+  const sensorScore = Math.max(
+    0,
+    Math.min(
+      100,
+      Number.isFinite(backendSensorScore)
+        ? backendSensorScore
+        : fallbackSensorScore,
+    ),
+  );
+
+  // =========================================================
+  // INDIVIDUAL SENSOR STATUS
+  // =========================================================
+
+  const getSensorVoteStatus = (sensor) => {
+    if (!sensor.voting) {
+      return {
+        label: "SUPPORTING",
+        className: "supporting",
+        description:
+          "Temperature is recorded as supporting environmental information and does not cast a quality vote.",
+      };
+    }
+
+    if (sensor.badVote === null) {
+      return {
+        label: "NO DATA",
+        className: "no-data",
+        description:
+          "A valid response was not available for this voting sensor.",
+      };
+    }
+
+    const thresholdText =
+      sensor.direction === "low"
+        ? `BAD when Δ ≤ ${formatThreshold(sensor.threshold)}`
+        : `BAD when Δ ≥ ${formatThreshold(sensor.threshold)}`;
+
+    if (sensor.badVote) {
+      return {
+        label: "BAD VOTE",
+        className: "bad",
+        description: `${thresholdText}. This sensor contributes one BAD vote.`,
+      };
+    }
+
+    return {
+      label: "GOOD VOTE",
+      className: "good",
+      description: `${thresholdText}. The response remains on the GOOD side of the decision boundary.`,
+    };
+  };
 
   // =========================================================
   // SENSOR ICON
@@ -233,8 +343,9 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
           <h3>Sensor Quality Analysis</h3>
 
           <p>
-            Quality assessment generated from the collected coffee bean sensor
-            responses.
+            Five experimentally derived sensor decision boundaries are used for
+            voting. Temperature is shown separately as supporting environmental
+            information.
           </p>
         </div>
       </div>
@@ -260,18 +371,73 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
             <strong>{status}</strong>
           </div>
 
-          <p>Overall decision from the sensor-based quality assessment.</p>
+          <p>
+            0-1 BAD votes = GOOD, 2 BAD votes = REVIEW, and 3-5 BAD votes = BAD.
+          </p>
         </div>
 
-        {/* SCORE SECONDARY */}
+        <div className="status-metrics">
+          <div className="status-score">
+            <span>SENSOR SCORE</span>
 
-        <div className="status-score">
-          <span>SENSOR SCORE</span>
+            <div>
+              <strong>{sensorScore.toFixed(2)}</strong>
 
+              <small>/100</small>
+            </div>
+          </div>
+
+          <div className="status-score vote-count-score">
+            <span>BAD VOTES</span>
+
+            <div>
+              <strong>{badCount}</strong>
+
+              <small>/{totalVotingSensors}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* =====================================================
+          VOTING SUMMARY
+      ===================================================== */}
+
+      <div className="sensor-voting-summary">
+        <div className="voting-summary-heading">
           <div>
-            <strong>{sensorScore.toFixed(2)}</strong>
+            <span>FIVE-SENSOR VOTING</span>
 
-            <small>/100</small>
+            <h4>Decision Summary</h4>
+          </div>
+
+          <p>
+            Each valid voting sensor contributes one equal 20-point share to the
+            sensor score.
+          </p>
+        </div>
+
+        <div className="voting-summary-grid">
+          <div className="voting-summary-card">
+            <span>Valid Votes</span>
+            <strong>
+              {validVoteCount}/{totalVotingSensors}
+            </strong>
+          </div>
+
+          <div className="voting-summary-card">
+            <span>BAD Votes</span>
+            <strong>{badCount}</strong>
+          </div>
+
+          <div className="voting-summary-card">
+            <span>GOOD Votes</span>
+            <strong>{Math.max(0, validVoteCount - badCount)}</strong>
+          </div>
+
+          <div className="voting-summary-card">
+            <span>Score Rule</span>
+            <strong>100 - BAD × 20</strong>
           </div>
         </div>
       </div>
@@ -288,8 +454,8 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
         </div>
 
         <p>
-          Each sensor is displayed using the same card layout. Defined response
-          ranges are highlighted where available.
+          Δ represents Sample - Baseline. Five sensors cast GOOD/BAD votes;
+          temperature does not participate in the quality decision.
         </p>
       </div>
 
@@ -298,19 +464,16 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
       ===================================================== */}
 
       <div className="sensor-grid">
-        {sensors.map((sensor) => {
-          const rangeStatus = getSensorRangeStatus(
-            sensor.name,
-            sensor.response,
-          );
+        {sensorsWithVotes.map((sensor) => {
+          const voteStatus = getSensorVoteStatus(sensor);
 
           return (
             <div
               className={`
-                  sensor-item-card
-                  sensor-card-${rangeStatus.className}
-                `}
-              key={sensor.name}
+                sensor-item-card
+                sensor-card-${voteStatus.className}
+              `}
+              key={sensor.key}
             >
               {/* ===========================================
                     SENSOR CARD HEADER
@@ -329,17 +492,15 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
                   </div>
                 </div>
 
-                {/* RANGE STATUS */}
-
                 <span
                   className={`
-                      individual-sensor-status
-                      individual-${rangeStatus.className}
-                    `}
+                    individual-sensor-status
+                    individual-${voteStatus.className}
+                  `}
                 >
                   <span className="individual-status-dot" />
 
-                  {rangeStatus.label}
+                  {voteStatus.label}
                 </span>
               </div>
 
@@ -348,24 +509,24 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
                 =========================================== */}
 
               <div className="sensor-response">
-                <span>RESPONSE</span>
+                <span>RESPONSE Δ</span>
 
                 <strong>{formatValue(sensor.response)}</strong>
               </div>
 
               {/* ===========================================
-                    RANGE DESCRIPTION
+                    VOTE DESCRIPTION
                 =========================================== */}
 
               <div className="sensor-range-description">
                 <span
                   className={`
-                      range-marker
-                      range-marker-${rangeStatus.className}
-                    `}
+                    range-marker
+                    range-marker-${voteStatus.className}
+                  `}
                 />
 
-                <p>{rangeStatus.description}</p>
+                <p>{voteStatus.description}</p>
               </div>
 
               {/* ===========================================
@@ -373,20 +534,20 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
                 =========================================== */}
 
               <div className="sensor-card-footer">
-                {sensor.score !== null && sensor.score !== undefined ? (
+                {sensor.voting ? (
                   <>
-                    <span>Quality Score</span>
+                    <span>Decision Boundary</span>
 
                     <strong>
-                      {formatValue(sensor.score)}
-                      /100
+                      {sensor.direction === "low" ? "≤ " : "≥ "}
+                      {formatThreshold(sensor.threshold)}
                     </strong>
                   </>
                 ) : (
                   <>
                     <span>Assessment Role</span>
 
-                    <strong>Supporting Indicator</strong>
+                    <strong>Supporting Only</strong>
                   </>
                 )}
               </div>
@@ -396,12 +557,12 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
       </div>
 
       {/* =====================================================
-          SENSOR RANGE LEGEND
+          SENSOR VOTE LEGEND
       ===================================================== */}
 
       <div className="sensor-range-legend">
         <div className="legend-heading">
-          <span>RESPONSE RANGE GUIDE</span>
+          <span>VOTING GUIDE</span>
         </div>
 
         <div className="legend-items">
@@ -409,19 +570,12 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
             <span className="legend-dot legend-good" />
 
             <div>
-              <strong>Good Range</strong>
+              <strong>GOOD Vote</strong>
 
-              <small>Response inside the current good range</small>
-            </div>
-          </div>
-
-          <div>
-            <span className="legend-dot legend-review" />
-
-            <div>
-              <strong>Review Range</strong>
-
-              <small>Response requires additional attention</small>
+              <small>
+                Response remains on the acceptable side of the experimental
+                decision boundary
+              </small>
             </div>
           </div>
 
@@ -429,9 +583,25 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
             <span className="legend-dot legend-bad" />
 
             <div>
-              <strong>Bad Range</strong>
+              <strong>BAD Vote</strong>
 
-              <small>Response reaches the current bad threshold</small>
+              <small>
+                Response reaches or crosses the experimental BAD decision
+                boundary
+              </small>
+            </div>
+          </div>
+
+          <div>
+            <span className="legend-dot legend-supporting" />
+
+            <div>
+              <strong>Supporting Only</strong>
+
+              <small>
+                Recorded for environmental context but excluded from quality
+                voting
+              </small>
             </div>
           </div>
         </div>
@@ -445,9 +615,12 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
         <span className="sensor-note-icon">i</span>
 
         <p>
-          The overall sensor status is the primary quality result. Individual
-          range colors are currently applied only where the research methodology
-          defines decision ranges. Other sensors remain supporting indicators.
+          The five voting sensors are MQ-2, MQ-3, MQ-135, Moisture, and
+          Humidity. Each BAD vote reduces the sensor score by 20 points.
+          Temperature is not used as a vote because the experimental GOOD and
+          BAD temperature response ranges overlapped. These thresholds are
+          research-defined from the collected experimental dataset and are not
+          presented as an official coffee-industry grading standard.
         </p>
       </div>
 
@@ -456,1503 +629,649 @@ function SensorAssessmentCard({ sensorAssessment = {} }) {
       ===================================================== */}
 
       <style>{`
+        /* ==============================================================
+           STEP 03 / SENSOR ASSESSMENT
+           Scoped light coffee-theme styles.
+           All selectors are intentionally nested under
+           .sensor-assessment-card so other report components cannot
+           overwrite this component's typography or legend styles.
+        ============================================================== */
 
-        * {
+        .sensor-assessment-card,
+        .sensor-assessment-card * {
           box-sizing: border-box;
         }
 
-
         .sensor-assessment-card {
           width: 100%;
-
-          padding: 24px;
-
-          border-radius: 22px;
-
-          background:
-            radial-gradient(
-              circle at 10% 0%,
-              rgba(
-                214,
-                142,
-                70,
-                0.08
-              ),
-              transparent 30%
-            ),
-            linear-gradient(
-              145deg,
-              rgba(
-                255,
-                255,
-                255,
-                0.045
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.015
-              )
-            ),
-            rgba(
-              0,
-              0,
-              0,
-              0.12
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.09
-            );
+          padding: 28px;
+          border: 1px solid #e6d8cb;
+          border-radius: 20px;
+          background: #fffdf9;
+          color: #2b190f;
+          box-shadow: 0 10px 28px rgba(70, 39, 24, 0.045);
         }
 
-
-        /* =================================================
-           HEADER
-        ================================================= */
-
-        .sensor-header {
+        /* Header ------------------------------------------------------ */
+        .sensor-assessment-card .sensor-header {
           display: flex;
-
-          align-items:
-            flex-start;
-
-          justify-content:
-            space-between;
-
+          align-items: flex-start;
+          justify-content: space-between;
           gap: 20px;
+          padding-bottom: 18px;
+          border-bottom: 1px solid #eee3d8;
         }
 
-
-        .sensor-header-label {
+        .sensor-assessment-card .sensor-header-label {
           display: block;
-
-          color: #dda05e;
-
-          font-size: 8px;
-
-          font-weight: 950;
-
-          letter-spacing:
-            1.6px;
+          color: #9a542b;
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 1.25px;
+          text-transform: uppercase;
         }
 
-
-        .sensor-header h3 {
-          margin:
-            5px 0 0;
-
-          color: #fff0d8;
-
-          font-size: 19px;
+        .sensor-assessment-card .sensor-header h3 {
+          margin: 6px 0 0;
+          color: #2a170f;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 27px;
+          font-weight: 500;
+          line-height: 1.2;
         }
 
+        .sensor-assessment-card .sensor-header p {
+          max-width: 760px;
+          margin: 8px 0 0;
+          color: #6b5d53;
+          font-size: 14px;
+          line-height: 1.65;
+        }
 
-        .sensor-header p {
-          max-width: 560px;
+        /* Overall status --------------------------------------------- */
+        .sensor-assessment-card .sensor-status-panel {
+          margin-top: 18px;
+          display: grid;
+          grid-template-columns: minmax(0, 1.6fr) minmax(250px, 0.8fr);
+          gap: 18px;
+          align-items: stretch;
+          padding: 20px;
+          border: 1px solid #d8e4d8;
+          border-radius: 17px;
+          background: #f3f8f2;
+        }
 
-          margin:
-            6px 0 0;
+        .sensor-assessment-card .sensor-status-panel-review,
+        .sensor-assessment-card .sensor-status-panel-needs-review {
+          border-color: #ead7b7;
+          background: #fff8ed;
+        }
 
-          color:
-            rgba(
-              255,
-              238,
-              212,
-              0.38
-            );
+        .sensor-assessment-card .sensor-status-panel-bad,
+        .sensor-assessment-card .sensor-status-panel-poor {
+          border-color: #ebcbc4;
+          background: #fff2ef;
+        }
 
-          font-size: 10px;
+        .sensor-assessment-card .status-left {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
 
+        .sensor-assessment-card .status-caption {
+          display: block;
+          color: #5c725f;
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 1.05px;
+        }
+
+        .sensor-assessment-card .status-main-row {
+          margin-top: 8px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .sensor-assessment-card .status-indicator {
+          width: 30px;
+          height: 30px;
+          flex: 0 0 30px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          background: #dff0e1;
+          border: 1px solid #bcd9c0;
+        }
+
+        .sensor-assessment-card .status-indicator > span {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: #3d9d54;
+        }
+
+        .sensor-assessment-card .sensor-status-panel-review .status-indicator,
+        .sensor-assessment-card .sensor-status-panel-needs-review .status-indicator {
+          background: #f8e8c8;
+          border-color: #e7c886;
+        }
+
+        .sensor-assessment-card .sensor-status-panel-review .status-indicator > span,
+        .sensor-assessment-card .sensor-status-panel-needs-review .status-indicator > span {
+          background: #c78324;
+        }
+
+        .sensor-assessment-card .sensor-status-panel-bad .status-indicator,
+        .sensor-assessment-card .sensor-status-panel-poor .status-indicator {
+          background: #f6d8d2;
+          border-color: #e6b5aa;
+        }
+
+        .sensor-assessment-card .sensor-status-panel-bad .status-indicator > span,
+        .sensor-assessment-card .sensor-status-panel-poor .status-indicator > span {
+          background: #c95845;
+        }
+
+        .sensor-assessment-card .status-main-row strong {
+          color: #2a170f;
+          font-size: 30px;
+          font-weight: 900;
+          line-height: 1;
+          text-transform: uppercase;
+        }
+
+        .sensor-assessment-card .status-left > p {
+          margin: 10px 0 0;
+          color: #617064;
+          font-size: 13px;
           line-height: 1.55;
         }
 
-
-        /* =================================================
-           MAIN STATUS PANEL
-        ================================================= */
-
-        .sensor-status-panel {
-          margin-top: 18px;
-
-          min-height: 150px;
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content:
-            space-between;
-
-          gap: 30px;
-
-          padding: 22px;
-
-          border-radius: 18px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.025
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.07
-            );
-        }
-
-
-        .status-caption {
-          display: block;
-
-          color:
-            rgba(
-              255,
-              234,
-              204,
-              0.38
-            );
-
-          font-size: 8px;
-
-          font-weight: 900;
-
-          letter-spacing:
-            1.4px;
-        }
-
-
-        .status-main-row {
-          margin-top: 7px;
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 11px;
-        }
-
-
-        .status-main-row strong {
-          font-size: 34px;
-
-          font-weight: 950;
-
-          line-height: 1;
-
-          text-transform:
-            uppercase;
-        }
-
-
-        .status-indicator {
-          width: 31px;
-          height: 31px;
-
+        .sensor-assessment-card .status-metrics {
           display: grid;
-
-          place-items: center;
-
-          border-radius: 50%;
-
-          background:
-            currentColor;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
         }
 
-
-        .status-indicator span {
-          width: 10px;
-          height: 10px;
-
-          border-radius: 50%;
-
-          background: #20140d;
-        }
-
-
-        .status-left p {
-          margin:
-            10px 0 0;
-
-          color:
-            rgba(
-              255,
-              238,
-              212,
-              0.34
-            );
-
-          font-size: 9px;
-
-          line-height: 1.5;
-        }
-
-
-        /* =================================================
-           OVERALL GOOD
-        ================================================= */
-
-        .sensor-status-panel-good,
-        .sensor-status-panel-excellent {
-          color: #a7e6ae;
-
-          background:
-            linear-gradient(
-              135deg,
-              rgba(
-                62,
-                160,
-                76,
-                0.10
-              ),
-              rgba(
-                0,
-                0,
-                0,
-                0.09
-              )
-            );
-
-          border-color:
-            rgba(
-              93,
-              194,
-              105,
-              0.16
-            );
-        }
-
-
-        /* =================================================
-           OVERALL REVIEW
-        ================================================= */
-
-        .sensor-status-panel-review,
-        .sensor-status-panel-needs-review {
-          color: #ffd18d;
-
-          background:
-            linear-gradient(
-              135deg,
-              rgba(
-                201,
-                137,
-                54,
-                0.10
-              ),
-              rgba(
-                0,
-                0,
-                0,
-                0.09
-              )
-            );
-
-          border-color:
-            rgba(
-              226,
-              163,
-              77,
-              0.16
-            );
-        }
-
-
-        /* =================================================
-           OVERALL BAD
-        ================================================= */
-
-        .sensor-status-panel-bad,
-        .sensor-status-panel-poor {
-          color: #ffad97;
-
-          background:
-            linear-gradient(
-              135deg,
-              rgba(
-                181,
-                62,
-                46,
-                0.10
-              ),
-              rgba(
-                0,
-                0,
-                0,
-                0.09
-              )
-            );
-
-          border-color:
-            rgba(
-              221,
-              89,
-              66,
-              0.16
-            );
-        }
-
-
-        /* =================================================
-           WAITING / SKIPPED
-        ================================================= */
-
-        .sensor-status-panel-waiting,
-        .sensor-status-panel-skipped {
-          color:
-            rgba(
-              255,
-              233,
-              202,
-              0.65
-            );
-        }
-
-
-        /* =================================================
-           SCORE - SECONDARY
-        ================================================= */
-
-        .status-score {
-          min-width: 150px;
-
-          padding:
-            15px 18px;
-
-          flex-shrink: 0;
-
-          border-radius: 14px;
-
-          text-align: right;
-
-          background:
-            rgba(
-              0,
-              0,
-              0,
-              0.12
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.055
-            );
-        }
-
-
-        .status-score > span {
-          display: block;
-
-          margin-bottom: 5px;
-
-          color:
-            rgba(
-              255,
-              236,
-              208,
-              0.3
-            );
-
-          font-size: 7px;
-
-          font-weight: 900;
-
-          letter-spacing: 1px;
-        }
-
-
-        .status-score strong {
-          color: #f2ddbf;
-
-          font-size: 24px;
-        }
-
-
-        .status-score small {
-          margin-left: 3px;
-
-          color:
-            rgba(
-              255,
-              235,
-              205,
-              0.3
-            );
-
-          font-size: 8px;
-        }
-
-
-        /* =================================================
-           SENSOR RESULTS HEADING
-        ================================================= */
-
-        .sensor-readings-heading {
-          margin-top: 21px;
-
+        .sensor-assessment-card .status-score {
+          min-width: 0;
+          padding: 16px 14px;
           display: flex;
+          flex-direction: column;
+          justify-content: center;
+          border: 1px solid #e2ddd6;
+          border-radius: 13px;
+          background: rgba(255, 255, 255, 0.9);
+        }
 
-          align-items:
-            flex-end;
+        .sensor-assessment-card .status-score > span {
+          color: #786a60;
+          font-size: 10.5px;
+          font-weight: 900;
+          letter-spacing: 0.85px;
+        }
 
-          justify-content:
-            space-between;
+        .sensor-assessment-card .status-score > div {
+          margin-top: 8px;
+          display: flex;
+          align-items: baseline;
+          gap: 4px;
+        }
 
+        .sensor-assessment-card .status-score strong {
+          color: #2a170f;
+          font-size: 29px;
+          font-weight: 900;
+          line-height: 1;
+        }
+
+        .sensor-assessment-card .status-score small {
+          color: #7b6c62;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        /* Voting summary --------------------------------------------- */
+        .sensor-assessment-card .sensor-voting-summary {
+          margin-top: 16px;
+          padding: 18px;
+          border: 1px solid #eadfd4;
+          border-radius: 16px;
+          background: #fbf6f0;
+        }
+
+        .sensor-assessment-card .voting-summary-heading {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
           gap: 20px;
         }
 
-
-        .sensor-readings-heading
-        > div
-        > span {
-          color: #dca05e;
-
-          font-size: 7px;
-
+        .sensor-assessment-card .voting-summary-heading > div > span {
+          display: block;
+          color: #a05b30;
+          font-size: 10.5px;
           font-weight: 900;
-
-          letter-spacing:
-            1.3px;
+          letter-spacing: 1px;
         }
 
-
-        .sensor-readings-heading h4 {
-          margin:
-            4px 0 0;
-
-          color: #f1ddc0;
-
-          font-size: 14px;
+        .sensor-assessment-card .voting-summary-heading h4 {
+          margin: 5px 0 0;
+          color: #2b190f;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 20px;
+          font-weight: 500;
         }
 
-
-        .sensor-readings-heading p {
-          max-width: 300px;
-
+        .sensor-assessment-card .voting-summary-heading p {
+          max-width: 420px;
           margin: 0;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.28
-            );
-
-          font-size: 8px;
-
+          color: #706258;
+          font-size: 12.5px;
+          line-height: 1.5;
           text-align: right;
-
-          line-height: 1.45;
         }
 
-
-        /* =================================================
-           SENSOR GRID
-        ================================================= */
-
-        .sensor-grid {
-          margin-top: 12px;
-
+        .sensor-assessment-card .voting-summary-grid {
+          margin-top: 14px;
           display: grid;
-
-          grid-template-columns:
-            repeat(
-              3,
-              minmax(
-                0,
-                1fr
-              )
-            );
-
-          gap: 11px;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
         }
 
-
-        /* =================================================
-           BASE SENSOR CARD
-        ================================================= */
-
-        .sensor-item-card {
-          min-height: 215px;
-
+        .sensor-assessment-card .voting-summary-card {
+          min-height: 88px;
+          padding: 14px;
           display: flex;
-
-          flex-direction:
-            column;
-
-          padding: 16px;
-
-          border-radius: 16px;
-
-          background:
-            linear-gradient(
-              145deg,
-              rgba(
-                255,
-                255,
-                255,
-                0.035
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.012
-              )
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.07
-            );
-
-          transition:
-            transform
-            0.2s ease,
-            border-color
-            0.2s ease,
-            background
-            0.2s ease;
+          flex-direction: column;
+          justify-content: center;
+          border: 1px solid #e4d7ca;
+          border-radius: 12px;
+          background: #fffdfa;
         }
 
-
-        .sensor-item-card:hover {
-          transform:
-            translateY(-2px);
+        .sensor-assessment-card .voting-summary-card span {
+          color: #796a60;
+          font-size: 10.5px;
+          font-weight: 800;
         }
 
-
-        /* =================================================
-           GOOD CARD
-        ================================================= */
-
-        .sensor-card-good {
-          background:
-            linear-gradient(
-              145deg,
-              rgba(
-                57,
-                153,
-                73,
-                0.13
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.012
-              )
-            );
-
-          border-color:
-            rgba(
-              92,
-              198,
-              106,
-              0.24
-            );
-
-          box-shadow:
-            inset
-            0 0 25px
-            rgba(
-              68,
-              171,
-              83,
-              0.025
-            );
+        .sensor-assessment-card .voting-summary-card strong {
+          margin-top: 7px;
+          color: #b66f37;
+          font-size: 21px;
+          font-weight: 900;
+          line-height: 1.18;
+          word-break: break-word;
         }
 
-
-        /* =================================================
-           REVIEW CARD
-        ================================================= */
-
-        .sensor-card-review {
-          background:
-            linear-gradient(
-              145deg,
-              rgba(
-                196,
-                128,
-                43,
-                0.14
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.012
-              )
-            );
-
-          border-color:
-            rgba(
-              230,
-              164,
-              76,
-              0.25
-            );
-
-          box-shadow:
-            inset
-            0 0 25px
-            rgba(
-              220,
-              151,
-              59,
-              0.025
-            );
-        }
-
-
-        /* =================================================
-           BAD CARD
-        ================================================= */
-
-        .sensor-card-bad {
-          background:
-            linear-gradient(
-              145deg,
-              rgba(
-                181,
-                57,
-                43,
-                0.15
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.012
-              )
-            );
-
-          border-color:
-            rgba(
-              229,
-              88,
-              67,
-              0.27
-            );
-
-          box-shadow:
-            inset
-            0 0 25px
-            rgba(
-              208,
-              67,
-              49,
-              0.03
-            );
-        }
-
-
-        /* =================================================
-           SUPPORTING CARD
-        ================================================= */
-
-        .sensor-card-supporting {
-          background:
-            linear-gradient(
-              145deg,
-              rgba(
-                255,
-                255,
-                255,
-                0.035
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.012
-              )
-            );
-        }
-
-
-        /* =================================================
-           NO DATA CARD
-        ================================================= */
-
-        .sensor-card-no-data {
-          opacity: 0.65;
-
-          border-color:
-            rgba(
-              255,
-              255,
-              255,
-              0.06
-            );
-        }
-
-
-        /* =================================================
-           SENSOR CARD HEADER
-        ================================================= */
-
-        .sensor-item-top {
+        /* Results heading -------------------------------------------- */
+        .sensor-assessment-card .sensor-readings-heading {
+          margin-top: 22px;
           display: flex;
-
-          align-items:
-            flex-start;
-
-          justify-content:
-            space-between;
-
-          gap: 8px;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 20px;
         }
 
+        .sensor-assessment-card .sensor-readings-heading > div > span {
+          display: block;
+          color: #9e582f;
+          font-size: 10.5px;
+          font-weight: 900;
+          letter-spacing: 1px;
+        }
 
-        .sensor-item-identity {
-          display: flex;
+        .sensor-assessment-card .sensor-readings-heading h4 {
+          margin: 5px 0 0;
+          color: #2a170f;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 20px;
+          font-weight: 500;
+        }
 
-          align-items: center;
+        .sensor-assessment-card .sensor-readings-heading p {
+          max-width: 480px;
+          margin: 0;
+          color: #716359;
+          font-size: 12.5px;
+          line-height: 1.55;
+          text-align: right;
+        }
 
+        /* Sensor cards ----------------------------------------------- */
+        .sensor-assessment-card .sensor-grid {
+          margin-top: 14px;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .sensor-assessment-card .sensor-item-card {
           min-width: 0;
+          min-height: 225px;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          border: 1px solid #e6ddd4;
+          border-radius: 15px;
+          background: #fffdf9;
+        }
 
+        .sensor-assessment-card .sensor-card-good {
+          border-color: #c7e1cb;
+          background: linear-gradient(145deg, #f1faf2, #fbfefb);
+        }
+
+        .sensor-assessment-card .sensor-card-bad {
+          border-color: #e8c7c0;
+          background: linear-gradient(145deg, #fff1ee, #fffaf8);
+        }
+
+        .sensor-assessment-card .sensor-card-supporting {
+          border-color: #e6d7bf;
+          background: linear-gradient(145deg, #fff9ee, #fffdf9);
+        }
+
+        .sensor-assessment-card .sensor-card-no-data {
+          background: #f7f4f0;
+        }
+
+        .sensor-assessment-card .sensor-item-top {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .sensor-assessment-card .sensor-item-identity {
+          min-width: 0;
+          display: flex;
+          align-items: center;
           gap: 9px;
         }
 
-
-        .sensor-item-icon {
-          width: 37px;
-          height: 37px;
-
-          flex-shrink: 0;
-
+        .sensor-assessment-card .sensor-item-icon {
+          width: 36px;
+          height: 36px;
+          flex: 0 0 36px;
           display: grid;
-
           place-items: center;
-
           border-radius: 10px;
-
-          color: #2b180c;
-
-          background:
-            linear-gradient(
-              145deg,
-              #ffdda5,
-              #ce8242
-            );
-
-          font-size: 8px;
-
-          font-weight: 950;
-        }
-
-
-        .sensor-item-name {
-          min-width: 0;
-        }
-
-
-        .sensor-item-name span {
-          display: block;
-
-          color:
-            rgba(
-              255,
-              229,
-              194,
-              0.29
-            );
-
-          font-size: 6px;
-
-          font-weight: 800;
-
-          text-transform:
-            uppercase;
-
-          letter-spacing:
-            0.8px;
-        }
-
-
-        .sensor-item-name h4 {
-          margin:
-            3px 0 0;
-
-          color: #f3ddc0;
-
-          font-size: 13px;
-        }
-
-
-        /* =================================================
-           INDIVIDUAL RANGE STATUS
-        ================================================= */
-
-        .individual-sensor-status {
-          flex-shrink: 0;
-
-          display: inline-flex;
-
-          align-items: center;
-
-          gap: 5px;
-
-          padding:
-            5px 7px;
-
-          border-radius: 999px;
-
-          font-size: 6px;
-
-          font-weight: 950;
-
-          white-space: nowrap;
-
-          letter-spacing:
-            0.35px;
-        }
-
-
-        .individual-status-dot {
-          width: 5px;
-          height: 5px;
-
-          flex-shrink: 0;
-
-          border-radius: 50%;
-
-          background:
-            currentColor;
-        }
-
-
-        .individual-good {
-          color: #9ee4a8;
-
-          background:
-            rgba(
-              52,
-              151,
-              68,
-              0.13
-            );
-
-          border:
-            1px solid
-            rgba(
-              95,
-              202,
-              109,
-              0.18
-            );
-        }
-
-
-        .individual-review {
-          color: #ffd18c;
-
-          background:
-            rgba(
-              203,
-              133,
-              44,
-              0.13
-            );
-
-          border:
-            1px solid
-            rgba(
-              231,
-              164,
-              75,
-              0.19
-            );
-        }
-
-
-        .individual-bad {
-          color: #ffad97;
-
-          background:
-            rgba(
-              184,
-              57,
-              43,
-              0.14
-            );
-
-          border:
-            1px solid
-            rgba(
-              227,
-              89,
-              67,
-              0.2
-            );
-        }
-
-
-        .individual-supporting {
-          color:
-            rgba(
-              255,
-              222,
-              180,
-              0.48
-            );
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.035
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.055
-            );
-        }
-
-
-        .individual-no-data {
-          color:
-            rgba(
-              255,
-              235,
-              205,
-              0.35
-            );
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.025
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.045
-            );
-        }
-
-
-        /* =================================================
-           RESPONSE
-        ================================================= */
-
-        .sensor-response {
-          margin-top: 18px;
-        }
-
-
-        .sensor-response span {
-          display: block;
-
-          margin-bottom: 4px;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.28
-            );
-
-          font-size: 7px;
-
-          font-weight: 800;
-
-          letter-spacing:
-            0.8px;
-        }
-
-
-        .sensor-response strong {
-          color: #ffe0aa;
-
-          font-size: 27px;
-
+          color: #5a2e18;
+          background: #f4e4d2;
+          font-size: 10px;
           font-weight: 900;
         }
 
-
-        /* =================================================
-           RANGE DESCRIPTION
-        ================================================= */
-
-        .sensor-range-description {
-          min-height: 32px;
-
-          margin-top: 9px;
-
-          display: flex;
-
-          align-items:
-            flex-start;
-
-          gap: 6px;
+        .sensor-assessment-card .sensor-item-name {
+          min-width: 0;
         }
 
+        .sensor-assessment-card .sensor-item-name > span {
+          display: block;
+          color: #85766b;
+          font-size: 9.5px;
+          font-weight: 800;
+          line-height: 1.2;
+        }
 
-        .range-marker {
+        .sensor-assessment-card .sensor-item-name h4 {
+          margin: 3px 0 0;
+          color: #2c190f;
+          font-size: 15px;
+          font-weight: 800;
+          line-height: 1.2;
+        }
+
+        .sensor-assessment-card .individual-sensor-status {
+          flex: 0 0 auto;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 6px 8px;
+          border-radius: 999px;
+          font-size: 9.5px;
+          font-weight: 900;
+          line-height: 1;
+          white-space: nowrap;
+        }
+
+        .sensor-assessment-card .individual-status-dot {
           width: 6px;
           height: 6px;
-
-          margin-top: 4px;
-
-          flex-shrink: 0;
-
           border-radius: 50%;
+          background: currentColor;
         }
 
-
-        .range-marker-good {
-          background: #81cf8c;
+        .sensor-assessment-card .individual-good {
+          color: #2f8545;
+          background: #e4f4e7;
+          border: 1px solid #c5e3ca;
         }
 
-
-        .range-marker-review {
-          background: #e6aa58;
+        .sensor-assessment-card .individual-bad {
+          color: #b64f3c;
+          background: #fce7e3;
+          border: 1px solid #efc4bc;
         }
 
-
-        .range-marker-bad {
-          background: #df715e;
+        .sensor-assessment-card .individual-supporting {
+          color: #a06b23;
+          background: #f9edd6;
+          border: 1px solid #ecd5a9;
         }
 
-
-        .range-marker-supporting,
-        .range-marker-no-data {
-          background:
-            rgba(
-              255,
-              224,
-              182,
-              0.3
-            );
+        .sensor-assessment-card .individual-no-data {
+          color: #756b63;
+          background: #eee9e4;
+          border: 1px solid #ddd4cb;
         }
 
-
-        .sensor-range-description p {
-          margin: 0;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.28
-            );
-
-          font-size: 7px;
-
-          line-height: 1.45;
+        .sensor-assessment-card .sensor-response {
+          margin-top: 22px;
         }
 
-
-        /* =================================================
-           CARD FOOTER
-        ================================================= */
-
-        .sensor-card-footer {
-          margin-top: auto;
-
-          padding-top: 10px;
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content:
-            space-between;
-
-          gap: 8px;
-
-          border-top:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.04
-            );
-        }
-
-
-        .sensor-card-footer span {
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.25
-            );
-
-          font-size: 7px;
-        }
-
-
-        .sensor-card-footer strong {
-          color:
-            rgba(
-              255,
-              219,
-              169,
-              0.67
-            );
-
-          font-size: 8px;
-
-          text-align: right;
-        }
-
-
-        /* =================================================
-           RANGE LEGEND
-        ================================================= */
-
-        .sensor-range-legend {
-          margin-top: 15px;
-
-          padding: 14px;
-
-          border-radius: 14px;
-
-          background:
-            rgba(
-              0,
-              0,
-              0,
-              0.09
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.055
-            );
-        }
-
-
-        .legend-heading > span {
-          color: #dca05e;
-
-          font-size: 7px;
-
+        .sensor-assessment-card .sensor-response > span {
+          display: block;
+          color: #786b62;
+          font-size: 10px;
           font-weight: 900;
-
-          letter-spacing:
-            1.2px;
+          letter-spacing: 0.9px;
         }
 
-
-        .legend-items {
-          margin-top: 10px;
-
-          display: grid;
-
-          grid-template-columns:
-            repeat(
-              3,
-              minmax(
-                0,
-                1fr
-              )
-            );
-
-          gap: 9px;
+        .sensor-assessment-card .sensor-response strong {
+          display: block;
+          margin-top: 5px;
+          color: #25150e;
+          font-size: 31px;
+          font-weight: 900;
+          line-height: 1.05;
         }
 
-
-        .legend-items > div {
+        .sensor-assessment-card .sensor-range-description {
+          margin-top: 11px;
           display: flex;
-
-          align-items:
-            flex-start;
-
+          align-items: flex-start;
           gap: 7px;
-
-          padding:
-            8px 9px;
-
-          border-radius: 9px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.018
-            );
         }
 
-
-        .legend-dot {
-          width: 8px;
-          height: 8px;
-
-          margin-top: 3px;
-
-          flex-shrink: 0;
-
+        .sensor-assessment-card .range-marker {
+          width: 7px;
+          height: 7px;
+          flex: 0 0 7px;
+          margin-top: 5px;
           border-radius: 50%;
+          background: #8b7e74;
         }
 
+        .sensor-assessment-card .range-marker-good { background: #50ad65; }
+        .sensor-assessment-card .range-marker-bad { background: #ce604d; }
+        .sensor-assessment-card .range-marker-supporting { background: #d19843; }
 
-        .legend-good {
-          background: #76cc84;
-        }
-
-
-        .legend-review {
-          background: #df9f4d;
-        }
-
-
-        .legend-bad {
-          background: #db6955;
-        }
-
-
-        .legend-items strong {
-          display: block;
-
-          color: #ead6b9;
-
-          font-size: 8px;
-        }
-
-
-        .legend-items small {
-          display: block;
-
-          margin-top: 2px;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.25
-            );
-
-          font-size: 6px;
-
-          line-height: 1.4;
-        }
-
-
-        /* =================================================
-           NOTE
-        ================================================= */
-
-        .sensor-note {
-          margin-top: 12px;
-
-          display: flex;
-
-          align-items:
-            flex-start;
-
-          gap: 8px;
-
-          padding:
-            11px 12px;
-
-          border-radius: 12px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.018
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.05
-            );
-        }
-
-
-        .sensor-note-icon {
-          width: 18px;
-          height: 18px;
-
-          flex-shrink: 0;
-
-          display: grid;
-
-          place-items: center;
-
-          border-radius: 50%;
-
-          color: #dda05e;
-
-          border:
-            1px solid
-            rgba(
-              221,
-              160,
-              94,
-              0.2
-            );
-
-          font-size: 7px;
-
-          font-weight: 900;
-        }
-
-
-        .sensor-note p {
-          margin:
-            1px 0 0;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.27
-            );
-
-          font-size: 8px;
-
+        .sensor-assessment-card .sensor-range-description p {
+          margin: 0;
+          color: #62564e;
+          font-size: 11.5px;
           line-height: 1.5;
         }
 
-
-        /* =================================================
-           RESPONSIVE
-        ================================================= */
-
-        @media (
-          max-width: 1000px
-        ) {
-
-          .sensor-grid {
-            grid-template-columns:
-              repeat(
-                2,
-                minmax(
-                  0,
-                  1fr
-                )
-              );
-          }
-
+        .sensor-assessment-card .sensor-card-footer {
+          margin-top: auto;
+          padding-top: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          border-top: 1px solid #ece3db;
         }
 
-
-        @media (
-          max-width: 700px
-        ) {
-
-          .legend-items {
-            grid-template-columns:
-              1fr;
-          }
-
+        .sensor-assessment-card .sensor-card-footer span {
+          color: #82746a;
+          font-size: 10px;
+          font-weight: 700;
         }
 
+        .sensor-assessment-card .sensor-card-footer strong {
+          color: #a66334;
+          font-size: 11px;
+          font-weight: 900;
+          text-align: right;
+        }
 
-        @media (
-          max-width: 620px
-        ) {
+        /* Legend ------------------------------------------------------ */
+        .sensor-assessment-card .sensor-range-legend {
+          margin-top: 16px;
+          padding: 16px;
+          border: 1px solid #e7ddd3;
+          border-radius: 15px;
+          background: #fbf7f2;
+        }
 
+        .sensor-assessment-card .legend-heading > span {
+          color: #9c572f;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: 1px;
+        }
+
+        .sensor-assessment-card .legend-items {
+          margin-top: 12px;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .sensor-assessment-card .legend-items > div {
+          min-width: 0;
+          display: flex;
+          align-items: flex-start;
+          gap: 9px;
+        }
+
+        .sensor-assessment-card .legend-dot {
+          width: 9px;
+          height: 9px;
+          flex: 0 0 9px;
+          margin-top: 4px;
+          border-radius: 50%;
+        }
+
+        .sensor-assessment-card .legend-good { background: #56b36b; }
+        .sensor-assessment-card .legend-bad { background: #cc614d; }
+        .sensor-assessment-card .legend-supporting { background: #d39a43; }
+
+        .sensor-assessment-card .legend-items strong {
+          display: block;
+          color: #342016;
+          font-size: 11.5px;
+          font-weight: 900;
+        }
+
+        .sensor-assessment-card .legend-items small {
+          display: block;
+          margin-top: 3px;
+          color: #71645b;
+          font-size: 10.5px;
+          line-height: 1.45;
+        }
+
+        /* Research note ---------------------------------------------- */
+        .sensor-assessment-card .sensor-note {
+          margin-top: 14px;
+          padding: 13px 14px;
+          display: flex;
+          align-items: flex-start;
+          gap: 9px;
+          border: 1px solid #eadfd5;
+          border-radius: 13px;
+          background: #faf6f1;
+        }
+
+        .sensor-assessment-card .sensor-note-icon {
+          width: 22px;
+          height: 22px;
+          flex: 0 0 22px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          color: #9d5b32;
+          border: 1px solid #d8b99e;
+          font-size: 10px;
+          font-weight: 900;
+        }
+
+        .sensor-assessment-card .sensor-note p {
+          margin: 1px 0 0;
+          color: #685b52;
+          font-size: 11.5px;
+          line-height: 1.55;
+        }
+
+        @media (max-width: 980px) {
+          .sensor-assessment-card .sensor-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .sensor-assessment-card .voting-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .sensor-assessment-card .sensor-status-panel {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 700px) {
           .sensor-assessment-card {
             padding: 18px;
           }
 
-
-          .sensor-status-panel {
-            flex-direction:
-              column;
-
-            align-items:
-              stretch;
+          .sensor-assessment-card .voting-summary-heading,
+          .sensor-assessment-card .sensor-readings-heading {
+            align-items: flex-start;
+            flex-direction: column;
           }
 
-
-          .status-score {
-            width: 100%;
-
+          .sensor-assessment-card .voting-summary-heading p,
+          .sensor-assessment-card .sensor-readings-heading p {
+            max-width: none;
             text-align: left;
           }
 
-
-          .sensor-readings-heading {
-            flex-direction:
-              column;
-
-            align-items:
-              flex-start;
+          .sensor-assessment-card .sensor-grid,
+          .sensor-assessment-card .legend-items,
+          .sensor-assessment-card .status-metrics {
+            grid-template-columns: 1fr;
           }
 
-
-          .sensor-readings-heading p {
-            text-align: left;
+          .sensor-assessment-card .status-main-row strong {
+            font-size: 26px;
           }
-
-
-          .sensor-grid {
-            grid-template-columns:
-              1fr;
-          }
-
-
-          .status-main-row strong {
-            font-size: 28px;
-          }
-
-
-          .sensor-item-top {
-            align-items:
-              flex-start;
-          }
-
         }
-
       `}</style>
     </div>
   );

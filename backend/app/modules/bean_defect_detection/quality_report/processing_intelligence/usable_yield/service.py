@@ -1,79 +1,33 @@
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
-from .schema import UsableYield
+from ..defect_profile import (
+    DefectProfile,
+)
+
+from .schema import (
+    UsableYield,
+)
 
 
 # =========================================================
-# USABLE YIELD SERVICE
+# MODULE 5 - USABLE YIELD ESTIMATION SERVICE
+# =========================================================
+#
+# This module is intentionally PHYSICAL-COUNT-DRIVEN.
+#
+# Sensor abnormalities do not subtract arbitrary percentages
+# from usable yield.
+#
+# Original categories remain separate:
+#
+#   good
+#   broken
+#   black
+#   black_and_broken
+#
 # =========================================================
 
 class UsableYieldService:
-
-    # =====================================================
-    # RESEARCH-DEFINED YIELD BANDS
-    # =====================================================
-    #
-    # These values are used to describe the estimated
-    # recoverable portion of the inspected sample.
-    #
-    # HIGH      >= 90%
-    # MODERATE  >= 75%
-    # LOW       >= 50%
-    # CRITICAL  < 50%
-    #
-    # These are research-defined decision-support bands,
-    # not official coffee grading standards.
-    # =====================================================
-
-    HIGH_YIELD_THRESHOLD = 90.0
-
-    MODERATE_YIELD_THRESHOLD = 75.0
-
-    LOW_YIELD_THRESHOLD = 50.0
-
-
-    # =====================================================
-    # SAFE INTEGER
-    # =====================================================
-
-    @staticmethod
-    def _safe_int(
-        value: Any,
-        default: int = 0,
-    ) -> int:
-
-        try:
-            return int(value)
-
-        except (
-            TypeError,
-            ValueError,
-        ):
-            return default
-
-
-    # =====================================================
-    # SAFE FLOAT
-    # =====================================================
-
-    @staticmethod
-    def _safe_float(
-        value: Any,
-        default: Optional[float] = None,
-    ) -> Optional[float]:
-
-        try:
-            if value is None:
-                return default
-
-            return float(value)
-
-        except (
-            TypeError,
-            ValueError,
-        ):
-            return default
-
 
     # =====================================================
     # PERCENTAGE
@@ -99,177 +53,130 @@ class UsableYieldService:
 
 
     # =====================================================
-    # CLAMP COUNT
+    # SAFE SAMPLE WEIGHT
     # =====================================================
 
     @staticmethod
-    def _clamp_count(
-        count: int,
-        total: int,
-    ) -> int:
+    def _normalize_weight(
+        sample_weight: Optional[float],
+    ) -> Optional[float]:
 
-        return max(
-            0,
-            min(
-                count,
-                total,
-            ),
+        if sample_weight is None:
+            return None
+
+        try:
+            value = float(
+                sample_weight
+            )
+
+        except (
+            TypeError,
+            ValueError,
+        ):
+            return None
+
+        if value < 0:
+            return None
+
+        return round(
+            value,
+            2,
         )
 
 
     # =====================================================
-    # YIELD STATUS
-    # =====================================================
-
-    def _get_yield_status(
-        self,
-        percentage: float,
-    ) -> str:
-
-        if (
-            percentage
-            >= self.HIGH_YIELD_THRESHOLD
-        ):
-            return "HIGH"
-
-
-        if (
-            percentage
-            >= self.MODERATE_YIELD_THRESHOLD
-        ):
-            return "MODERATE"
-
-
-        if (
-            percentage
-            >= self.LOW_YIELD_THRESHOLD
-        ):
-            return "LOW"
-
-
-        return "CRITICAL"
-
-
-    # =====================================================
-    # RECOVERY POTENTIAL
-    # =====================================================
-
-    @staticmethod
-    def _get_recovery_potential(
-        *,
-        clean_good_percentage: float,
-        potential_recoverable_percentage: float,
-        severe_reject_percentage: float,
-    ) -> str:
-
-        # -------------------------------------------------
-        # HIGH RECOVERY POTENTIAL
-        #
-        # Large portion survives severe-defect removal,
-        # even if some sorting is still needed.
-        # -------------------------------------------------
-
-        if (
-            potential_recoverable_percentage
-            >= 85.0
-            and
-            severe_reject_percentage
-            <= 15.0
-        ):
-            return "HIGH"
-
-
-        # -------------------------------------------------
-        # MEDIUM RECOVERY POTENTIAL
-        # -------------------------------------------------
-
-        if (
-            potential_recoverable_percentage
-            >= 60.0
-        ):
-            return "MEDIUM"
-
-
-        # -------------------------------------------------
-        # LOW RECOVERY POTENTIAL
-        # -------------------------------------------------
-
-        if (
-            potential_recoverable_percentage
-            > 0
-            or
-            clean_good_percentage
-            > 0
-        ):
-            return "LOW"
-
-
-        return "NONE"
-
-
-    # =====================================================
-    # GENERATE USABLE YIELD
+    # GENERATE
     # =====================================================
 
     def generate(
         self,
         *,
-        counts: Dict[str, Any],
+        defect_profile: DefectProfile,
         sample_weight: Optional[float] = None,
         weight_calibrated: bool = False,
     ) -> UsableYield:
 
-        # -------------------------------------------------
-        # EXTRACT COUNTS
-        # -------------------------------------------------
-
-        total = self._safe_int(
-            counts.get(
-                "total_beans",
-                0,
-            )
+        counts = (
+            defect_profile
+            .yield_counts
         )
 
 
-        good = self._safe_int(
-            counts.get(
-                "good",
-                0,
-            )
+        # =================================================
+        # ORIGINAL FOUR PHYSICAL CATEGORIES
+        # =================================================
+
+        good = max(
+            0,
+            int(
+                counts.good
+            ),
+        )
+
+        broken = max(
+            0,
+            int(
+                counts.broken
+            ),
+        )
+
+        black = max(
+            0,
+            int(
+                counts.black
+            ),
+        )
+
+        black_and_broken = max(
+            0,
+            int(
+                counts.black_and_broken
+            ),
         )
 
 
-        broken = self._safe_int(
-            counts.get(
-                "broken",
-                0,
-            )
+        # =================================================
+        # CLASSIFIED TOTAL
+        # =================================================
+        #
+        # Unknown is intentionally NOT placed into Good,
+        # Broken, Black or Black+Broken.
+        #
+        # Yield percentages are calculated from the known
+        # four-category classified sample.
+        #
+        # =================================================
+
+        classified_total = (
+            good
+            + broken
+            + black
+            + black_and_broken
         )
 
 
-        black = self._safe_int(
-            counts.get(
-                "black",
-                0,
-            )
+        provided_total = max(
+            0,
+            int(
+                counts.total_beans
+            ),
         )
 
 
-        black_and_broken = (
-            self._safe_int(
-                counts.get(
-                    "black_and_broken",
-                    0,
-                )
-            )
+        # Never allow reported total to be lower than the
+        # sum of known classified categories.
+        total_beans = max(
+            provided_total,
+            classified_total,
         )
 
 
-        unknown = self._safe_int(
-            counts.get(
-                "unknown",
-                0,
-            )
+        unknown = max(
+            0,
+            (
+                total_beans
+                - classified_total
+            ),
         )
 
 
@@ -277,66 +184,103 @@ class UsableYieldService:
         # NO DATA
         # =================================================
 
-        if (
-            total <= 0
-        ):
+        normalized_weight = (
+            self._normalize_weight(
+                sample_weight
+            )
+        )
+
+
+        if classified_total <= 0:
 
             return UsableYield(
 
-                yield_basis=(
-                    "COUNT_BASED"
-                ),
+                yield_basis="NO_DATA",
 
                 title=(
-                    "Usable Yield Cannot Be Estimated"
+                    "Usable Yield Data Unavailable"
                 ),
 
                 summary=(
-                    "Physical bean count data is not "
-                    "available, so the system cannot "
-                    "estimate the usable portion of the "
-                    "sample."
+                    "Usable yield cannot be estimated "
+                    "because no classified physical bean "
+                    "counts are available."
                 ),
 
-                total_beans=0,
+                total_beans=(
+                    total_beans
+                ),
 
-                clean_good_count=0,
+                classified_total_beans=0,
 
-                clean_good_percentage=0.0,
+                classification_coverage_percentage=0.0,
 
-                severe_reject_count=0,
+                good_count=0,
 
-                severe_reject_percentage=0.0,
+                broken_count=0,
+
+                black_count=0,
+
+                black_and_broken_count=0,
+
+                unknown_count=(
+                    unknown
+                ),
+
+                good_percentage=0.0,
+
+                broken_percentage=0.0,
+
+                black_percentage=0.0,
+
+                black_and_broken_percentage=0.0,
+
+                unknown_percentage=(
+                    self._percentage(
+                        unknown,
+                        total_beans,
+                    )
+                ),
+
+                clean_usable_count=0,
+
+                clean_usable_percentage=0.0,
 
                 potential_recoverable_count=0,
 
                 potential_recoverable_percentage=0.0,
 
-                broken_count=0,
+                severe_reject_count=0,
 
-                broken_percentage=0.0,
+                severe_reject_percentage=0.0,
 
-                unknown_count=0,
+                clean_good_count=0,
 
-                unknown_percentage=0.0,
+                clean_good_percentage=0.0,
 
-                yield_status=(
-                    "NO_DATA"
-                ),
+                yield_status="NO_DATA",
 
-                recovery_potential=(
-                    "UNKNOWN"
-                ),
+                recovery_potential="NO_DATA",
 
                 sorting_required=False,
 
                 severe_defect_removal_required=False,
 
-                manual_review_required=False,
+                manual_review_required=(
+                    unknown > 0
+                ),
+
+                input_weight_grams=(
+                    normalized_weight
+                ),
+
+                weight_calibrated=(
+                    bool(
+                        weight_calibrated
+                    )
+                ),
 
                 weight_based_yield_available=False,
-
-                input_weight_grams=None,
 
                 estimated_usable_weight_grams=None,
 
@@ -344,91 +288,106 @@ class UsableYieldService:
 
                 interpretation=[
                     (
-                        "Complete the physical AI "
-                        "inspection before estimating "
-                        "usable yield."
-                    ),
+                        "No classified physical bean data "
+                        "is available for count-based usable "
+                        "yield estimation."
+                    )
                 ],
 
                 methodology_note=(
-                    "Usable yield requires physical "
-                    "bean classification counts. No "
-                    "yield estimate is generated when "
-                    "physical inspection data is "
-                    "unavailable."
+                    "Module 5 uses count-based physical AI "
+                    "categories only. No mass-based yield "
+                    "is calculated without a separately "
+                    "validated category-mass measurement "
+                    "method."
                 ),
             )
 
 
         # =================================================
-        # NORMALIZE COUNTS
-        # =================================================
-
-        good = self._clamp_count(
-            good,
-            total,
-        )
-
-
-        broken = self._clamp_count(
-            broken,
-            total,
-        )
-
-
-        black = self._clamp_count(
-            black,
-            total,
-        )
-
-
-        black_and_broken = (
-            self._clamp_count(
-                black_and_broken,
-                total,
-            )
-        )
-
-
-        unknown = self._clamp_count(
-            unknown,
-            total,
-        )
-
-
-        # =================================================
-        # STRICT CLEAN GOOD YIELD
+        # CATEGORY PERCENTAGES
         # =================================================
         #
-        # Only AI-classified GOOD whole beans.
+        # All four category percentages use classified_total.
+        #
+        # Unknown percentage uses total_beans because Unknown
+        # is outside the four known yield categories.
+        #
         # =================================================
 
-        clean_good_count = good
-
-
-        clean_good_percentage = (
+        good_percentage = (
             self._percentage(
-                clean_good_count,
-                total,
+                good,
+                classified_total,
             )
+        )
+
+        broken_percentage = (
+            self._percentage(
+                broken,
+                classified_total,
+            )
+        )
+
+        black_percentage = (
+            self._percentage(
+                black,
+                classified_total,
+            )
+        )
+
+        black_and_broken_percentage = (
+            self._percentage(
+                black_and_broken,
+                classified_total,
+            )
+        )
+
+        unknown_percentage = (
+            self._percentage(
+                unknown,
+                total_beans,
+            )
+        )
+
+        classification_coverage_percentage = (
+            self._percentage(
+                classified_total,
+                total_beans,
+            )
+            if total_beans > 0
+            else 100.0
         )
 
 
         # =================================================
-        # SEVERE REJECT PORTION
+        # USABLE YIELD GROUPS
         # =================================================
         #
-        # Current research rule:
+        # CLEAN USABLE
+        #     Good only
         #
-        # black
-        # +
-        # black_and_broken
+        # POTENTIAL RECOVERABLE
+        #     Good + Broken
         #
-        # are considered severe defects recommended for
-        # removal before further processing.
+        # SEVERE REJECT
+        #     Black + Black&Broken
         #
-        # black_and_broken is counted only once.
+        # IMPORTANT:
+        # Black&Broken stays separate in source counts.
+        #
         # =================================================
+
+        clean_usable_count = (
+            good
+        )
+
+
+        potential_recoverable_count = (
+            good
+            + broken
+        )
+
 
         severe_reject_count = (
             black
@@ -436,53 +395,10 @@ class UsableYieldService:
         )
 
 
-        severe_reject_count = (
-            self._clamp_count(
-                severe_reject_count,
-                total,
-            )
-        )
-
-
-        severe_reject_percentage = (
+        clean_usable_percentage = (
             self._percentage(
-                severe_reject_count,
-                total,
-            )
-        )
-
-
-        # =================================================
-        # POTENTIAL RECOVERABLE YIELD
-        # =================================================
-        #
-        # Recoverable portion:
-        #
-        # Total
-        # -
-        # severe rejects
-        #
-        # This can include:
-        #
-        # good
-        # broken
-        # unknown
-        #
-        # IMPORTANT:
-        # broken and unknown are not automatically
-        # considered production-ready.
-        # =================================================
-
-        potential_recoverable_count = (
-            total
-            - severe_reject_count
-        )
-
-
-        potential_recoverable_count = (
-            self._clamp_count(
-                potential_recoverable_count,
-                total,
+                clean_usable_count,
+                classified_total,
             )
         )
 
@@ -490,78 +406,33 @@ class UsableYieldService:
         potential_recoverable_percentage = (
             self._percentage(
                 potential_recoverable_count,
-                total,
+                classified_total,
             )
         )
 
 
-        # =================================================
-        # CONDITIONAL PORTIONS
-        # =================================================
-
-        broken_percentage = (
+        severe_reject_percentage = (
             self._percentage(
-                broken,
-                total,
-            )
-        )
-
-
-        unknown_percentage = (
-            self._percentage(
-                unknown,
-                total,
+                severe_reject_count,
+                classified_total,
             )
         )
 
 
         # =================================================
-        # YIELD STATUS
+        # DESCRIPTIVE FLAGS
         # =================================================
-
-        yield_status = (
-            self._get_yield_status(
-                potential_recoverable_percentage
-            )
-        )
-
-
-        # =================================================
-        # RECOVERY POTENTIAL
-        # =================================================
-
-        recovery_potential = (
-            self._get_recovery_potential(
-
-                clean_good_percentage=(
-                    clean_good_percentage
-                ),
-
-                potential_recoverable_percentage=(
-                    potential_recoverable_percentage
-                ),
-
-                severe_reject_percentage=(
-                    severe_reject_percentage
-                ),
-            )
-        )
-
-
-        # =================================================
-        # ACTION FLAGS
-        # =================================================
-
-        severe_defect_removal_required = (
-            severe_reject_count
-            > 0
-        )
-
 
         sorting_required = (
-            broken
-            > 0
+            broken > 0
             or
+            black > 0
+            or
+            black_and_broken > 0
+        )
+
+
+        severe_defect_removal_required = (
             severe_reject_count
             > 0
         )
@@ -573,244 +444,183 @@ class UsableYieldService:
         )
 
 
-        # =================================================
-        # WEIGHT-BASED YIELD
-        # =================================================
-        #
-        # IMPORTANT:
-        #
-        # Even if total sample weight is available,
-        # count percentage should not automatically be
-        # converted into reject/usable mass because bean
-        # classes may have different individual masses.
-        #
-        # Therefore the current module keeps weight-based
-        # yield disabled.
-        #
-        # Later this can be extended using:
-        #
-        # - calibrated load cell
-        # - sorted defect-category weights
-        # - or a validated mass estimation model
-        #
-        # =================================================
-
-        measured_weight = (
-            self._safe_float(
-                sample_weight
-            )
+        recovery_potential = (
+            "PRESENT"
+            if broken > 0
+            else "NONE"
         )
-
-
-        weight_based_yield_available = False
-
-        input_weight_grams = None
-
-        estimated_usable_weight_grams = None
-
-        estimated_reject_weight_grams = None
-
-
-        if (
-            weight_calibrated
-            and
-            measured_weight is not None
-            and
-            measured_weight > 0
-        ):
-
-            # Store the trusted input weight,
-            # but still do NOT estimate usable/reject
-            # mass from bean-count percentages.
-
-            input_weight_grams = round(
-                measured_weight,
-                2,
-            )
 
 
         # =================================================
         # INTERPRETATION
         # =================================================
 
-        interpretation: List[str] = []
+        interpretation = [
 
-
-        interpretation.append(
             (
-                f"{clean_good_count} of "
-                f"{total} inspected beans "
-                f"({clean_good_percentage:.2f}%) "
-                "were classified as clean good "
-                "whole beans."
-            )
-        )
+                f"{good} of {classified_total} classified "
+                f"beans ({clean_usable_percentage}%) are "
+                "clean usable good beans."
+            ),
 
-
-        if (
-            severe_reject_count
-            > 0
-        ):
-
-            interpretation.append(
-                (
-                    f"{severe_reject_count} beans "
-                    f"({severe_reject_percentage:.2f}%) "
-                    "contain severe black or "
-                    "black-and-broken defects and are "
-                    "recommended for removal."
-                )
-            )
-
-
-        else:
-
-            interpretation.append(
-                (
-                    "No severe black or "
-                    "black-and-broken defects were "
-                    "identified for immediate removal."
-                )
-            )
-
-
-        interpretation.append(
             (
-                f"The estimated potential recoverable "
-                f"portion is "
-                f"{potential_recoverable_count} beans "
-                f"({potential_recoverable_percentage:.2f}%)."
-            )
-        )
+                f"{potential_recoverable_count} of "
+                f"{classified_total} classified beans "
+                f"({potential_recoverable_percentage}%) "
+                "form the potential recoverable portion "
+                "when good and broken beans are combined."
+            ),
+
+            (
+                f"{severe_reject_count} of "
+                f"{classified_total} classified beans "
+                f"({severe_reject_percentage}%) are in "
+                "the severe reject portion because they "
+                "are black or black-and-broken."
+            ),
+        ]
 
 
-        if (
-            broken
-            > 0
-        ):
+        if broken > 0:
 
             interpretation.append(
                 (
-                    f"{broken} broken beans "
-                    f"({broken_percentage:.2f}%) remain "
-                    "within the potential recoverable "
-                    "portion and require secondary "
-                    "sorting or separate handling."
+                    f"{broken} broken beans are kept as a "
+                    "separate physical category and may "
+                    "require secondary sorting before use."
                 )
             )
 
 
-        if (
-            unknown
-            > 0
-        ):
+        if black > 0:
 
             interpretation.append(
                 (
-                    f"{unknown} uncertain beans "
-                    f"({unknown_percentage:.2f}%) require "
-                    "manual inspection or repeated AI "
-                    "analysis before final use."
+                    f"{black} black beans are counted "
+                    "separately in the severe reject "
+                    "portion."
+                )
+            )
+
+
+        if black_and_broken > 0:
+
+            interpretation.append(
+                (
+                    f"{black_and_broken} black-and-broken "
+                    "beans remain a separate Module 5 "
+                    "category and are included in the "
+                    "severe reject portion."
+                )
+            )
+
+
+        if unknown > 0:
+
+            interpretation.append(
+                (
+                    f"{unknown} bean(s) are outside the "
+                    "four known yield categories and are "
+                    "excluded from the yield denominator. "
+                    f"Classification coverage is "
+                    f"{classification_coverage_percentage}%."
+                )
+            )
+
+
+        if normalized_weight is not None:
+
+            interpretation.append(
+                (
+                    f"The captured sample weight is "
+                    f"{normalized_weight} g. It is shown "
+                    "as contextual information only; no "
+                    "count-ratio-to-weight conversion is "
+                    "performed."
                 )
             )
 
 
         # =================================================
-        # TITLE / SUMMARY
-        # =================================================
-
-        if (
-            yield_status == "HIGH"
-        ):
-
-            title = (
-                "High Potential Usable Yield"
-            )
-
-            summary = (
-                "Most of the inspected batch remains "
-                "potentially usable after removal of "
-                "identified severe defects."
-            )
-
-
-        elif (
-            yield_status == "MODERATE"
-        ):
-
-            title = (
-                "Moderate Potential Usable Yield"
-            )
-
-            summary = (
-                "A substantial portion of the batch "
-                "may remain usable, but corrective "
-                "sorting is recommended before "
-                "production use."
-            )
-
-
-        elif (
-            yield_status == "LOW"
-        ):
-
-            title = (
-                "Low Potential Usable Yield"
-            )
-
-            summary = (
-                "A significant portion of the inspected "
-                "batch contains severe defects. The "
-                "remaining portion requires careful "
-                "sorting and quality reassessment."
-            )
-
-
-        else:
-
-            title = (
-                "Critical Usable Yield Condition"
-            )
-
-            summary = (
-                "Less than half of the inspected batch "
-                "remains potentially recoverable after "
-                "identified severe defects are removed."
-            )
-
-
-        # =================================================
-        # RETURN
+        # RESPONSE
         # =================================================
 
         return UsableYield(
 
             yield_basis=(
-                "COUNT_BASED"
+                "COUNT_BASED_CLASSIFIED_BEANS"
             ),
 
-            title=title,
+            title=(
+                "Count-Based Usable Yield Estimate"
+            ),
 
-            summary=summary,
+            summary=(
+                "Usable yield is estimated from the four "
+                "physical AI categories while keeping "
+                "black-and-broken beans separate. Sensor "
+                "abnormalities do not deduct arbitrary "
+                "yield percentages."
+            ),
 
             total_beans=(
-                total
+                total_beans
             ),
 
-            clean_good_count=(
-                clean_good_count
+            classified_total_beans=(
+                classified_total
             ),
 
-            clean_good_percentage=(
-                clean_good_percentage
+            classification_coverage_percentage=(
+                classification_coverage_percentage
             ),
 
-            severe_reject_count=(
-                severe_reject_count
+            good_count=(
+                good
             ),
 
-            severe_reject_percentage=(
-                severe_reject_percentage
+            broken_count=(
+                broken
+            ),
+
+            black_count=(
+                black
+            ),
+
+            black_and_broken_count=(
+                black_and_broken
+            ),
+
+            unknown_count=(
+                unknown
+            ),
+
+            good_percentage=(
+                good_percentage
+            ),
+
+            broken_percentage=(
+                broken_percentage
+            ),
+
+            black_percentage=(
+                black_percentage
+            ),
+
+            black_and_broken_percentage=(
+                black_and_broken_percentage
+            ),
+
+            unknown_percentage=(
+                unknown_percentage
+            ),
+
+            clean_usable_count=(
+                clean_usable_count
+            ),
+
+            clean_usable_percentage=(
+                clean_usable_percentage
             ),
 
             potential_recoverable_count=(
@@ -821,25 +631,25 @@ class UsableYieldService:
                 potential_recoverable_percentage
             ),
 
-            broken_count=(
-                broken
+            severe_reject_count=(
+                severe_reject_count
             ),
 
-            broken_percentage=(
-                broken_percentage
+            severe_reject_percentage=(
+                severe_reject_percentage
             ),
 
-            unknown_count=(
-                unknown
+            # Backward-compatible aliases.
+            clean_good_count=(
+                clean_usable_count
             ),
 
-            unknown_percentage=(
-                unknown_percentage
+            clean_good_percentage=(
+                clean_usable_percentage
             ),
 
-            yield_status=(
-                yield_status
-            ),
+            # No arbitrary acceptance threshold is used.
+            yield_status="ESTIMATED",
 
             recovery_potential=(
                 recovery_potential
@@ -857,39 +667,42 @@ class UsableYieldService:
                 manual_review_required
             ),
 
-            weight_based_yield_available=(
-                weight_based_yield_available
-            ),
-
             input_weight_grams=(
-                input_weight_grams
+                normalized_weight
             ),
 
-            estimated_usable_weight_grams=(
-                estimated_usable_weight_grams
+            weight_calibrated=(
+                bool(
+                    weight_calibrated
+                )
             ),
 
-            estimated_reject_weight_grams=(
-                estimated_reject_weight_grams
-            ),
+            weight_based_yield_available=False,
+
+            estimated_usable_weight_grams=None,
+
+            estimated_reject_weight_grams=None,
 
             interpretation=(
                 interpretation
             ),
 
             methodology_note=(
-                "This usable-yield estimate is "
-                "count-based. Clean good yield includes "
-                "only beans classified as good whole "
-                "beans. Potential recoverable yield is "
-                "calculated after removing severe black "
-                "and black-and-broken defects. Broken "
-                "and uncertain beans may remain within "
-                "the recoverable portion but require "
-                "additional sorting or inspection. "
-                "Weight-based yield is not calculated "
-                "until a validated mass-based method is "
-                "available."
+                "Module 5 is a research-defined count-based "
+                "usable-yield interpretation. Clean usable "
+                "yield equals Good / Classified Total. "
+                "Potential recoverable yield equals "
+                "(Good + Broken) / Classified Total. "
+                "Severe reject portion equals "
+                "(Black + Black-and-Broken) / Classified "
+                "Total. Black-and-broken remains a separate "
+                "source category in this module. Unknown "
+                "beans are excluded from the four-category "
+                "yield denominator and reported as "
+                "classification uncertainty. Sample weight "
+                "is not converted into usable or reject "
+                "grams because bean-count proportions do "
+                "not establish category mass proportions."
             ),
         )
 

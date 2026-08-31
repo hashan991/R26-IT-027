@@ -3,6 +3,8 @@ from fastapi import (
     UploadFile,
     File,
     Depends,
+    HTTPException,
+    Query,
 )
 
 from pathlib import Path
@@ -33,6 +35,7 @@ from app.modules.bean_defect_detection.sensor.schema import (
     WeightReading,
 )
 
+
 from app.modules.bean_defect_detection.phone_camera.routes import (
     router as phone_camera_router,
 )
@@ -41,6 +44,21 @@ from app.modules.bean_defect_detection.phone_camera.routes import (
 from app.modules.bean_defect_detection.quality_report.routes import (
     router as quality_report_router,
 )
+
+
+from .quality_report.schema import (
+    SaveQualityReportRequest,
+    SaveQualityReportResponse,
+)
+
+
+from .quality_report.crud import (
+    save_quality_report,
+    get_saved_quality_report,
+    get_quality_report_history,
+    delete_quality_report,
+)
+
 
 # =========================================================
 # BEAN ROUTER
@@ -80,18 +98,37 @@ UPLOAD_DIR.mkdir(
 # GET /api/beans/sensors/status
 # GET /api/beans/sensors/latest
 #
+# =========================================================
 
 router.include_router(
     sensor_router
 )
 
+
+# =========================================================
+# PHONE CAMERA ROUTES
+# =========================================================
+
 router.include_router(
     phone_camera_router
 )
 
+
+# =========================================================
+# QUALITY REPORT ROUTES
+# =========================================================
+#
+# Existing quality-report module routes such as:
+#
+# GET  /quality-report/status
+# POST /quality-report/generate
+#
+# =========================================================
+
 router.include_router(
     quality_report_router
 )
+
 
 # =========================================================
 # BEAN MODULE HOME
@@ -227,4 +264,194 @@ async def predict_beans(
         ),
 
         "result": result,
+    }
+
+
+# =========================================================
+# SAVE FINAL BEAN QUALITY REPORT
+# =========================================================
+
+@router.post(
+    "/quality-report/save",
+    response_model=SaveQualityReportResponse,
+)
+async def save_final_quality_report(
+    request: SaveQualityReportRequest,
+):
+
+    try:
+
+        saved_report = (
+            await save_quality_report(
+                request.report
+            )
+        )
+
+        return SaveQualityReportResponse(
+            status="success",
+            message=(
+                "Quality report saved successfully."
+            ),
+            report_id=(
+                saved_report.get(
+                    "report_id"
+                )
+            ),
+        )
+
+    except Exception as error:
+
+        print(
+            "[QUALITY REPORT] Save failed:",
+            str(error),
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Failed to save the coffee bean "
+                "quality report."
+            ),
+        )
+
+
+# =========================================================
+# GET REPORT HISTORY
+# =========================================================
+
+@router.get(
+    "/quality-report/history"
+)
+async def get_final_quality_report_history(
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=200,
+    ),
+):
+
+    try:
+
+        reports = (
+            await get_quality_report_history(
+                limit=limit
+            )
+        )
+
+        return {
+            "count": len(reports),
+            "data": reports,
+        }
+
+    except Exception as error:
+
+        print(
+            "[QUALITY REPORT] History failed:",
+            str(error),
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Failed to load saved "
+                "quality reports."
+            ),
+        )
+
+
+# =========================================================
+# GET ONE SAVED REPORT
+# =========================================================
+
+@router.get(
+    "/quality-report/saved/{report_id}"
+)
+async def get_final_quality_report(
+    report_id: str,
+):
+
+    try:
+
+        report = (
+            await get_saved_quality_report(
+                report_id
+            )
+        )
+
+    except Exception as error:
+
+        print(
+            "[QUALITY REPORT] Read failed:",
+            str(error),
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Failed to load the saved "
+                "quality report."
+            ),
+        )
+
+    if not report:
+
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Quality report not found."
+            ),
+        )
+
+    return report
+
+
+# =========================================================
+# DELETE SAVED REPORT
+# =========================================================
+
+@router.delete(
+    "/quality-report/saved/{report_id}"
+)
+async def delete_final_quality_report(
+    report_id: str,
+):
+
+    try:
+
+        deleted = (
+            await delete_quality_report(
+                report_id
+            )
+        )
+
+    except Exception as error:
+
+        print(
+            "[QUALITY REPORT] Delete failed:",
+            str(error),
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Failed to delete the saved "
+                "quality report."
+            ),
+        )
+
+    if not deleted:
+
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Quality report not found."
+            ),
+        )
+
+    return {
+        "status": "success",
+        "message": (
+            "Quality report deleted successfully."
+        ),
+        "report_id": report_id,
     }

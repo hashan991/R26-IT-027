@@ -8,6 +8,12 @@ import {
   getRealtimeSealResult,
   stopRealtimeSealInspection,
   getRealtimeVideoUrl,
+  getLeakTestHistory,
+  getSealInspectionHistory,
+
+  // Packet inspection session
+  startInspectionSession,
+  getCurrentInspectionSession,
 
   // Final inspection report
   getInspectionReportStatus,
@@ -16,220 +22,116 @@ import {
 } from "../services/sealService";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
 
-  *, *::before, *::after {
+  .seal-root,
+  .seal-root *,
+  .seal-root *::before,
+  .seal-root *::after {
     box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
-  html,
-  body,
-  #root {
-    width: 100%;
-    min-height: 100%;
-    margin: 0 !important;
-    padding: 0 !important;
-    max-width: none !important;
-    overflow-x: hidden;
-  }
-
-  body {
-    background: #fbf7f1;
   }
 
   :root {
-    --seal-bg: #fbf7f1;
-    --seal-panel: rgba(255, 255, 255, 0.78);
-    --seal-panel-strong: rgba(255, 255, 255, 0.92);
-    --seal-border: rgba(120, 72, 36, 0.16);
-    --seal-border-soft: rgba(120, 72, 36, 0.10);
-    --seal-text: #2a1710;
-    --seal-muted: #7a5f51;
-    --seal-dim: #9b8375;
-    --seal-brown: #7c3f1d;
-    --seal-brown-dark: #4a2412;
-    --seal-caramel: #c7833f;
-    --seal-gold: #d9a441;
-    --seal-cream: #fff7ed;
-    --seal-green: #198754;
-    --seal-amber: #d97706;
-    --seal-red: #dc2626;
+    --bg:
+      radial-gradient(1100px 560px at 12% -10%, rgba(213, 139, 70, 0.16), transparent 60%),
+      radial-gradient(900px 520px at 100% 0%, rgba(159, 88, 47, 0.12), transparent 55%),
+      linear-gradient(180deg, #201209 0%, #170d07 100%);
+    --surface:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03)),
+      rgba(39, 22, 13, 0.78);
+    --surface-alt: rgba(255, 255, 255, 0.04);
+    --border: rgba(255, 220, 170, 0.09);
+    --border-strong: rgba(255, 220, 170, 0.2);
+    --text: #fff3e1;
+    --text-muted: rgba(255, 237, 211, 0.56);
+    --text-faint: rgba(255, 237, 211, 0.36);
+
+    --accent: #c17a3f;
+    --accent-2: #dfa15d;
+    --accent-soft: rgba(223, 161, 93, 0.12);
+    --accent-gradient: linear-gradient(135deg, #ffe0a3, #d58b46, #9f582f);
+    --accent-ink: #2a160c;
+
+    --good: #a8e8b0;
+    --good-solid: #3fa94e;
+    --good-bg: rgba(64, 169, 78, 0.1);
+    --good-border: rgba(93, 199, 106, 0.18);
+
+    --bad: #ffaaa0;
+    --bad-bg: rgba(200, 60, 50, 0.1);
+    --bad-border: rgba(225, 90, 75, 0.18);
+
+    --warn: #ffd18c;
+    --warn-bg: rgba(215, 145, 52, 0.09);
+    --warn-border: rgba(230, 158, 89, 0.17);
+
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --radius-sm: 10px;
+    --shadow-card: 0 20px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
   }
 
   .seal-root {
     min-height: 100vh;
     width: 100%;
-    background:
-      radial-gradient(circle at 12% 10%, rgba(199, 131, 63, 0.20), transparent 32%),
-      radial-gradient(circle at 88% 8%, rgba(124, 63, 29, 0.14), transparent 30%),
-      radial-gradient(circle at 50% 95%, rgba(217, 164, 65, 0.16), transparent 34%),
-      linear-gradient(135deg, #fffaf3 0%, #fbf2e7 45%, #f8eadb 100%);
-    font-family: 'DM Sans', sans-serif;
-    color: var(--seal-text);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .seal-root::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background:
-      linear-gradient(rgba(124,63,29,0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(124,63,29,0.045) 1px, transparent 1px);
-    background-size: 52px 52px;
-    mask-image: radial-gradient(circle at center, black 0%, transparent 78%);
-    z-index: 0;
-  }
-
-  .seal-root::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background:
-      radial-gradient(circle, rgba(124,63,29,0.055) 1px, transparent 1px);
-    background-size: 34px 34px;
-    opacity: 0.45;
-    z-index: 0;
-  }
-
-  .seal-bg {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    overflow: hidden;
-  }
-
-  .orb {
-    position: absolute;
-    border-radius: 999px;
-    filter: blur(28px);
-    opacity: 0.58;
-    animation: floatOrb 12s ease-in-out infinite alternate;
-  }
-
-  .orb-1 {
-    width: 430px;
-    height: 430px;
-    background: radial-gradient(circle, rgba(199,131,63,0.34), transparent 68%);
-    top: -120px;
-    left: -120px;
-  }
-
-  .orb-2 {
-    width: 390px;
-    height: 390px;
-    background: radial-gradient(circle, rgba(124,63,29,0.22), transparent 70%);
-    right: -130px;
-    top: 80px;
-    animation-delay: -3s;
-  }
-
-  .orb-3 {
-    width: 470px;
-    height: 470px;
-    background: radial-gradient(circle, rgba(217,164,65,0.22), transparent 72%);
-    left: 36%;
-    bottom: -220px;
-    animation-delay: -7s;
-  }
-
-  @keyframes floatOrb {
-    from { transform: translate3d(0, 0, 0) scale(1); }
-    to { transform: translate3d(38px, 28px, 0) scale(1.12); }
-  }
-
-  .scan-line {
-    position: fixed;
-    left: 0;
-    right: 0;
-    top: -20%;
-    height: 180px;
-    background: linear-gradient(
-      180deg,
-      transparent 0%,
-      rgba(199,131,63,0.08) 45%,
-      rgba(124,63,29,0.10) 50%,
-      rgba(217,164,65,0.08) 55%,
-      transparent 100%
-    );
-    z-index: 0;
-    pointer-events: none;
-    animation: scanMove 8s linear infinite;
-  }
-
-  @keyframes scanMove {
-    0% { transform: translateY(-20vh); opacity: 0; }
-    15% { opacity: 1; }
-    80% { opacity: 1; }
-    100% { transform: translateY(130vh); opacity: 0; }
+    background: var(--bg);
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
   }
 
   .seal-shell {
-    position: relative;
-    z-index: 1;
     width: 100%;
-    max-width: none;
-    margin: 0;
-    padding: 28px clamp(28px, 3vw, 56px);
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 24px clamp(20px, 3vw, 40px) 60px;
   }
+
+  /* ---------- Top nav ---------- */
 
   .top-nav {
     width: 100%;
-    min-height: 74px;
-    border: 1px solid rgba(124,63,29,0.14);
-    background: rgba(255, 255, 255, 0.76);
-    backdrop-filter: blur(22px);
-    border-radius: 24px;
-    padding: 14px 18px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-lg);
+    padding: 14px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 16px;
-    box-shadow: 0 18px 60px rgba(90, 49, 24, 0.12);
-    animation: fadeDown 0.75s ease both;
+    box-shadow: var(--shadow-card);
   }
 
   .brand {
     display: flex;
     align-items: center;
-    gap: 13px;
+    gap: 12px;
     min-width: 0;
   }
 
   .brand-logo {
-    width: 48px;
-    height: 48px;
-    border-radius: 17px;
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-sm);
     display: grid;
     place-items: center;
-    background:
-      linear-gradient(135deg, #7c3f1d, #c7833f),
-      radial-gradient(circle at 30% 20%, rgba(255,255,255,0.65), transparent 30%);
-    box-shadow:
-      0 14px 32px rgba(124,63,29,0.24),
-      inset 0 1px 0 rgba(255,255,255,0.42);
-    font-size: 23px;
+    background: var(--accent-gradient);
+    font-size: 20px;
     flex: 0 0 auto;
   }
 
   .brand-title {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Space Grotesk', sans-serif;
     font-size: 15px;
-    font-weight: 800;
-    color: #2a1710;
-    letter-spacing: -0.02em;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.01em;
     white-space: nowrap;
   }
 
   .brand-subtitle {
     font-size: 12px;
-    color: var(--seal-muted);
+    color: var(--text-muted);
     margin-top: 2px;
     white-space: nowrap;
   }
@@ -238,18 +140,18 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 9px;
+    gap: 8px;
     flex-wrap: wrap;
   }
 
   .nav-pill {
-    border: 1px solid rgba(124,63,29,0.14);
-    background: rgba(255,247,237,0.78);
-    color: #5a2d17;
+    border: 1px solid var(--border);
+    background: var(--surface-alt);
+    color: var(--text-muted);
     border-radius: 999px;
-    padding: 8px 13px;
+    padding: 7px 12px;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
     gap: 7px;
@@ -257,80 +159,97 @@ const styles = `
   }
 
   .nav-pill-live {
-    color: #166534;
-    border-color: rgba(25,135,84,0.22);
-    background: rgba(25,135,84,0.08);
+    color: var(--good);
+    border-color: var(--good-border);
+    background: var(--good-bg);
   }
 
   .live-dot {
     width: 7px;
     height: 7px;
     border-radius: 999px;
-    background: var(--seal-green);
-    box-shadow: 0 0 16px rgba(25,135,84,0.8);
-    animation: dotPulse 1.8s ease-in-out infinite;
+    background: var(--good);
+    box-shadow: 0 0 10px rgba(112, 216, 126, 0.5);
   }
 
-  @keyframes dotPulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(0.72); opacity: 0.45; }
+  /* ---------- Mode tabs ---------- */
+
+  .mode-tabs {
+    margin: 18px 0 0;
+    display: flex;
+    justify-content: center;
   }
+
+  .mode-tabs-inner {
+    width: min(980px, 100%);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 6px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    box-shadow: var(--shadow-card);
+  }
+
+  .mode-tab {
+    min-height: 44px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .mode-tab:hover {
+    background: var(--surface-alt);
+    color: var(--text);
+  }
+
+  .mode-tab.active {
+    color: var(--accent-ink);
+    background: var(--accent-gradient);
+  }
+
+  .mode-tab:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  color: #a99a91;
+  background: #f1ebe5;
+  box-shadow: none;
+}
+
+.mode-tab:disabled:hover {
+  color: #a99a91;
+  background: #f1ebe5;
+  box-shadow: none;
+}
+
+  /* ---------- Hero / upload ---------- */
 
   .hero-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(430px, 0.85fr);
-    gap: 32px;
+    grid-template-columns: minmax(0, 1.15fr) minmax(400px, 0.85fr);
+    gap: 20px;
     align-items: stretch;
-    padding: 34px 0 28px;
-    min-height: calc(100vh - 135px);
+    padding: 22px 0;
   }
 
   .hero-left {
-    min-height: calc(100vh - 165px);
-    border: 1px solid rgba(124,63,29,0.14);
-    background:
-      linear-gradient(135deg, rgba(255,255,255,0.88), rgba(255,247,237,0.70)),
-      radial-gradient(circle at 20% 10%, rgba(199,131,63,0.18), transparent 35%),
-      radial-gradient(circle at 90% 82%, rgba(124,63,29,0.11), transparent 32%);
-    backdrop-filter: blur(24px);
-    border-radius: 34px;
-    padding: 38px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 24px 80px rgba(90, 49, 24, 0.14);
-    animation: fadeUp 0.85s 0.08s ease both;
-  }
-
-  .hero-left::before {
-    content: "";
-    position: absolute;
-    inset: 1px;
-    border-radius: 33px;
-    border: 1px solid rgba(255,255,255,0.70);
-    pointer-events: none;
-  }
-
-  .hero-left::after {
-    content: "";
-    position: absolute;
-    width: 280px;
-    height: 280px;
-    right: -80px;
-    top: -95px;
-    background: conic-gradient(from 180deg, rgba(199,131,63,0.28), rgba(124,63,29,0.14), rgba(217,164,65,0.22), rgba(199,131,63,0.28));
-    border-radius: 999px;
-    filter: blur(18px);
-    opacity: 0.75;
-    animation: rotateSoft 18s linear infinite;
-  }
-
-  @keyframes rotateSoft {
-    to { transform: rotate(360deg); }
+    border: 1px solid var(--border);
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    box-shadow: var(--shadow-card);
   }
 
   .hero-content {
-    position: relative;
-    z-index: 2;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -340,2145 +259,2555 @@ const styles = `
     display: inline-flex;
     width: fit-content;
     align-items: center;
-    gap: 9px;
-    background: rgba(124,63,29,0.08);
-    border: 1px solid rgba(124,63,29,0.20);
-    color: #7c3f1d;
-    font-size: 12px;
-    font-weight: 900;
-    letter-spacing: 0.13em;
+    gap: 8px;
+    background: var(--accent-soft);
+    border: 1px solid var(--border);
+    color: var(--accent-2);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding: 9px 15px;
+    padding: 8px 13px;
     border-radius: 999px;
-    margin-bottom: 22px;
-    box-shadow: 0 12px 28px rgba(124,63,29,0.08);
+    margin-bottom: 20px;
   }
 
   .seal-badge-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 999px;
-    background: #c7833f;
-    box-shadow: 0 0 18px rgba(199,131,63,0.90);
-    animation: dotPulse 1.8s ease-in-out infinite;
+    background: var(--accent-2);
   }
 
   .seal-title {
-    font-family: 'Syne', sans-serif;
-    font-size: clamp(42px, 6vw, 78px);
-    line-height: 0.96;
-    font-weight: 800;
-    letter-spacing: -0.07em;
-    margin-bottom: 22px;
-    color: #2a1710;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(32px, 4vw, 46px);
+    line-height: 1.08;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    color: var(--text);
   }
 
-  .seal-title span {
-    display: block;
-  }
+  .seal-title span { display: block; }
 
   .gradient-word {
-    background: linear-gradient(135deg, #2a1710 0%, #7c3f1d 42%, #c7833f 75%, #d9a441 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--accent-2);
   }
 
   .seal-subtitle {
-    max-width: 650px;
-    font-size: 17px;
-    line-height: 1.82;
-    color: #6f5548;
-    font-weight: 500;
-    margin-bottom: 28px;
+    max-width: 620px;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-muted);
+    margin-bottom: 22px;
   }
 
   .hero-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 28px;
+    gap: 10px;
+    margin-bottom: 24px;
   }
 
   .hero-chip {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    border: 1px solid rgba(124,63,29,0.14);
-    background: rgba(255,255,255,0.62);
-    color: #5a2d17;
-    border-radius: 15px;
-    padding: 11px 14px;
-    font-size: 13px;
-    font-weight: 800;
-    backdrop-filter: blur(14px);
-    box-shadow: 0 8px 20px rgba(90,49,24,0.06);
+    gap: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface-alt);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    font-size: 12px;
+    font-weight: 600;
   }
 
   .metrics-strip {
     margin-top: auto;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
+    gap: 12px;
   }
 
   .metric-card {
-    border: 1px solid rgba(124,63,29,0.13);
-    background:
-      linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,247,237,0.68));
-    border-radius: 22px;
-    padding: 18px;
-    min-height: 112px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 16px 36px rgba(90,49,24,0.08);
-  }
-
-  .metric-card::before {
-    content: "";
-    position: absolute;
-    inset: auto 14px 0 14px;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(199,131,63,0.85), transparent);
+    border: 1px solid var(--border);
+    background: var(--surface-alt);
+    border-radius: var(--radius-md);
+    padding: 16px;
   }
 
   .metric-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-sm);
     display: grid;
     place-items: center;
-    background: rgba(199,131,63,0.13);
-    border: 1px solid rgba(199,131,63,0.20);
-    margin-bottom: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    font-size: 14px;
   }
 
   .metric-value {
-    font-family: 'Syne', sans-serif;
-    font-size: 18px;
-    font-weight: 800;
-    color: #3b1d0f;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
   }
 
   .metric-label {
     font-size: 12px;
-    color: #7a5f51;
-    margin-top: 4px;
+    color: var(--text-muted);
+    margin-top: 3px;
     line-height: 1.4;
   }
 
   .hero-right {
     display: flex;
     flex-direction: column;
-    gap: 18px;
-    animation: fadeUp 0.85s 0.18s ease both;
+    gap: 16px;
   }
 
   .upload-panel {
-    border: 1px solid rgba(124,63,29,0.15);
-    background:
-      linear-gradient(145deg, rgba(255,255,255,0.90), rgba(255,247,237,0.70)),
-      radial-gradient(circle at 50% 0%, rgba(199,131,63,0.14), transparent 45%);
-    backdrop-filter: blur(28px);
-    border-radius: 34px;
-    padding: 22px;
-    min-height: calc(100vh - 165px);
-    box-shadow: 0 24px 80px rgba(90,49,24,0.14);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .upload-panel::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.62) 30%, transparent 60%);
-    transform: translateX(-120%);
-    animation: shinePanel 7s ease-in-out infinite;
-    pointer-events: none;
-  }
-
-  @keyframes shinePanel {
-    0%, 38% { transform: translateX(-120%); }
-    58%, 100% { transform: translateX(120%); }
+    border: 1px solid var(--border);
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-card);
   }
 
   .panel-top {
-    position: relative;
-    z-index: 2;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 14px;
-    margin-bottom: 18px;
+    margin-bottom: 16px;
   }
 
   .panel-eyebrow {
     font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.15em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #c7833f;
-    margin-bottom: 5px;
+    color: var(--accent-2);
+    margin-bottom: 4px;
   }
 
   .panel-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 22px;
-    font-weight: 800;
-    color: #2a1710;
-    letter-spacing: -0.03em;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--text);
   }
 
   .panel-status {
     flex: 0 0 auto;
-    border: 1px solid rgba(25,135,84,0.22);
-    background: rgba(25,135,84,0.08);
-    color: #166534;
+    border: 1px solid var(--good-border);
+    background: var(--good-bg);
+    color: var(--good);
     border-radius: 999px;
-    padding: 9px 12px;
+    padding: 8px 11px;
     font-size: 12px;
-    font-weight: 900;
+    font-weight: 700;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
   }
 
   .upload-zone {
-    position: relative;
-    z-index: 2;
-    min-height: 380px;
-    border: 2px dashed rgba(124,63,29,0.26);
-    border-radius: 28px;
-    background:
-      radial-gradient(circle at 50% 0%, rgba(199,131,63,0.13), transparent 50%),
-      rgba(255,255,255,0.58);
-    padding: 28px;
+    min-height: 340px;
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--surface-alt);
+    padding: 24px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.35s cubic-bezier(.2,.8,.2,1);
-    overflow: hidden;
+    transition: border-color 0.2s ease, background 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  .upload-zone::before {
-    content: "";
-    position: absolute;
-    inset: 14px;
-    border-radius: 23px;
-    border: 1px solid rgba(124,63,29,0.10);
-    pointer-events: none;
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent-2);
+    background: var(--accent-soft);
   }
 
-  .upload-zone::after {
-    content: "";
-    position: absolute;
-    width: 160px;
-    height: 160px;
-    background: rgba(199,131,63,0.18);
-    border-radius: 999px;
-    filter: blur(24px);
-    bottom: -80px;
-    left: 50%;
-    transform: translateX(-50%);
-    opacity: 0;
-    transition: opacity 0.35s ease;
-  }
-
-  .upload-zone:hover,
-  .upload-zone.drag-over {
-    border-color: rgba(124,63,29,0.60);
-    transform: translateY(-3px);
-    box-shadow:
-      0 22px 60px rgba(90,49,24,0.14),
-      inset 0 0 0 1px rgba(255,255,255,0.55);
-    background:
-      radial-gradient(circle at 50% 0%, rgba(199,131,63,0.20), transparent 52%),
-      rgba(255,247,237,0.78);
-  }
-
-  .upload-zone:hover::after,
-  .upload-zone.drag-over::after {
-    opacity: 1;
-  }
-
-  .upload-inner {
-    position: relative;
-    z-index: 2;
-    width: 100%;
-  }
+  .upload-inner { width: 100%; }
 
   .upload-icon-wrap {
-    width: 98px;
-    height: 98px;
-    margin: 0 auto 22px;
-    border-radius: 31px;
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 18px;
+    border-radius: var(--radius-md);
     display: grid;
     place-items: center;
-    font-size: 42px;
-    background:
-      linear-gradient(135deg, rgba(124,63,29,0.18), rgba(199,131,63,0.20)),
-      rgba(255,255,255,0.72);
-    border: 1px solid rgba(124,63,29,0.18);
-    box-shadow:
-      0 18px 44px rgba(90,49,24,0.12),
-      inset 0 1px 0 rgba(255,255,255,0.80);
-    transition: all 0.35s ease;
-  }
-
-  .upload-zone:hover .upload-icon-wrap,
-  .upload-zone.drag-over .upload-icon-wrap {
-    transform: scale(1.06) rotate(-4deg);
-    box-shadow:
-      0 24px 64px rgba(90,49,24,0.18),
-      inset 0 1px 0 rgba(255,255,255,0.92);
+    font-size: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
   }
 
   .upload-label {
-    font-family: 'Syne', sans-serif;
-    font-size: 23px;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    color: #2a1710;
-    margin-bottom: 9px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
   }
 
   .upload-hint {
-    color: #70584b;
-    font-size: 14px;
-    line-height: 1.65;
-    max-width: 320px;
-    margin: 0 auto 20px;
-    font-weight: 500;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.6;
+    max-width: 300px;
+    margin: 0 auto 18px;
   }
 
   .upload-btn-fake {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 9px;
-    height: 44px;
-    padding: 0 22px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #7c3f1d, #c7833f);
-    border: 1px solid rgba(255,255,255,0.55);
-    color: white;
+    gap: 8px;
+    height: 42px;
+    padding: 0 20px;
+    border-radius: var(--radius-sm);
+    background: var(--accent-gradient);
+    color: var(--accent-ink);
     font-size: 13px;
-    font-weight: 900;
-    box-shadow: 0 14px 34px rgba(124,63,29,0.24);
-    transition: all 0.25s ease;
-  }
-
-  .upload-zone:hover .upload-btn-fake {
-    transform: translateY(-1px);
-    box-shadow: 0 18px 44px rgba(124,63,29,0.32);
+    font-weight: 700;
   }
 
   .upload-formats {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 7px;
-    margin-top: 18px;
+    gap: 6px;
+    margin-top: 16px;
   }
 
   .format-pill {
     font-size: 11px;
-    font-weight: 900;
-    color: #7c3f1d;
-    border: 1px solid rgba(124,63,29,0.16);
-    background: rgba(255,247,237,0.82);
+    font-weight: 700;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    background: var(--surface);
     border-radius: 999px;
     padding: 5px 9px;
   }
 
-  .upload-input {
-    display: none;
-  }
-
-  .preview-section {
-    position: relative;
-    z-index: 2;
-  }
+  .upload-input { display: none; }
 
   .preview-card {
-    border: 1px solid rgba(124,63,29,0.14);
-    background:
-      linear-gradient(145deg, rgba(255,255,255,0.88), rgba(255,247,237,0.70));
-    border-radius: 28px;
-    padding: 16px;
-    overflow: hidden;
-    animation: zoomFade 0.45s ease both;
-    box-shadow: 0 16px 42px rgba(90,49,24,0.10);
+    border: 1px solid var(--border);
+    background: var(--surface-alt);
+    border-radius: var(--radius-md);
+    padding: 14px;
   }
 
   .preview-image-box {
     width: 100%;
-    height: 330px;
-    border-radius: 23px;
+    height: 300px;
+    border-radius: var(--radius-sm);
     overflow: hidden;
-    border: 1px solid rgba(124,63,29,0.14);
-    background: rgba(255,247,237,0.70);
+    border: 1px solid var(--border);
+    background: var(--surface);
     position: relative;
   }
 
-  .preview-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
+  .preview-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-  .preview-glow {
-    position: absolute;
-    inset: 0;
-    background:
-      linear-gradient(180deg, transparent 42%, rgba(42,23,16,0.28) 100%),
-      radial-gradient(circle at 50% 0%, rgba(199,131,63,0.10), transparent 55%);
-    pointer-events: none;
-  }
+  .preview-glow { display: none; }
 
   .preview-floating-tag {
     position: absolute;
-    left: 14px;
-    top: 14px;
-    border: 1px solid rgba(25,135,84,0.26);
-    background: rgba(255,255,255,0.78);
-    backdrop-filter: blur(12px);
-    color: #166534;
+    left: 12px;
+    top: 12px;
+    border: 1px solid var(--good-border);
+    background: rgba(20, 12, 8, 0.85);
+    color: var(--good);
     font-size: 12px;
-    font-weight: 900;
+    font-weight: 700;
     border-radius: 999px;
-    padding: 8px 11px;
+    padding: 7px 10px;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
   }
 
-  .preview-info {
-    padding: 17px 4px 4px;
-  }
+  .preview-info { padding: 14px 2px 2px; }
 
   .preview-info-label {
     font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.13em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #c7833f;
-    margin-bottom: 8px;
+    color: var(--accent-2);
+    margin-bottom: 6px;
   }
 
   .preview-info-name {
-    font-family: 'Syne', sans-serif;
-    font-size: 19px;
-    font-weight: 800;
-    color: #2a1710;
-    line-height: 1.35;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
     word-break: break-word;
     margin-bottom: 8px;
   }
 
-  .preview-meta-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
-  }
+  .preview-meta-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
 
   .preview-meta {
-    border: 1px solid rgba(124,63,29,0.14);
-    background: rgba(255,247,237,0.82);
-    color: #5a2d17;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
     border-radius: 999px;
-    padding: 7px 10px;
+    padding: 6px 9px;
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 600;
   }
 
-  .preview-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
+  .preview-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
   .soft-btn {
-    height: 44px;
-    border-radius: 14px;
-    border: 1px solid rgba(124,63,29,0.14);
-    background: rgba(255,255,255,0.72);
-    color: #5a2d17;
-    font-family: 'DM Sans', sans-serif;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
     font-size: 13px;
-    font-weight: 900;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.25s ease;
+    transition: background 0.15s ease, border-color 0.15s ease;
   }
 
-  .soft-btn:hover {
-    transform: translateY(-1px);
-    background: rgba(255,247,237,0.94);
-    border-color: rgba(124,63,29,0.30);
-  }
+  .soft-btn:hover { background: var(--surface-alt); border-color: var(--border-strong); }
+  .soft-btn.danger:hover { background: var(--bad-bg); border-color: var(--bad-border); color: var(--bad); }
 
-  .soft-btn.danger:hover {
-    background: rgba(220,38,38,0.08);
-    border-color: rgba(220,38,38,0.24);
-    color: #b91c1c;
-  }
-
-  .detect-wrap {
-    position: relative;
-    z-index: 2;
-    margin-top: 17px;
-  }
+  .detect-wrap { margin-top: 14px; }
 
   .detect-btn {
     width: 100%;
-    min-height: 66px;
+    min-height: 56px;
     border: none;
-    border-radius: 22px;
+    border-radius: var(--radius-md);
     cursor: pointer;
-    color: #ffffff;
-    font-family: 'Syne', sans-serif;
-    font-size: 17px;
-    font-weight: 900;
-    letter-spacing: -0.01em;
-    position: relative;
-    overflow: hidden;
-    background:
-      linear-gradient(135deg, #4a2412 0%, #7c3f1d 48%, #c7833f 100%);
-    box-shadow:
-      0 22px 52px rgba(124,63,29,0.30),
-      inset 0 1px 0 rgba(255,255,255,0.30);
-    transition: all 0.28s cubic-bezier(.2,.8,.2,1);
+    color: var(--accent-ink);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    background: var(--accent-gradient);
+    box-shadow: 0 14px 30px rgba(200, 119, 56, 0.18);
+    transition: opacity 0.15s ease, transform 0.1s ease;
   }
 
-  .detect-btn::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-      linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.36) 35%, transparent 70%);
-    transform: translateX(-120%);
-    transition: transform 0.7s ease;
-  }
+  .detect-btn:hover:not(:disabled) { opacity: 0.92; transform: translateY(-1px); }
+  .detect-btn:active:not(:disabled) { transform: translateY(0); }
+  .detect-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-  .detect-btn::after {
-    content: "";
-    position: absolute;
-    inset: 1px;
-    border-radius: 21px;
-    border: 1px solid rgba(255,255,255,0.28);
-    pointer-events: none;
-  }
-
-  .detect-btn:hover:not(:disabled) {
-    transform: translateY(-3px);
-    box-shadow:
-      0 28px 70px rgba(124,63,29,0.40),
-      inset 0 1px 0 rgba(255,255,255,0.36);
-  }
-
-  .detect-btn:hover:not(:disabled)::before {
-    transform: translateX(120%);
-  }
-
-  .detect-btn:active:not(:disabled) {
-    transform: translateY(-1px) scale(0.995);
-  }
-
-  .detect-btn:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-    box-shadow: none;
-  }
-
-  .detect-btn span {
-    position: relative;
-    z-index: 2;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 11px;
-  }
+  .detect-btn span { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
 
   .spinner {
-    width: 21px;
-    height: 21px;
-    border: 2px solid rgba(255,255,255,0.32);
-    border-top-color: white;
+    width: 18px; height: 18px;
+    border: 2px solid rgba(42, 22, 12, 0.25);
+    border-top-color: var(--accent-ink);
     border-radius: 999px;
-    animation: spin 0.65s linear infinite;
+    animation: spin 0.7s linear infinite;
   }
 
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   .quick-guide {
-    position: relative;
-    z-index: 2;
-    margin-top: 17px;
+    margin-top: 14px;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+    gap: 8px;
   }
 
   .guide-item {
-    border: 1px solid rgba(124,63,29,0.12);
-    background: rgba(255,255,255,0.58);
-    border-radius: 18px;
-    padding: 14px 12px;
+    border: 1px solid var(--border);
+    background: var(--surface-alt);
+    border-radius: var(--radius-sm);
+    padding: 12px;
     text-align: center;
-    box-shadow: 0 10px 24px rgba(90,49,24,0.06);
   }
 
-  .guide-icon {
-    font-size: 20px;
-    margin-bottom: 7px;
-  }
+  .guide-icon { font-size: 16px; margin-bottom: 5px; }
+  .guide-text { font-size: 11px; color: var(--text-muted); font-weight: 600; line-height: 1.35; }
 
-  .guide-text {
-    font-size: 11px;
-    color: #6f5548;
-    font-weight: 800;
-    line-height: 1.35;
-  }
+  /* ---------- Results ---------- */
 
   .results-section {
     margin-top: 4px;
-    border: 1px solid rgba(124,63,29,0.14);
-    background:
-      linear-gradient(145deg, rgba(255,255,255,0.90), rgba(255,247,237,0.70)),
-      radial-gradient(circle at 16% 0%, rgba(25,135,84,0.07), transparent 32%),
-      radial-gradient(circle at 90% 0%, rgba(199,131,63,0.12), transparent 36%);
-    backdrop-filter: blur(24px);
-    border-radius: 34px;
-    padding: 24px;
-    box-shadow: 0 24px 80px rgba(90,49,24,0.14);
-    animation: fadeUp 0.7s ease both;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .results-section::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 24px;
-    right: 24px;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(124,63,29,0.22), transparent);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    box-shadow: var(--shadow-card);
   }
 
   .results-head {
-    position: relative;
-    z-index: 2;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 18px;
-    margin-bottom: 20px;
+    gap: 16px;
+    margin-bottom: 18px;
   }
 
   .results-kicker {
-    color: #198754;
+    color: var(--good);
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.08em;
     font-size: 11px;
-    font-weight: 900;
-    margin-bottom: 7px;
+    font-weight: 700;
+    margin-bottom: 6px;
   }
 
   .results-main-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 28px;
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    color: #2a1710;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 23px;
+    font-weight: 700;
+    color: var(--text);
   }
 
   .results-summary-pill {
-    border: 1px solid rgba(124,63,29,0.12);
-    background: rgba(255,247,237,0.82);
-    color: #5a2d17;
+    border: 1px solid var(--good-border);
+    background: var(--good-bg);
+    color: var(--good);
     border-radius: 999px;
-    padding: 10px 13px;
+    padding: 9px 12px;
     font-size: 12px;
-    font-weight: 900;
+    font-weight: 700;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
     white-space: nowrap;
   }
 
   .status-cards {
-    position: relative;
-    z-index: 2;
     display: grid;
     grid-template-columns: 1.1fr 0.9fr 0.9fr;
-    gap: 14px;
-    margin-bottom: 18px;
+    gap: 12px;
+    margin-bottom: 16px;
   }
 
   .status-card {
-    min-height: 132px;
-    border: 1px solid rgba(124,63,29,0.13);
-    background:
-      linear-gradient(145deg, rgba(255,255,255,0.86), rgba(255,247,237,0.68));
-    border-radius: 24px;
-    padding: 20px;
+    min-height: 118px;
+    border: 1px solid var(--border);
+    background: var(--surface-alt);
+    border-radius: var(--radius-md);
+    padding: 18px;
     position: relative;
-    overflow: hidden;
-    box-shadow: 0 14px 34px rgba(90,49,24,0.08);
   }
 
-  .status-card::before {
-    content: "";
-    position: absolute;
-    inset: auto 16px 0 16px;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(199,131,63,0.78), transparent);
-  }
-
-  .status-card.good {
-    border-color: rgba(25,135,84,0.22);
-    background:
-      linear-gradient(145deg, rgba(25,135,84,0.08), rgba(255,255,255,0.82));
-  }
-
-  .status-card.bad {
-    border-color: rgba(220,38,38,0.22);
-    background:
-      linear-gradient(145deg, rgba(220,38,38,0.08), rgba(255,255,255,0.82));
-  }
-
-  .status-card.good::before {
-    background: linear-gradient(90deg, transparent, rgba(25,135,84,0.70), transparent);
-  }
-
-  .status-card.bad::before {
-    background: linear-gradient(90deg, transparent, rgba(220,38,38,0.70), transparent);
-  }
+  .status-card.good { border-color: var(--good-border); background: var(--good-bg); }
+  .status-card.bad { border-color: var(--bad-border); background: var(--bad-bg); }
 
   .sc-label {
     font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.13em;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #8a6b5b;
-    margin-bottom: 10px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
   }
 
   .sc-value {
-    font-family: 'Syne', sans-serif;
-    font-size: 30px;
-    line-height: 1.05;
-    font-weight: 800;
-    color: #2a1710;
-    letter-spacing: -0.04em;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 25px;
+    line-height: 1.1;
+    font-weight: 700;
+    color: var(--text);
     word-break: break-word;
   }
 
-  .sc-value.good {
-    color: #198754;
-  }
+  .sc-value.good { color: var(--good); }
+  .sc-value.bad { color: var(--bad); }
 
-  .sc-value.bad {
-    color: #dc2626;
-  }
+  .sc-icon { position: absolute; right: 16px; top: 16px; font-size: 22px; }
 
-  .sc-icon {
-    position: absolute;
-    right: 18px;
-    top: 17px;
-    font-size: 28px;
-    opacity: 0.82;
-  }
-
-  .sc-caption {
-    margin-top: 11px;
-    color: #70584b;
-    font-size: 12px;
-    line-height: 1.45;
-    font-weight: 500;
-  }
+  .sc-caption { margin-top: 9px; color: var(--text-muted); font-size: 12px; line-height: 1.45; }
 
   .results-grid {
-    position: relative;
-    z-index: 2;
     display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
-    gap: 16px;
+    grid-template-columns: minmax(0, 1.05fr) minmax(340px, 0.95fr);
+    gap: 14px;
   }
 
   .result-block {
-    border: 1px solid rgba(124,63,29,0.13);
-    background: rgba(255,255,255,0.66);
-    border-radius: 26px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: var(--radius-md);
     overflow: hidden;
-    box-shadow: 0 14px 34px rgba(90,49,24,0.08);
   }
 
   .block-header {
-    padding: 15px 18px;
-    border-bottom: 1px solid rgba(124,63,29,0.10);
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    background: rgba(255,247,237,0.78);
+    background: var(--surface-alt);
   }
 
   .block-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 13px;
-    font-weight: 900;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.11em;
-    color: #5a2d17;
+    letter-spacing: 0.06em;
+    color: var(--text);
     display: inline-flex;
     align-items: center;
-    gap: 9px;
+    gap: 8px;
   }
 
-  .block-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 999px;
-    background: var(--seal-green);
-    box-shadow: 0 0 18px rgba(25,135,84,0.70);
-  }
+  .block-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--good); }
 
-  .block-body {
-    padding: 18px;
-  }
+  .block-body { padding: 16px; }
 
   .pred-img-frame {
     width: 100%;
-    min-height: 430px;
-    border-radius: 20px;
-    background:
-      linear-gradient(135deg, rgba(255,247,237,0.82), rgba(255,255,255,0.72)),
-      repeating-linear-gradient(45deg, rgba(124,63,29,0.045) 0px, rgba(124,63,29,0.045) 1px, transparent 1px, transparent 12px);
-    border: 1px solid rgba(124,63,29,0.12);
+    min-height: 400px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12px;
+    padding: 10px;
     overflow: hidden;
   }
 
   .pred-img {
-    width: 100%;
-    height: auto;
-    max-height: 560px;
-    object-fit: contain;
-    display: block;
-    border-radius: 16px;
-    box-shadow: 0 20px 50px rgba(90,49,24,0.18);
+    width: 100%; height: auto; max-height: 540px;
+    object-fit: contain; display: block; border-radius: var(--radius-sm);
   }
 
-  .analysis-column {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
+  .analysis-column { display: flex; flex-direction: column; gap: 14px; }
 
-  .table-wrap {
-    width: 100%;
-    overflow: hidden;
-  }
+  .table-wrap { width: 100%; overflow: hidden; }
 
-  .defect-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-  }
+  .defect-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 
-  .defect-table thead tr {
-    background: rgba(199,131,63,0.10);
-  }
+  .defect-table thead tr { background: var(--surface-alt); }
 
   .defect-table th {
-    padding: 14px 16px;
+    padding: 12px 14px;
     text-align: left;
-    font-family: 'Syne', sans-serif;
+    font-family: 'Space Grotesk', sans-serif;
     font-size: 11px;
-    font-weight: 900;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.10em;
-    color: #8a6b5b;
-    border-bottom: 1px solid rgba(124,63,29,0.10);
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
   }
 
   .defect-table td {
-    padding: 15px 16px;
-    border-bottom: 1px solid rgba(124,63,29,0.08);
-    color: #2a1710;
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
     vertical-align: middle;
-    font-weight: 600;
+    font-weight: 500;
   }
 
-  .defect-table tbody tr:last-child td {
-    border-bottom: none;
-  }
-
-  .defect-table tbody tr {
-    transition: background 0.22s ease;
-  }
-
-  .defect-table tbody tr:hover {
-    background: rgba(255,247,237,0.86);
-  }
+  .defect-table tbody tr:last-child td { border-bottom: none; }
+  .defect-table tbody tr:hover { background: var(--surface-alt); }
 
   .defect-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 34px;
-    height: 28px;
-    padding: 0 10px;
+    min-width: 32px;
+    height: 26px;
+    padding: 0 9px;
     border-radius: 999px;
-    background: rgba(220,38,38,0.08);
-    border: 1px solid rgba(220,38,38,0.20);
-    color: #b91c1c;
-    font-family: 'Syne', sans-serif;
+    background: var(--bad-bg);
+    border: 1px solid var(--bad-border);
+    color: var(--bad);
+    font-family: 'IBM Plex Mono', monospace;
     font-size: 12px;
-    font-weight: 900;
+    font-weight: 600;
   }
 
-  .good-badge {
-    background: rgba(25,135,84,0.10);
-    border-color: rgba(25,135,84,0.24);
-    color: #166534;
-  }
+  .good-badge { background: var(--good-bg); border-color: var(--good-border); color: var(--good); }
 
   .row-num {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    background: rgba(199,131,63,0.13);
-    border: 1px solid rgba(199,131,63,0.20);
-    border-radius: 9px;
-    font-size: 12px;
-    font-weight: 900;
-    font-family: 'Syne', sans-serif;
-    color: #7c3f1d;
+    width: 26px; height: 26px;
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--text-muted);
   }
 
-  .class-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-weight: 900;
-    color: #2a1710;
-  }
+  .class-pill { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; color: var(--text); }
+  .class-pill::before { content: ""; width: 7px; height: 7px; border-radius: 999px; background: var(--bad); }
 
-  .class-pill::before {
-    content: "";
-    width: 7px;
-    height: 7px;
-    border-radius: 999px;
-    background: var(--seal-red);
-    box-shadow: 0 0 14px rgba(220,38,38,0.55);
-  }
-
-  .conf-bar-wrap {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 170px;
-  }
+  .conf-bar-wrap { display: flex; align-items: center; gap: 10px; min-width: 160px; }
 
   .conf-bar-track {
-    flex: 1;
-    height: 8px;
-    background: rgba(124,63,29,0.10);
-    border-radius: 999px;
-    overflow: hidden;
-    border: 1px solid rgba(124,63,29,0.08);
+    flex: 1; height: 7px; background: var(--surface-alt);
+    border-radius: 999px; overflow: hidden; border: 1px solid var(--border);
   }
 
-  .conf-bar-fill {
-    height: 100%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #7c3f1d, #c7833f, #d9a441);
-    transition: width 0.85s cubic-bezier(.2,.8,.2,1);
-    box-shadow: 0 0 16px rgba(199,131,63,0.45);
-  }
+  .conf-bar-fill { height: 100%; border-radius: 999px; background: var(--accent-2); transition: width 0.5s ease; }
 
   .conf-text {
-    min-width: 48px;
-    text-align: right;
-    font-size: 13px;
-    font-weight: 900;
-    color: #7c3f1d;
+    min-width: 46px; text-align: right; font-size: 12px; font-weight: 700;
+    font-family: 'IBM Plex Mono', monospace; color: var(--accent-2);
   }
 
-  .empty-state {
-    padding: 28px;
-    text-align: center;
-    color: #70584b;
-    font-size: 14px;
-    line-height: 1.65;
-    font-weight: 600;
-  }
-
-  .empty-icon {
-    font-size: 32px;
-    margin-bottom: 10px;
-  }
+  .empty-state { padding: 26px; text-align: center; color: var(--text-muted); font-size: 13px; line-height: 1.6; }
+  .empty-icon { font-size: 26px; margin-bottom: 8px; }
 
   .insight-box {
-    border: 1px solid rgba(124,63,29,0.13);
-    background:
-      linear-gradient(145deg, rgba(255,247,237,0.88), rgba(255,255,255,0.72));
-    border-radius: 22px;
-    padding: 16px;
-    color: #5f493d;
+    border: 1px solid var(--border);
+    background: var(--surface-alt);
+    border-radius: var(--radius-md);
+    padding: 15px;
+    color: var(--text-muted);
     font-size: 13px;
     line-height: 1.6;
-    font-weight: 500;
-    box-shadow: 0 14px 34px rgba(90,49,24,0.08);
   }
 
-  .insight-title {
-    font-family: 'Syne', sans-serif;
-    font-weight: 900;
-    color: #2a1710;
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  .insight-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--text); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
 
   .error-box {
     margin-top: 14px;
-    position: relative;
-    z-index: 2;
-    border: 1px solid rgba(220,38,38,0.24);
-    background: rgba(220,38,38,0.08);
-    color: #b91c1c;
-    border-radius: 18px;
-    padding: 13px 15px;
+    border: 1px solid var(--bad-border);
+    background: var(--bad-bg);
+    color: var(--bad);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
     font-size: 13px;
+    font-weight: 600;
     line-height: 1.5;
-    font-weight: 700;
-    animation: shakeSoft 0.45s ease both;
   }
 
-  @keyframes shakeSoft {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-3px); }
-    50% { transform: translateX(3px); }
-    75% { transform: translateX(-2px); }
-  }
+  /* ---------- Device page ---------- */
 
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(28px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes fadeDown {
-    from { opacity: 0; transform: translateY(-18px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes zoomFade {
-    from { opacity: 0; transform: scale(0.96); }
-    to { opacity: 1; transform: scale(1); }
-  }
-
-
-  .mode-tabs {
-    margin: 22px 0 0;
-    display: flex;
-    justify-content: center;
-    position: relative;
-    z-index: 2;
-  }
-
-    .mode-tabs-inner {
-    width: min(980px, 100%);
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    padding: 8px;
-    border-radius: 22px;
-    border: 1px solid rgba(124,63,29,0.14);
-    background: rgba(255,255,255,0.72);
-    backdrop-filter: blur(20px);
-    box-shadow: 0 14px 38px rgba(90,49,24,0.09);
-}
-
-  .mode-tab {
-    min-height: 48px;
-    border: 1px solid transparent;
-    border-radius: 16px;
-    background: transparent;
-    color: #725548;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 900;
-    cursor: pointer;
-    transition: all 0.25s ease;
-  }
-
-  .mode-tab:hover {
-    background: rgba(199,131,63,0.08);
-    color: #5a2d17;
-  }
-
-  .mode-tab.active {
-    color: white;
-    border-color: rgba(255,255,255,0.45);
-    background: linear-gradient(135deg, #4a2412, #7c3f1d 58%, #c7833f);
-    box-shadow: 0 12px 30px rgba(124,63,29,0.24);
-  }
-
-  .device-page {
-    padding: 34px 0 28px;
-    animation: fadeUp 0.65s ease both;
-  }
+  .device-page { padding: 22px 0; }
 
   .device-hero {
     display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(460px, 1.1fr);
-    gap: 24px;
+    grid-template-columns: minmax(0, 0.9fr) minmax(440px, 1.1fr);
+    gap: 18px;
     align-items: stretch;
   }
 
-  .device-info-card,
-  .device-control-card {
-    border: 1px solid rgba(124,63,29,0.14);
-    background:
-      linear-gradient(145deg, rgba(255,255,255,0.91), rgba(255,247,237,0.72)),
-      radial-gradient(circle at 12% 0%, rgba(199,131,63,0.14), transparent 40%);
-    backdrop-filter: blur(24px);
-    border-radius: 32px;
-    padding: 28px;
-    box-shadow: 0 24px 80px rgba(90,49,24,0.13);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .device-info-card::before,
-  .device-control-card::before {
-    content: "";
-    position: absolute;
-    inset: 1px;
-    border-radius: 31px;
-    border: 1px solid rgba(255,255,255,0.66);
-    pointer-events: none;
+  .device-info-card, .device-control-card {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-lg);
+    padding: 26px;
+    box-shadow: var(--shadow-card);
   }
 
   .device-kicker {
-    font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: #c7833f;
-    margin-bottom: 10px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--accent-2); margin-bottom: 10px;
   }
 
   .device-title {
-    font-family: 'Syne', sans-serif;
-    font-size: clamp(32px, 4vw, 52px);
-    line-height: 1.02;
-    letter-spacing: -0.055em;
-    color: #2a1710;
-    margin-bottom: 16px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(26px, 3vw, 36px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 14px;
   }
 
-  .device-description {
-    color: #6f5548;
-    font-size: 15px;
-    line-height: 1.75;
-    font-weight: 500;
-    margin-bottom: 22px;
-  }
+  .device-description { color: var(--text-muted); font-size: 14px; line-height: 1.7; margin-bottom: 20px; }
 
-  .device-flow {
-    display: grid;
-    gap: 10px;
-    margin-top: 20px;
-  }
+  .device-flow { display: grid; gap: 8px; margin-top: 18px; }
 
   .device-flow-item {
-    display: grid;
-    grid-template-columns: 38px 1fr;
-    gap: 12px;
-    align-items: center;
-    border: 1px solid rgba(124,63,29,0.11);
-    background: rgba(255,255,255,0.58);
-    border-radius: 16px;
-    padding: 12px 14px;
+    display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: center;
+    border: 1px solid var(--border); background: var(--surface-alt);
+    border-radius: var(--radius-sm); padding: 11px 13px;
   }
 
   .device-flow-num {
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
-    display: grid;
-    place-items: center;
-    background: rgba(199,131,63,0.13);
-    border: 1px solid rgba(199,131,63,0.20);
-    color: #7c3f1d;
-    font-family: 'Syne', sans-serif;
-    font-size: 12px;
-    font-weight: 900;
+    width: 30px; height: 30px; border-radius: var(--radius-sm);
+    display: grid; place-items: center; background: var(--surface); border: 1px solid var(--border);
+    color: var(--accent-2); font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
   }
 
-  .device-flow-text {
-    color: #5f493d;
-    font-size: 13px;
-    line-height: 1.45;
-    font-weight: 700;
-  }
+  .device-flow-text { color: var(--text-muted); font-size: 13px; line-height: 1.45; font-weight: 500; }
 
-  .device-status-row {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
+  .device-status-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
 
   .device-status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    min-height: 40px;
-    padding: 0 13px;
-    border-radius: 999px;
-    border: 1px solid rgba(124,63,29,0.14);
-    background: rgba(255,247,237,0.78);
-    color: #7a5f51;
-    font-size: 12px;
-    font-weight: 900;
+    display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 12px;
+    border-radius: 999px; border: 1px solid var(--border); background: var(--surface-alt);
+    color: var(--text-muted); font-size: 12px; font-weight: 700;
   }
 
-  .device-status-badge.connected {
-    color: #166534;
-    border-color: rgba(25,135,84,0.22);
-    background: rgba(25,135,84,0.08);
-  }
+  .device-status-badge.connected { color: var(--good); border-color: var(--good-border); background: var(--good-bg); }
+  .device-status-badge.disconnected { color: var(--bad); border-color: var(--bad-border); background: var(--bad-bg); }
 
-  .device-status-badge.disconnected {
-    color: #b91c1c;
-    border-color: rgba(220,38,38,0.22);
-    background: rgba(220,38,38,0.08);
-  }
-
-  .device-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: #9b8375;
-  }
-
-  .device-status-badge.connected .device-dot {
-    background: #198754;
-    box-shadow: 0 0 16px rgba(25,135,84,0.72);
-  }
-
-  .device-status-badge.disconnected .device-dot {
-    background: #dc2626;
-    box-shadow: 0 0 16px rgba(220,38,38,0.55);
-  }
+  .device-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--text-faint); }
+  .device-status-badge.connected .device-dot { background: var(--good); }
+  .device-status-badge.disconnected .device-dot { background: var(--bad); }
 
   .refresh-device-btn {
-    min-height: 40px;
-    padding: 0 14px;
-    border-radius: 13px;
-    border: 1px solid rgba(124,63,29,0.14);
-    background: rgba(255,255,255,0.72);
-    color: #5a2d17;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
-    font-weight: 900;
-    cursor: pointer;
-    transition: all 0.22s ease;
+    min-height: 38px; padding: 0 13px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700;
+    cursor: pointer; transition: background 0.15s ease;
   }
 
-  .refresh-device-btn:hover {
-    transform: translateY(-1px);
-    border-color: rgba(124,63,29,0.28);
-    background: rgba(255,247,237,0.95);
-  }
+  .refresh-device-btn:hover { background: var(--surface-alt); }
 
   .device-ready-box {
-    position: relative;
-    z-index: 2;
-    border-radius: 22px;
-    border: 1px solid rgba(124,63,29,0.13);
-    background:
-      linear-gradient(135deg, rgba(255,247,237,0.88), rgba(255,255,255,0.70));
-    padding: 18px;
-    margin-bottom: 16px;
+    border-radius: var(--radius-md); border: 1px solid var(--border);
+    background: var(--surface-alt); padding: 17px; margin-bottom: 16px;
   }
 
-  .device-ready-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 16px;
-    font-weight: 900;
-    color: #2a1710;
-    margin-bottom: 7px;
-  }
-
-  .device-ready-text {
-    color: #70584b;
-    font-size: 13px;
-    line-height: 1.6;
-    font-weight: 600;
-  }
+  .device-ready-title { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .device-ready-text { color: var(--text-muted); font-size: 13px; line-height: 1.6; }
 
   .device-warning {
-    margin-top: 12px;
-    border: 1px solid rgba(217,119,6,0.22);
-    background: rgba(217,119,6,0.07);
-    color: #92400e;
-    border-radius: 14px;
-    padding: 11px 12px;
-    font-size: 12px;
-    line-height: 1.5;
-    font-weight: 800;
+    margin-top: 12px; border: 1px solid var(--warn-border); background: var(--warn-bg);
+    color: var(--warn); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 12px; line-height: 1.5; font-weight: 600;
   }
 
   .device-test-btn {
-    position: relative;
-    z-index: 2;
-    width: 100%;
-    min-height: 66px;
-    border: 0;
-    border-radius: 20px;
-    cursor: pointer;
-    color: white;
-    font-family: 'Syne', sans-serif;
-    font-size: 16px;
-    font-weight: 900;
-    background: linear-gradient(135deg, #4a2412, #7c3f1d 55%, #c7833f);
-    box-shadow: 0 20px 48px rgba(124,63,29,0.28);
-    transition: all 0.25s ease;
+    width: 100%; min-height: 56px; border: 0; border-radius: var(--radius-md);
+    cursor: pointer; color: var(--accent-ink); font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700;
+    background: var(--accent-gradient); box-shadow: 0 14px 30px rgba(200, 119, 56, 0.18); transition: opacity 0.15s ease;
   }
 
-  .device-test-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 25px 60px rgba(124,63,29,0.36);
-  }
+  .device-test-btn:hover:not(:disabled) { opacity: 0.92; }
+  .device-test-btn:disabled { cursor: not-allowed; opacity: 0.45; }
 
-  .device-test-btn:disabled {
-    cursor: not-allowed;
-    opacity: 0.52;
-    box-shadow: none;
-  }
-
-  .device-test-btn-content {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-  }
+  .device-test-btn-content { display: inline-flex; align-items: center; justify-content: center; gap: 9px; }
 
   .device-error {
-    position: relative;
-    z-index: 2;
-    margin-top: 14px;
-    border: 1px solid rgba(220,38,38,0.22);
-    background: rgba(220,38,38,0.08);
-    color: #b91c1c;
-    border-radius: 16px;
-    padding: 12px 14px;
-    font-size: 12px;
-    line-height: 1.55;
-    font-weight: 800;
+    margin-top: 14px; border: 1px solid var(--bad-border); background: var(--bad-bg);
+    color: var(--bad); border-radius: var(--radius-sm); padding: 11px 13px; font-size: 12px; line-height: 1.5; font-weight: 600;
   }
 
   .device-result-section {
-    margin-top: 20px;
-    border: 1px solid rgba(124,63,29,0.14);
-    background:
-      linear-gradient(145deg, rgba(255,255,255,0.91), rgba(255,247,237,0.74));
-    border-radius: 28px;
-    padding: 22px;
-    position: relative;
-    z-index: 2;
-    animation: zoomFade 0.4s ease both;
+    margin-top: 18px; border: 1px solid var(--border); background: var(--surface-alt);
+    border-radius: var(--radius-md); padding: 20px;
   }
 
   .device-result-banner {
-    border-radius: 22px;
-    padding: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 16px;
+    border-radius: var(--radius-md); padding: 18px; display: flex; justify-content: space-between;
+    align-items: center; gap: 16px; margin-bottom: 14px;
   }
 
-  .device-result-banner.good {
-    border: 1px solid rgba(25,135,84,0.24);
-    background: rgba(25,135,84,0.08);
-  }
+  .device-result-banner.good { border: 1px solid var(--good-border); background: var(--good-bg); }
+  .device-result-banner.leak { border: 1px solid var(--bad-border); background: var(--bad-bg); }
 
-  .device-result-banner.leak {
-    border: 1px solid rgba(220,38,38,0.24);
-    background: rgba(220,38,38,0.08);
-  }
+  .device-result-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+  .device-result-value { font-family: 'Space Grotesk', sans-serif; font-size: 25px; font-weight: 700; }
 
-  .device-result-label {
-    font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.13em;
-    text-transform: uppercase;
-    color: #8a6b5b;
-    margin-bottom: 7px;
-  }
+  .device-result-banner.good .device-result-value { color: var(--good); }
+  .device-result-banner.leak .device-result-value { color: var(--bad); }
 
-  .device-result-value {
-    font-family: 'Syne', sans-serif;
-    font-size: 30px;
-    font-weight: 900;
-    letter-spacing: -0.04em;
-  }
+  .device-result-icon { font-size: 32px; }
 
-  .device-result-banner.good .device-result-value {
-    color: #198754;
-  }
+  .device-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 
-  .device-result-banner.leak .device-result-value {
-    color: #dc2626;
-  }
+  .device-metric { border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius-sm); padding: 13px; }
+  .device-metric-label { color: var(--text-muted); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .device-metric-value { font-family: 'IBM Plex Mono', monospace; color: var(--text); font-size: 16px; font-weight: 600; word-break: break-word; }
 
-  .device-result-icon {
-    font-size: 38px;
-  }
-
-  .device-metrics {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-  }
-
-  .device-metric {
-    border: 1px solid rgba(124,63,29,0.11);
-    background: rgba(255,255,255,0.68);
-    border-radius: 17px;
-    padding: 14px;
-  }
-
-  .device-metric-label {
-    color: #8a6b5b;
-    font-size: 10px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 7px;
-  }
-
-  .device-metric-value {
-    font-family: 'Syne', sans-serif;
-    color: #2a1710;
-    font-size: 18px;
-    font-weight: 900;
-    word-break: break-word;
-  }
-
-  .readings-box {
-    margin-top: 12px;
-    border: 1px solid rgba(124,63,29,0.10);
-    background: rgba(255,247,237,0.65);
-    border-radius: 17px;
-    padding: 14px;
-  }
-
-  .readings-title {
-    color: #5a2d17;
-    font-size: 11px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 9px;
-  }
-
-  .readings-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
-  }
-
+  .readings-box { margin-top: 12px; border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius-sm); padding: 13px; }
+  .readings-title { color: var(--text); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .readings-list { display: flex; flex-wrap: wrap; gap: 6px; }
   .reading-pill {
-    border: 1px solid rgba(124,63,29,0.12);
-    background: rgba(255,255,255,0.72);
-    color: #5a2d17;
-    border-radius: 999px;
-    padding: 6px 9px;
-    font-size: 11px;
-    font-weight: 800;
+    border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted);
+    border-radius: 999px; padding: 5px 8px; font-size: 11px; font-weight: 600; font-family: 'IBM Plex Mono', monospace;
   }
 
+  /* ---------- Realtime page ---------- */
 
-
-  .realtime-page {
-    padding: 34px 0 28px;
-    animation: fadeUp 0.65s ease both;
-  }
+  .realtime-page { padding: 22px 0; }
 
   .realtime-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
-    gap: 22px;
+    grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
+    gap: 18px;
     align-items: start;
   }
 
-  .realtime-camera-card,
-  .realtime-info-card {
-    border: 1px solid rgba(124,63,29,0.14);
-    background:
-      linear-gradient(145deg, rgba(255,255,255,0.92), rgba(255,247,237,0.74));
-    border-radius: 30px;
-    padding: 22px;
-    box-shadow: 0 24px 80px rgba(90,49,24,0.13);
+  .realtime-camera-card, .realtime-info-card {
+    border: 1px solid var(--border); background: var(--surface);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-card);
   }
 
-  .realtime-card-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 16px;
-  }
+  .realtime-card-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 14px; }
 
-  .realtime-kicker {
-    color: #c7833f;
-    font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    margin-bottom: 5px;
-  }
+  .realtime-kicker { color: var(--accent-2); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
 
-  .realtime-title {
-    font-family: 'Syne', sans-serif;
-    color: #2a1710;
-    font-size: 24px;
-    font-weight: 900;
-    letter-spacing: -0.035em;
-  }
+  .realtime-title { font-family: 'Space Grotesk', sans-serif; color: var(--text); font-size: 20px; font-weight: 700; }
 
   .realtime-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    border-radius: 999px;
-    padding: 9px 12px;
-    border: 1px solid rgba(124,63,29,0.14);
-    background: rgba(255,247,237,0.78);
-    color: #7a5f51;
-    font-size: 12px;
-    font-weight: 900;
-    white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; padding: 8px 11px;
+    border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted);
+    font-size: 12px; font-weight: 700; white-space: nowrap;
   }
 
-  .realtime-status.running {
-    color: #166534;
-    border-color: rgba(25,135,84,0.22);
-    background: rgba(25,135,84,0.08);
-  }
+  .realtime-status.running { color: var(--good); border-color: var(--good-border); background: var(--good-bg); }
 
   .realtime-video-frame {
-    width: 100%;
-    min-height: 520px;
-    border-radius: 24px;
-    overflow: hidden;
-    border: 1px solid rgba(124,63,29,0.14);
-    background:
-      radial-gradient(circle at 50% 10%, rgba(199,131,63,0.13), transparent 45%),
-      #1d120d;
-    display: grid;
-    place-items: center;
-    position: relative;
+    width: 100%; min-height: 460px; border-radius: var(--radius-md); overflow: hidden;
+    border: 1px solid var(--border); background: #150d08;
+    display: grid; place-items: center; position: relative;
   }
 
-  .realtime-video {
-    width: 100%;
-    height: 100%;
-    min-height: 520px;
-    max-height: 680px;
-    object-fit: contain;
-    display: block;
-    background: #111;
+  .realtime-video { width: 100%; height: 100%; min-height: 460px; max-height: 640px; object-fit: contain; display: block; background: #120b06; }
+
+  .realtime-empty { text-align: center; color: rgba(255, 237, 211, 0.55); padding: 40px 24px; }
+  .realtime-empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.8; }
+  .realtime-empty-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: #fff3e1; margin-bottom: 8px; }
+  .realtime-empty-text { font-size: 13px; line-height: 1.65; max-width: 420px; margin: 0 auto; }
+
+  .realtime-cycle-card {
+    margin-top: 14px; border: 1px solid var(--border); background: var(--surface-alt);
+    border-radius: var(--radius-md); padding: 14px 16px;
   }
 
-  .realtime-empty {
-    text-align: center;
-    color: #d7c3b6;
-    padding: 42px 24px;
+  .realtime-cycle-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 11px; }
+
+  .realtime-cycle-kicker { color: var(--accent-2); font-size: 9px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 4px; }
+  .realtime-cycle-title { color: var(--text); font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; }
+
+  .realtime-cycle-phase {
+    display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--good-border);
+    background: var(--good-bg); color: var(--good); border-radius: 999px; padding: 6px 9px;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap;
   }
 
-  .realtime-empty-icon {
-    font-size: 54px;
-    margin-bottom: 14px;
+  .realtime-cycle-phase-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--good); }
+
+  .realtime-progress-track {
+    width: 100%; height: 7px; border-radius: 999px; overflow: hidden;
+    background: var(--surface); border: 1px solid var(--border);
   }
 
-  .realtime-empty-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 21px;
-    font-weight: 900;
-    color: #fff7ed;
-    margin-bottom: 8px;
+  .realtime-progress-fill { height: 100%; border-radius: inherit; background: var(--accent-2); transition: width 0.12s linear; }
+
+  .realtime-cycle-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 9px; }
+
+  .realtime-cycle-time { color: var(--text-muted); font-size: 11px; font-weight: 600; }
+  .realtime-cycle-time strong { color: var(--accent-2); font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+
+  .realtime-cycle-number { color: var(--text-faint); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+
+  .realtime-result-refresh-line { margin-top: 10px; display: flex; align-items: center; gap: 7px; color: var(--text-faint); font-size: 10px; font-weight: 600; }
+  .realtime-result-refresh-line .refresh-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--accent-2); }
+
+  .realtime-current-result {
+    margin-bottom: 12px; border-radius: var(--radius-md); padding: 12px 13px;
+    border: 1px solid var(--border); background: var(--surface-alt);
   }
 
-  .realtime-empty-text {
-    font-size: 13px;
-    line-height: 1.65;
-    max-width: 440px;
+  .realtime-current-result.ready { border-color: var(--good-border); background: var(--good-bg); }
+  .realtime-current-result.waiting { border-color: var(--warn-border); background: var(--warn-bg); }
+
+  .realtime-current-result-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+  .realtime-current-result-label { color: var(--text-muted); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+  .realtime-current-result-value { color: var(--text); font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; margin-top: 4px; }
+
+  .realtime-current-result.ready .realtime-current-result-value { color: var(--good); }
+  .realtime-current-result.waiting .realtime-current-result-value { color: var(--warn); }
+
+  .realtime-cycle-check {
+    width: 24px; height: 24px; display: grid; place-items: center; border-radius: var(--radius-sm);
+    background: var(--good-bg); color: var(--good); font-size: 11px; flex: 0 0 auto;
   }
 
-  .realtime-controls {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 14px;
+  .realtime-cycle-check.waiting { background: var(--warn-bg); color: var(--warn); }
+
+  .realtime-validation-strip {
+    margin-top: 13px; display: flex; align-items: center; gap: 11px; padding: 11px 12px;
+    border-radius: var(--radius-sm); border: 1px solid var(--good-border); background: var(--good-bg);
   }
+
+  .realtime-validation-icon {
+    width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--good); font-size: 13px; font-weight: 700; flex: 0 0 auto;
+  }
+
+  .realtime-validation-copy { min-width: 0; flex: 1; }
+  .realtime-validation-label { color: var(--text-muted); font-size: 9px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; }
+  .realtime-validation-value { margin-top: 2px; color: var(--text); font-size: 12px; font-weight: 700; }
+  .realtime-validation-status { color: var(--good); font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
+
+  .realtime-snapshot-card { margin-top: 14px; padding: 13px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface-alt); }
+  .realtime-snapshot-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .realtime-snapshot-title { margin-top: 3px; color: var(--text); font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; }
+
+  .realtime-snapshot-badge {
+    border-radius: 999px; padding: 5px 8px; background: var(--accent-soft); color: var(--accent-2);
+    font-size: 8px; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap;
+  }
+
+  .realtime-snapshot-frame {
+    position: relative; overflow: hidden; border-radius: var(--radius-sm); background: #150d08;
+    border: 1px solid var(--border); min-height: 200px; display: flex; align-items: center; justify-content: center;
+  }
+
+  .realtime-snapshot-image { display: block; width: 100%; max-height: 420px; object-fit: contain; }
+  .realtime-snapshot-caption { margin-top: 8px; color: var(--text-faint); font-size: 10px; line-height: 1.5; }
+
+  .realtime-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 14px; }
 
   .realtime-btn {
-    min-height: 52px;
-    border-radius: 16px;
-    border: 1px solid rgba(124,63,29,0.14);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 900;
-    cursor: pointer;
-    transition: all 0.22s ease;
+    min-height: 48px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer;
+    transition: opacity 0.15s ease, background 0.15s ease;
   }
 
-  .realtime-btn.start {
-    color: white;
-    background: linear-gradient(135deg, #4a2412, #7c3f1d 58%, #c7833f);
-    box-shadow: 0 14px 30px rgba(124,63,29,0.22);
-  }
+  .realtime-btn.start { color: var(--accent-ink); background: var(--accent-gradient); border-color: #d58b46; }
+  .realtime-btn.stop { color: var(--bad); background: var(--bad-bg); border-color: var(--bad-border); }
 
-  .realtime-btn.stop {
-    color: #b91c1c;
-    background: rgba(220,38,38,0.07);
-    border-color: rgba(220,38,38,0.20);
-  }
-
-  .realtime-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-  }
-
-  .realtime-btn:disabled {
-    opacity: 0.48;
-    cursor: not-allowed;
-    box-shadow: none;
-  }
+  .realtime-btn:hover:not(:disabled) { opacity: 0.9; }
+  .realtime-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
   .realtime-error {
-    margin-top: 12px;
-    border: 1px solid rgba(220,38,38,0.22);
-    background: rgba(220,38,38,0.08);
-    color: #b91c1c;
-    border-radius: 15px;
-    padding: 11px 13px;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1.55;
+    margin-top: 12px; border: 1px solid var(--bad-border); background: var(--bad-bg);
+    color: var(--bad); border-radius: var(--radius-sm); padding: 11px 13px; font-size: 12px; font-weight: 600; line-height: 1.5;
   }
 
-  .realtime-result-banner {
-    border-radius: 21px;
-    padding: 18px;
-    margin-bottom: 14px;
-    border: 1px solid rgba(124,63,29,0.13);
-    background: rgba(255,247,237,0.72);
+  .realtime-result-banner { border-radius: var(--radius-md); padding: 17px; margin-bottom: 14px; border: 1px solid var(--border); background: var(--surface-alt); }
+  .realtime-result-banner.overheat { border-color: var(--bad-border); background: var(--bad-bg); }
+  .realtime-result-banner.clear { border-color: var(--good-border); background: var(--good-bg); }
+
+  .realtime-result-label { color: var(--text-muted); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 7px; }
+  .realtime-result-value { font-family: 'Space Grotesk', sans-serif; font-size: 21px; font-weight: 700; color: var(--text); }
+
+  .realtime-result-banner.overheat .realtime-result-value { color: var(--bad); }
+  .realtime-result-banner.clear .realtime-result-value { color: var(--good); }
+
+  .realtime-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 14px; }
+
+  .realtime-metric { border: 1px solid var(--border); background: var(--surface-alt); border-radius: var(--radius-sm); padding: 13px; }
+  .realtime-metric-label { color: var(--text-muted); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .realtime-metric-value { font-family: 'IBM Plex Mono', monospace; color: var(--text); font-size: 16px; font-weight: 600; }
+
+  .realtime-seals { display: grid; gap: 9px; }
+
+  .realtime-seal-card { border: 1px solid var(--border); background: var(--surface-alt); border-radius: var(--radius-sm); padding: 12px; }
+  .realtime-seal-head { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 6px; }
+  .realtime-seal-name { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); }
+
+  .realtime-seal-status { font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 999px; background: var(--good-bg); color: var(--good); }
+  .realtime-seal-status.overheat { background: var(--bad-bg); color: var(--bad); }
+
+  .realtime-seal-meta { color: var(--text-muted); font-size: 11px; line-height: 1.55; font-weight: 500; }
+
+  .realtime-note {
+    margin-top: 14px; border: 1px solid var(--warn-border); background: var(--warn-bg);
+    color: var(--warn); border-radius: var(--radius-sm); padding: 11px 12px; font-size: 11px; line-height: 1.55; font-weight: 600;
   }
 
-  .realtime-result-banner.overheat {
-    border-color: rgba(220,38,38,0.24);
-    background: rgba(220,38,38,0.08);
-  }
+    /* ---------- Session bar ---------- */
 
-  .realtime-result-banner.clear {
-    border-color: rgba(25,135,84,0.24);
-    background: rgba(25,135,84,0.08);
-  }
-
-  .realtime-result-label {
-    color: #8a6b5b;
-    font-size: 10px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    margin-bottom: 7px;
-  }
-
-  .realtime-result-value {
-    font-family: 'Syne', sans-serif;
-    font-size: 25px;
-    font-weight: 900;
-    letter-spacing: -0.035em;
-    color: #2a1710;
-  }
-
-  .realtime-result-banner.overheat .realtime-result-value {
-    color: #dc2626;
-  }
-
-  .realtime-result-banner.clear .realtime-result-value {
-    color: #198754;
-  }
-
-  .realtime-metrics {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 14px;
-  }
-
-  .realtime-metric {
-    border: 1px solid rgba(124,63,29,0.11);
-    background: rgba(255,255,255,0.68);
-    border-radius: 17px;
-    padding: 14px;
-  }
-
-  .realtime-metric-label {
-    color: #8a6b5b;
-    font-size: 10px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 6px;
-  }
-
-  .realtime-metric-value {
-    font-family: 'Syne', sans-serif;
-    color: #2a1710;
-    font-size: 18px;
-    font-weight: 900;
-  }
-
-  .realtime-seals {
-    display: grid;
-    gap: 10px;
-  }
-
-  .realtime-seal-card {
-    border: 1px solid rgba(124,63,29,0.11);
-    background: rgba(255,255,255,0.65);
-    border-radius: 17px;
-    padding: 13px;
-  }
-
-  .realtime-seal-head {
+  .session-bar {
+    margin-top: 18px;
+    width: 100%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
     display: flex;
-    justify-content: space-between;
-    gap: 10px;
     align-items: center;
-    margin-bottom: 7px;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow-card);
   }
 
-  .realtime-seal-name {
-    font-family: 'Syne', sans-serif;
+  .session-bar.active { border-color: var(--good-border); background: var(--good-bg); }
+
+  .session-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+
+  .session-icon {
+    width: 42px; height: 42px; border-radius: var(--radius-sm);
+    display: grid; place-items: center; font-size: 20px;
+    background: var(--surface-alt); border: 1px solid var(--border); flex: 0 0 auto;
+  }
+
+  .session-bar.active .session-icon { background: var(--surface); border-color: var(--good-border); }
+
+  .session-label { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 3px; }
+
+  .session-value { font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 700; color: var(--text); word-break: break-all; }
+
+  .session-bar.active .session-value { color: var(--good); }
+
+  .session-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+
+  .session-stage { display: flex; align-items: center; gap: 7px; }
+
+  .session-stage-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--border-strong); }
+
+  .session-stage-dot.done { background: var(--good); }
+
+  .session-stage-text { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+
+  .session-start-btn {
+    min-height: 42px; padding: 0 18px; border-radius: var(--radius-sm);
+    border: none; background: var(--accent-gradient); color: var(--accent-ink);
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+
+  .session-start-btn:hover:not(:disabled) { opacity: 0.9; }
+  .session-start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .session-error {
+    width: 100%; margin-top: 4px; border: 1px solid var(--bad-border); background: var(--bad-bg);
+    color: var(--bad); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 12px; font-weight: 600;
+  }
+
+
+  /* ---------- History ---------- */
+
+  .history-panel { margin-top: 18px; width: 100%; border: 1px solid var(--border); background: var(--surface); backdrop-filter: blur(20px); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-card); }
+
+  .history-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .history-header h3 { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); }
+  .history-header > div { display: flex; align-items: center; gap: 10px; }
+
+  .history-count {
+    background: var(--accent-soft); border: 1px solid var(--border); padding: 6px 11px;
+    border-radius: 999px; font-size: 11px; font-weight: 700; color: var(--accent-2);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .history-table-container { max-height: 440px; overflow-y: auto; overflow-x: auto; border-radius: var(--radius-md); border: 1px solid var(--border); }
+  .history-table-container table { width: 100%; }
+  .history-table-container thead { position: sticky; top: 0; z-index: 2; }
+  .history-image { width: 84px; height: 56px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+
+  /* ---------- Report ---------- */
+
+  .report-page { padding: 22px 0; }
+
+  .report-card {
+    max-width: 1000px; margin: 0 auto; border: 1px solid var(--border); background: var(--surface);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-lg); padding: 28px; box-shadow: var(--shadow-card);
+  }
+
+  .report-kicker { color: var(--accent-2); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .report-title { font-family: 'Space Grotesk', sans-serif; font-size: 27px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .report-description { color: var(--text-muted); font-size: 14px; line-height: 1.7; margin-bottom: 22px; }
+
+  .report-status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+
+  .report-status-card { border: 1px solid var(--border); background: var(--surface-alt); border-radius: var(--radius-md); padding: 16px; }
+  .report-status-card.ready { border-color: var(--good-border); background: var(--good-bg); }
+  .report-status-card.missing { border-color: var(--warn-border); background: var(--warn-bg); }
+
+  .report-status-label { color: var(--text-muted); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 7px; }
+  .report-status-value { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); }
+
+  .report-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+
+  .report-btn {
+    min-height: 52px; border-radius: var(--radius-md); border: 1px solid var(--border);
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity 0.15s ease;
+  }
+
+  .report-btn.generate { color: var(--accent-ink); background: var(--accent-gradient); border-color: #d58b46; box-shadow: 0 14px 30px rgba(200, 119, 56, 0.18); }
+  .report-btn.refresh { color: var(--text); background: var(--surface); }
+
+  .report-btn:hover:not(:disabled) { opacity: 0.9; }
+  .report-btn:disabled { cursor: not-allowed; opacity: 0.45; }
+
+  .report-error {
+    margin-top: 15px; border: 1px solid var(--bad-border); background: var(--bad-bg);
+    color: var(--bad); border-radius: var(--radius-sm); padding: 13px; font-size: 12px; font-weight: 600;
+  }
+
+  .report-success { margin-top: 18px; border: 1px solid var(--good-border); background: var(--good-bg); border-radius: var(--radius-md); padding: 20px; }
+  .report-success-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: var(--good); margin-bottom: 8px; }
+  .report-success-meta { color: var(--text-muted); font-size: 13px; line-height: 1.7; }
+
+  .report-download-btn {
+    display: flex; align-items: center; justify-content: center; min-height: 48px; margin-top: 14px;
+    border-radius: var(--radius-sm); background: var(--good-solid); color: #fff; text-decoration: none; font-weight: 700;
+  }
+
+  /* ---------- Responsive ---------- */
+
+  @media (max-width: 1120px) {
+    .device-hero, .realtime-layout { grid-template-columns: 1fr; }
+    .device-metrics { grid-template-columns: repeat(2, 1fr); }
+    .hero-layout { grid-template-columns: 1fr; }
+    .results-grid { grid-template-columns: 1fr; }
+    .pred-img-frame { min-height: 320px; }
+  }
+
+  @media (max-width: 760px) {
+    .mode-tabs-inner { grid-template-columns: 1fr; }
+    .device-status-row { align-items: stretch; flex-direction: column; }
+    .device-metrics { grid-template-columns: 1fr 1fr; }
+    .realtime-cycle-top, .realtime-cycle-bottom { align-items: flex-start; flex-direction: column; }
+    .top-nav { align-items: flex-start; flex-direction: column; }
+    .nav-pills { justify-content: flex-start; }
+    .metrics-strip, .status-cards, .quick-guide { grid-template-columns: 1fr; }
+    .results-head { flex-direction: column; }
+    .preview-image-box { height: 240px; }
+    .preview-actions { grid-template-columns: 1fr; }
+    .defect-table { min-width: 520px; }
+    .table-wrap { overflow-x: auto; }
+    .report-status-grid, .report-actions { grid-template-columns: 1fr; }
+  }
+
+
+  /* ==========================================================
+     PROFESSIONAL COFFEE QUALITY THEME
+     Dashboard-compatible / readability-first
+  ========================================================== */
+
+  .seal-root {
+    --bg:
+      radial-gradient(
+        900px 480px at 7% -8%,
+        rgba(197, 138, 77, 0.15),
+        transparent 62%
+      ),
+      radial-gradient(
+        780px 460px at 100% 5%,
+        rgba(95, 119, 95, 0.09),
+        transparent 58%
+      ),
+      linear-gradient(180deg, #fbf7f1 0%, #f4ece2 100%);
+
+    --surface: rgba(255, 253, 249, 0.96);
+    --surface-alt: #fbf5ed;
+
+    --border: rgba(90, 55, 38, 0.11);
+    --border-strong: rgba(122, 75, 51, 0.25);
+
+    --text: #30231d;
+    --text-muted: #75665d;
+    --text-faint: #9a897f;
+
+    --accent: #8a5b3d;
+    --accent-2: #a66f43;
+    --accent-soft: rgba(197, 138, 77, 0.11);
+
+    --accent-gradient:
+      linear-gradient(
+        135deg,
+        #4a2a1d 0%,
+        #754631 55%,
+        #b97843 100%
+      );
+
+    --accent-ink: #fffaf3;
+
+    --good: #466b4c;
+    --good-solid: #4f7755;
+    --good-bg: #edf4ed;
+    --good-border: #d5e5d7;
+
+    --bad: #9c493f;
+    --bad-bg: #fff0ed;
+    --bad-border: #efcec8;
+
+    --warn: #866438;
+    --warn-bg: #f8efdf;
+    --warn-border: #ead8b9;
+
+    --radius-lg: 22px;
+    --radius-md: 15px;
+    --radius-sm: 10px;
+
+    --shadow-card:
+      0 12px 32px rgba(43, 24, 18, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 0.86);
+
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .seal-shell {
+    max-width: 1380px;
+    padding: 28px clamp(18px, 2.8vw, 38px) 58px;
+  }
+
+  /* ---------- Module header ---------- */
+
+  .top-nav {
+    padding: 18px 20px;
+    border-color: rgba(255, 255, 255, 0.06);
+    background:
+      radial-gradient(
+        circle at 88% 0%,
+        rgba(224, 169, 107, 0.18),
+        transparent 30%
+      ),
+      linear-gradient(135deg, #4a291d 0%, #28160f 82%);
+    box-shadow: 0 18px 42px rgba(43, 24, 18, 0.13);
+  }
+
+  .brand-logo {
+    width: 46px;
+    height: 46px;
+    background:
+      linear-gradient(
+        145deg,
+        #c58a4d,
+        #e6b97d
+      );
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.25);
+  }
+
+  .brand-title {
+    color: #fffaf3;
+    font-size: 17px;
+  }
+
+  .brand-subtitle {
+    color: #bca696;
     font-size: 13px;
-    font-weight: 900;
-    color: #2a1710;
   }
 
-  .realtime-seal-status {
-    font-size: 10px;
-    font-weight: 900;
-    padding: 5px 8px;
-    border-radius: 999px;
-    background: rgba(25,135,84,0.08);
-    color: #166534;
+  .nav-pill {
+    min-height: 34px;
+    padding: 0 12px;
+    color: #d3bfae;
+    border-color: rgba(255,255,255,.08);
+    background: rgba(255,255,255,.055);
+    font-size: 12px;
   }
 
-  .realtime-seal-status.overheat {
-    background: rgba(220,38,38,0.08);
-    color: #b91c1c;
+  .nav-pill-live {
+    color: #d8ead9;
+    border-color: rgba(133,172,137,.18);
+    background: rgba(95,119,95,.20);
   }
 
-  .realtime-seal-meta {
-    color: #70584b;
+  .live-dot {
+    background: #89b08c;
+    box-shadow: 0 0 0 4px rgba(137,176,140,.10);
+  }
+
+  /* ---------- Active inspection session ---------- */
+
+  .session-bar {
+    margin-top: 16px;
+    padding: 16px 18px;
+    background: rgba(255, 253, 249, 0.96);
+  }
+
+  .session-bar.active {
+    border-color: #d5e5d7;
+    background:
+      linear-gradient(135deg, #f7fbf7, #edf4ed);
+  }
+
+  .session-icon {
+    width: 44px;
+    height: 44px;
+    color: #78513a;
+    background: #f1e4d5;
+  }
+
+  .session-label {
+    color: #806b5f;
     font-size: 11px;
-    line-height: 1.55;
+  }
+
+  .session-value {
+    margin-top: 3px;
+    color: #3b2921;
+    font-size: 14px;
+  }
+
+  .session-bar.active .session-value {
+    color: #416348;
+  }
+
+  .session-stage-text {
+    color: #706159;
+    font-size: 12px;
+  }
+
+  .session-stage-dot {
+    background: #ddd0c5;
+  }
+
+  .session-stage-dot.done {
+    background: #628267;
+  }
+
+  .session-start-btn {
+    min-height: 44px;
+    border-radius: 11px;
+    padding: 0 17px;
+    color: #fffaf3;
+    background:
+      linear-gradient(
+        135deg,
+        #5a3726,
+        #8a5b3d
+      );
+    box-shadow: 0 9px 20px rgba(43,24,18,.12);
+    font-size: 12px;
+  }
+
+  /* ---------- Primary mode navigation ---------- */
+
+  .mode-tabs {
+    margin-top: 16px;
+  }
+
+  .mode-tabs-inner {
+    width: min(1040px, 100%);
+    gap: 7px;
+    padding: 7px;
+    background: rgba(255, 253, 249, 0.96);
+    box-shadow: 0 8px 24px rgba(43,24,18,.05);
+  }
+
+  .mode-tab {
+    min-height: 48px;
+    border-radius: 11px;
+    color: #6f6057;
+    font-size: 13px;
     font-weight: 700;
   }
 
-  .realtime-note {
-    margin-top: 14px;
-    border: 1px solid rgba(217,119,6,0.20);
-    background: rgba(217,119,6,0.07);
-    color: #92400e;
-    border-radius: 15px;
-    padding: 11px 12px;
-    font-size: 11px;
-    line-height: 1.55;
-    font-weight: 800;
+  .mode-tab:hover {
+    color: #4b3328;
+    background: #f5ece2;
   }
 
-  @media (max-width: 1120px) {
-    .device-hero,
-    .realtime-layout {
-      grid-template-columns: 1fr;
-    }
-
-    .device-metrics {
-      grid-template-columns: repeat(2, 1fr);
-    }
+  .mode-tab.active {
+    color: #fffaf3;
+    background:
+      linear-gradient(
+        135deg,
+        #4e2d20,
+        #855339
+      );
+    box-shadow: 0 8px 18px rgba(43,24,18,.13);
   }
 
-  @media (max-width: 1120px) {
-    .seal-shell {
-      padding: 20px;
-    }
+  /* ---------- Upload / AI page ---------- */
 
-    .hero-layout {
-      grid-template-columns: 1fr;
-      min-height: auto;
-    }
-
-    .hero-left,
-    .upload-panel {
-      min-height: auto;
-    }
-
-    .metrics-strip {
-      margin-top: 24px;
-    }
-
-    .results-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .pred-img-frame {
-      min-height: 340px;
-    }
-  }
-
-
-  @media (max-width: 760px) {
-    .mode-tabs-inner {
-      grid-template-columns: 1fr;
-    }
-
-    .device-info-card,
-    .device-control-card {
-      border-radius: 26px;
-      padding: 20px;
-    }
-
-    .device-status-row {
-      align-items: stretch;
-      flex-direction: column;
-    }
-
-    .device-metrics {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  @media (max-width: 760px) {
-    .seal-shell {
-      padding: 16px;
-    }
-
-    .top-nav {
-      align-items: flex-start;
-      flex-direction: column;
-      border-radius: 22px;
-    }
-
-    .nav-pills {
-      justify-content: flex-start;
-    }
-
-    .hero-left {
-      padding: 26px;
-      border-radius: 28px;
-    }
-
-    .upload-panel {
-      border-radius: 28px;
-      padding: 17px;
-    }
-
-    .seal-title {
-      font-size: clamp(38px, 12vw, 58px);
-    }
-
-    .seal-subtitle {
-      font-size: 15px;
-    }
-
-    .metrics-strip,
-    .status-cards,
-    .quick-guide {
-      grid-template-columns: 1fr;
-    }
-
-    .results-head {
-      flex-direction: column;
-    }
-
-    .results-main-title {
-      font-size: 24px;
-    }
-
-    .preview-image-box {
-      height: 270px;
-    }
-
-    .preview-actions {
-      grid-template-columns: 1fr;
-    }
-
-    .defect-table {
-      min-width: 520px;
-    }
-
-    .table-wrap {
-      overflow-x: auto;
-    }
-  }
-
-  @media (max-width: 460px) {
-  .seal-shell {
-    padding: 12px;
+  .hero-layout {
+    gap: 18px;
+    padding: 20px 0;
   }
 
   .hero-left,
   .upload-panel,
-  .results-section {
-    border-radius: 24px;
+  .results-section,
+  .device-info-card,
+  .device-control-card,
+  .realtime-camera-card,
+  .realtime-info-card,
+  .history-panel,
+  .report-card {
+    border-color: var(--border);
+    background: rgba(255, 253, 249, 0.96);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: var(--shadow-card);
   }
 
   .hero-left {
+    padding: 30px;
+  }
+
+  .seal-badge {
+    margin-bottom: 18px;
+    color: #83583c;
+    border-color: rgba(197,138,77,.16);
+    background: #f5eadc;
+    font-size: 11px;
+  }
+
+  .seal-badge-dot {
+    background: #b97843;
+  }
+
+  .seal-title {
+    color: #2b1812;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(36px, 4vw, 50px);
+    line-height: 1.03;
+    letter-spacing: -0.035em;
+  }
+
+  .gradient-word {
+    color: #9a6338;
+  }
+
+  .seal-subtitle {
+    max-width: 650px;
+    color: #716159;
+    font-size: 15px;
+    line-height: 1.72;
+  }
+
+  .hero-chip {
+    padding: 10px 12px;
+    color: #60483c;
+    background: #fbf5ed;
+    border-color: var(--border);
+    font-size: 12px;
+  }
+
+  .metric-card {
+    padding: 17px;
+    background: #fbf5ed;
+  }
+
+  .metric-icon {
+    color: #74503c;
+    background: #f1e4d5;
+  }
+
+  .metric-value {
+    color: #36251e;
+    font-size: 17px;
+  }
+
+  .metric-label {
+    color: #7f6e64;
+    font-size: 12px;
+  }
+
+  .upload-panel {
     padding: 22px;
   }
 
+  .panel-eyebrow {
+    color: #8c5c3c;
+    font-size: 11px;
+  }
+
+  .panel-title {
+    color: #30231d;
+    font-size: 21px;
+  }
+
+  .panel-status {
+    color: #45694b;
+    border-color: #d5e5d7;
+    background: #edf4ed;
+    font-size: 12px;
+  }
+
   .upload-zone {
-    padding: 20px;
-    min-height: 330px;
+    min-height: 340px;
+    color: #4d3a30;
+    background:
+      linear-gradient(
+        145deg,
+        #fffdf9,
+        #f9f1e8
+      );
+    border-color: rgba(122,75,51,.24);
+  }
+
+  .upload-zone:hover,
+  .upload-zone.drag-over {
+    border-color: #b97843;
+    background: #f7ecdf;
   }
 
   .upload-icon-wrap {
-    width: 82px;
-    height: 82px;
-    font-size: 36px;
-    border-radius: 26px;
+    color: #754d37;
+    background: #f2e5d6;
   }
 
   .upload-label {
-    font-size: 20px;
+    color: #34231c;
+    font-size: 19px;
   }
 
-  .detect-btn {
-    min-height: 60px;
-    font-size: 15px;
+  .upload-hint {
+    color: #7c6a60;
+    font-size: 13px;
   }
 
-  .brand-title,
+  .upload-btn-fake,
+  .detect-btn,
+  .device-test-btn,
+  .realtime-btn.start,
+  .report-btn.generate {
+    color: #fffaf3;
+    background:
+      linear-gradient(
+        135deg,
+        #4e2d20,
+        #7a4933,
+        #a86c40
+      );
+    border-color: transparent;
+    box-shadow: 0 12px 26px rgba(43,24,18,.14);
+  }
+
+  .format-pill {
+    color: #806d61;
+    background: #fffdf9;
+    font-size: 11px;
+  }
+
+  .preview-card {
+    background: #fbf5ed;
+  }
+
+  .preview-image-box {
+    background: #2d1b14;
+  }
+
+  .preview-floating-tag {
+    color: #e1efe2;
+    background: rgba(44, 28, 20, .88);
+  }
+
+  .preview-info-label {
+    color: #8b5d40;
+    font-size: 11px;
+  }
+
+  .preview-info-name {
+    color: #34231c;
+    font-size: 17px;
+  }
+
+  .preview-meta {
+    color: #78675d;
+    background: #fffdf9;
+    font-size: 12px;
+  }
+
+  .soft-btn {
+    color: #594239;
+    background: #fffdf9;
+    font-size: 13px;
+  }
+
+  .soft-btn:hover {
+    background: #f4eadf;
+  }
+
+  /* ---------- Vision results ---------- */
+
+  .results-section {
+    padding: 24px;
+  }
+
+  .results-kicker {
+    color: #527158;
+    font-size: 11px;
+  }
+
+  .results-main-title {
+    color: #2b1812;
+    font-size: 25px;
+  }
+
+  .results-summary-pill {
+    color: #416548;
+    border-color: #d5e5d7;
+    background: #edf4ed;
+  }
+
+  .status-card {
+    padding: 18px;
+    background: #fbf5ed;
+  }
+
+  .status-card.good {
+    border-color: #d5e5d7;
+    background: #edf4ed;
+  }
+
+  .status-card.bad {
+    border-color: #efcec8;
+    background: #fff0ed;
+  }
+
+  .sc-label {
+    color: #806e63;
+    font-size: 11px;
+  }
+
+  .sc-value {
+    color: #30231d;
+    font-size: 26px;
+  }
+
+  .sc-value.good {
+    color: #446b4b;
+  }
+
+  .sc-value.bad {
+    color: #9b473e;
+  }
+
+  .sc-caption {
+    color: #7b6a60;
+    font-size: 12px;
+  }
+
+  .result-block {
+    background: #fffdf9;
+  }
+
+  .block-header {
+    background: #f8f1e8;
+  }
+
+  .block-title {
+    color: #4a342a;
+    font-size: 12px;
+  }
+
+  .pred-img-frame {
+    background: #2d1b14;
+  }
+
+  .defect-table {
+    font-size: 13px;
+  }
+
+  .defect-table thead tr {
+    background: #f7efe6;
+  }
+
+  .defect-table th {
+    color: #76645a;
+    font-size: 11px;
+  }
+
+  .defect-table td {
+    color: #423028;
+    font-size: 13px;
+  }
+
+  .defect-table tbody tr:hover {
+    background: #fbf5ed;
+  }
+
+  .row-num {
+    color: #725f54;
+    background: #f6ede4;
+  }
+
+  .class-pill {
+    color: #3d2b23;
+  }
+
+  .conf-bar-track {
+    background: #eadfd4;
+  }
+
+  .conf-bar-fill {
+    background:
+      linear-gradient(
+        90deg,
+        #7b4c34,
+        #c58a4d
+      );
+  }
+
+  .conf-text {
+    color: #8b5a3d;
+  }
+
+  .empty-state,
+  .insight-box {
+    color: #78685f;
+  }
+
+  .insight-box {
+    background: #fbf5ed;
+  }
+
+  .insight-title {
+    color: #3d2c24;
+  }
+
+  /* ---------- Physical leak detection ---------- */
+
+  .device-page,
+  .realtime-page,
+  .report-page {
+    padding: 20px 0;
+  }
+
+  .device-info-card,
+  .device-control-card {
+    padding: 26px;
+  }
+
+  .device-kicker,
+  .realtime-kicker,
+  .report-kicker {
+    color: #8b5a3d;
+    font-size: 11px;
+  }
+
+  .device-title {
+    color: #2b1812;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(30px, 3vw, 39px);
+  }
+
+  .device-description,
+  .report-description {
+    color: #726159;
+    font-size: 14px;
+  }
+
+  .device-flow-item {
+    background: #fbf5ed;
+  }
+
+  .device-flow-num {
+    color: #85583d;
+    background: #f1e4d5;
+  }
+
+  .device-flow-text {
+    color: #6e5d54;
+    font-size: 13px;
+  }
+
+  .device-status-badge {
+    color: #75645b;
+    background: #fbf5ed;
+  }
+
+  .device-status-badge.connected {
+    color: #45684b;
+    border-color: #d5e5d7;
+    background: #edf4ed;
+  }
+
+  .device-status-badge.disconnected {
+    color: #9c493f;
+    border-color: #efcec8;
+    background: #fff0ed;
+  }
+
+  .refresh-device-btn {
+    color: #574137;
+    background: #fffdf9;
+    font-size: 12px;
+  }
+
+  .refresh-device-btn:hover {
+    background: #f6ede4;
+  }
+
+  .device-ready-box {
+    background: #fbf5ed;
+  }
+
+  .device-ready-title {
+    color: #3b2921;
+    font-size: 16px;
+  }
+
+  .device-ready-text {
+    color: #74635a;
+    font-size: 13px;
+  }
+
+  .device-warning {
+    color: #7b5c34;
+    background: #f8efdf;
+  }
+
+  .device-result-section {
+    background: #fbf5ed;
+  }
+
+  .device-result-label {
+    color: #7c6b61;
+    font-size: 11px;
+  }
+
+  .device-result-value {
+    font-size: 26px;
+  }
+
+  .device-result-banner.good .device-result-value {
+    color: #456a4b;
+  }
+
+  .device-result-banner.leak .device-result-value {
+    color: #9b463e;
+  }
+
+  .device-metric {
+    background: #fffdf9;
+  }
+
+  .device-metric-label {
+    color: #806f64;
+    font-size: 10px;
+  }
+
+  .device-metric-value {
+    color: #3d2c24;
+  }
+
+  .readings-box {
+    background: #fffdf9;
+  }
+
+  .readings-title {
+    color: #49342a;
+  }
+
+  .reading-pill {
+    color: #75655b;
+    background: #f7efe6;
+  }
+
+  /* ---------- Real-time AI inspection ---------- */
+
+  .realtime-camera-card,
+  .realtime-info-card {
+    padding: 22px;
+  }
+
+  .realtime-title {
+    color: #30231d;
+    font-size: 21px;
+  }
+
+  .realtime-status {
+    color: #736158;
+    background: #fbf5ed;
+  }
+
+  .realtime-status.running {
+    color: #45694b;
+    border-color: #d5e5d7;
+    background: #edf4ed;
+  }
+
+  .realtime-video-frame,
+  .realtime-snapshot-frame {
+    background:
+      radial-gradient(
+        circle at 50% 50%,
+        #342119,
+        #1e120d
+      );
+    border-color: rgba(90,55,38,.18);
+  }
+
+  .realtime-empty {
+    color: #c6b4a8;
+  }
+
+  .realtime-empty-title {
+    color: #fff3e8;
+    font-size: 19px;
+  }
+
+  .realtime-empty-text {
+    color: #c4b1a5;
+    font-size: 13px;
+  }
+
+  .realtime-cycle-card,
+  .realtime-current-result,
+  .realtime-snapshot-card,
+  .realtime-metric,
+  .realtime-seal-card {
+    background: #fbf5ed;
+  }
+
+  .realtime-cycle-kicker {
+    color: #8b5a3d;
+    font-size: 10px;
+  }
+
+  .realtime-cycle-title {
+    color: #3d2b23;
+    font-size: 14px;
+  }
+
+  .realtime-cycle-phase {
+    color: #44694a;
+    background: #edf4ed;
+    border-color: #d5e5d7;
+    font-size: 10px;
+  }
+
+  .realtime-progress-track {
+    background: #e9ddd1;
+  }
+
+  .realtime-progress-fill {
+    background:
+      linear-gradient(
+        90deg,
+        #78503a,
+        #c58a4d
+      );
+  }
+
+  .realtime-cycle-time {
+    color: #74635a;
+    font-size: 11px;
+  }
+
+  .realtime-cycle-time strong {
+    color: #8b5a3d;
+  }
+
+  .realtime-cycle-number,
+  .realtime-result-refresh-line {
+    color: #948278;
+    font-size: 10px;
+  }
+
+  .realtime-current-result-label,
+  .realtime-validation-label {
+    color: #806e64;
+    font-size: 10px;
+  }
+
+  .realtime-current-result-value,
+  .realtime-validation-value {
+    color: #3b2921;
+    font-size: 13px;
+  }
+
+  .realtime-validation-strip {
+    border-color: #d5e5d7;
+    background: #edf4ed;
+  }
+
+  .realtime-validation-status {
+    color: #456a4b;
+    font-size: 10px;
+  }
+
+  .realtime-snapshot-title {
+    color: #3c2a22;
+    font-size: 14px;
+  }
+
+  .realtime-snapshot-badge {
+    color: #83563b;
+    background: #f2e4d4;
+    font-size: 9px;
+  }
+
+  .realtime-snapshot-caption {
+    color: #8d7a6f;
+    font-size: 11px;
+  }
+
+  .realtime-btn {
+    font-size: 13px;
+  }
+
+  .realtime-btn.stop {
+    color: #9c493f;
+    background: #fff0ed;
+    border-color: #efcec8;
+  }
+
+  .realtime-result-label {
+    color: #7e6c62;
+    font-size: 10px;
+  }
+
+  .realtime-result-value {
+    color: #382720;
+    font-size: 22px;
+  }
+
+  .realtime-metric-label {
+    color: #7c6b61;
+    font-size: 10px;
+  }
+
+  .realtime-metric-value {
+    color: #392821;
+    font-size: 16px;
+  }
+
+  .realtime-seal-name {
+    color: #392820;
+    font-size: 14px;
+  }
+
+  .realtime-seal-meta {
+    color: #78675e;
+    font-size: 12px;
+  }
+
+  .realtime-note {
+    color: #775b36;
+    background: #f8efdf;
+    border-color: #ead8b9;
+    font-size: 12px;
+  }
+
+  /* ---------- Histories ---------- */
+
+  .history-panel {
+    padding: 22px;
+  }
+
+  .history-header h3 {
+    color: #34231c;
+    font-size: 17px;
+  }
+
+  .history-count {
+    color: #82573d;
+    background: #f3e6d7;
+    font-size: 11px;
+  }
+
+  .history-table-container {
+    border-color: var(--border);
+    background: #fffdf9;
+  }
+
+  .history-image {
+    border-color: rgba(90,55,38,.12);
+    box-shadow: 0 4px 12px rgba(43,24,18,.07);
+  }
+
+  /* ---------- Final report ---------- */
+
+  .report-card {
+    max-width: 1080px;
+    padding: 30px;
+  }
+
+  .report-title {
+    color: #2b1812;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 31px;
+  }
+
+  .report-status-card {
+    background: #fbf5ed;
+  }
+
+  .report-status-card.ready {
+    border-color: #d5e5d7;
+    background: #edf4ed;
+  }
+
+  .report-status-card.missing {
+    border-color: #ead8b9;
+    background: #f8efdf;
+  }
+
+  .report-status-label {
+    color: #7c6b61;
+    font-size: 11px;
+  }
+
+  .report-status-value {
+    color: #3c2a22;
+    font-size: 17px;
+  }
+
+  .report-btn {
+    font-size: 13px;
+  }
+
+  .report-btn.refresh {
+    color: #584238;
+    background: #fffdf9;
+  }
+
+  .report-success {
+    border-color: #d5e5d7;
+    background: #edf4ed;
+  }
+
+  .report-success-title {
+    color: #426649;
+    font-size: 19px;
+  }
+
+  .report-success-meta {
+    color: #657267;
+    font-size: 13px;
+  }
+
+  .report-download-btn {
+    background:
+      linear-gradient(
+        135deg,
+        #45694b,
+        #628167
+      );
+  }
+
+  /* ---------- Errors ---------- */
+
+  .error-box,
+  .device-error,
+  .realtime-error,
+  .session-error,
+  .report-error {
+    color: #94443c;
+    background: #fff0ed;
+    border-color: #efcec8;
+    font-size: 12px;
+  }
+
+  /* ---------- Readability / polish ---------- */
+
+  .seal-root button,
+  .seal-root a {
+    font-family: 'Inter', sans-serif;
+  }
+
+  .seal-root button {
+    transition:
+      transform .18s ease,
+      box-shadow .18s ease,
+      background .18s ease,
+      border-color .18s ease,
+      opacity .18s ease;
+  }
+
+  .detect-btn:hover:not(:disabled),
+  .device-test-btn:hover:not(:disabled),
+  .session-start-btn:hover:not(:disabled),
+  .realtime-btn.start:hover:not(:disabled),
+  .report-btn.generate:hover:not(:disabled) {
+    opacity: 1;
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px rgba(43,24,18,.18);
+  }
+
+  .hero-left,
+  .upload-panel,
+  .results-section,
+  .device-info-card,
+  .device-control-card,
+  .realtime-camera-card,
+  .realtime-info-card,
+  .history-panel,
+  .report-card,
+  .session-bar {
+    transition:
+      box-shadow .2s ease,
+      border-color .2s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .seal-root *,
+    .seal-root *::before,
+    .seal-root *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+    }
+  }
+
+  @media (max-width: 760px) {
+
+  .seal-shell {
+    padding: 16px 13px 38px;
+  }
+
+  .top-nav {
+    padding: 16px;
+  }
+
+  .brand-title {
+    font-size: 16px;
+  }
+
   .brand-subtitle {
     white-space: normal;
   }
+
+  .mode-tab {
+    font-size: 13px;
+  }
+
+  .hero-left,
+  .device-info-card,
+  .device-control-card,
+  .realtime-camera-card,
+  .realtime-info-card,
+  .report-card {
+    padding: 20px;
+  }
+
+  .seal-title {
+    font-size: 36px;
+  }
+
+  .device-title {
+    font-size: 31px;
+  }
+
+  .report-title {
+    font-size: 27px;
+  }
+
+  .session-right {
+    width: 100%;
+  }
+
+  .session-start-btn {
+    width: 100%;
+  }
+
 }
 
 
-/* ==================================================
-   FINAL REPORT
-   ================================================== */
+    /* =====================================================
+   INSPECTION WORKFLOW
+===================================================== */
 
-.report-page {
-  padding: 34px 0 28px;
-  animation: fadeUp 0.65s ease both;
-}
+.workflow-panel {
+  width: 100%;
+  margin-top: 16px;
+  padding: 20px;
 
-.report-card {
-  max-width: 1100px;
-  margin: 0 auto;
-  border: 1px solid rgba(124,63,29,0.14);
-  background:
-    linear-gradient(
-      145deg,
-      rgba(255,255,255,0.92),
-      rgba(255,247,237,0.74)
-    );
-  border-radius: 32px;
-  padding: 30px;
-  box-shadow: 0 24px 80px rgba(90,49,24,0.13);
-}
-
-.report-kicker {
-  color: #c7833f;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
-
-.report-title {
-  font-family: 'Syne', sans-serif;
-  font-size: 34px;
-  font-weight: 900;
-  color: #2a1710;
-  letter-spacing: -0.04em;
-  margin-bottom: 8px;
-}
-
-.report-description {
-  color: #70584b;
-  font-size: 14px;
-  line-height: 1.7;
-  margin-bottom: 24px;
-}
-
-.report-status-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.report-status-card {
-  border: 1px solid rgba(124,63,29,0.12);
-  background: rgba(255,255,255,0.70);
+  border: 1px solid #eadfd6;
   border-radius: 18px;
-  padding: 17px;
+
+  background: rgba(255, 253, 249, 0.97);
+
+  box-shadow:
+    0 10px 30px rgba(43, 24, 18, 0.06);
 }
 
-.report-status-card.ready {
-  border-color: rgba(25,135,84,0.22);
-  background: rgba(25,135,84,0.08);
+
+.workflow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 16px;
+  margin-bottom: 18px;
 }
 
-.report-status-card.missing {
-  border-color: rgba(217,119,6,0.22);
-  background: rgba(217,119,6,0.07);
-}
 
-.report-status-label {
-  color: #8a6b5b;
+.workflow-kicker {
   font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
+  font-weight: 800;
+
   letter-spacing: 0.1em;
+
+  color: #9a694c;
+
+  margin-bottom: 4px;
+}
+
+
+.workflow-title {
+  font-family: 'Space Grotesk', sans-serif;
+
+  font-size: 19px;
+  font-weight: 700;
+
+  color: #39251c;
+}
+
+
+.workflow-current-badge {
+  padding: 8px 12px;
+
+  border-radius: 999px;
+
+  border: 1px solid #ded3cb;
+
+  background: #f7f1ec;
+
+  color: #806f65;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+
+.workflow-current-badge.running {
+  border-color: #dfb98d;
+
+  background: #fff3e4;
+
+  color: #8b572f;
+}
+
+
+.workflow-current-badge.completed {
+  border-color: #b7d9bd;
+
+  background: #eef8f0;
+
+  color: #347542;
+}
+
+
+.workflow-steps {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    32px
+    minmax(0, 1fr)
+    32px
+    minmax(0, 1fr);
+
+  align-items: center;
+
+  gap: 8px;
+}
+
+
+.workflow-step {
+  min-height: 126px;
+
+  padding: 15px;
+
+  border-radius: 14px;
+
+  border: 1px solid #e8ddd4;
+
+  background: #faf7f3;
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.workflow-step-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  margin-bottom: 13px;
+}
+
+
+.workflow-step-number {
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: 0.08em;
+
+  color: #aa978a;
+}
+
+
+.workflow-step-icon {
+  width: 31px;
+  height: 31px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 9px;
+
+  background: #f1e9e2;
+
+  font-size: 14px;
+}
+
+
+.workflow-step-title {
+  color: #4b3328;
+
+  font-family: 'Space Grotesk', sans-serif;
+
+  font-size: 14px;
+  font-weight: 700;
+
   margin-bottom: 7px;
 }
 
-.report-status-value {
-  font-family: 'Syne', sans-serif;
-  font-size: 17px;
-  font-weight: 900;
-  color: #2a1710;
+
+.workflow-step-status {
+  font-size: 11px;
+  font-weight: 700;
+
+  color: #99877b;
 }
 
-.report-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 18px;
+
+/* ACTIVE */
+
+.workflow-step.active {
+  border-color: #c99364;
+
+  background:
+    linear-gradient(
+      145deg,
+      #fff8ef,
+      #f8e9d9
+    );
+
+  box-shadow:
+    0 8px 22px rgba(125, 72, 38, 0.10);
 }
 
-.report-btn {
-  min-height: 56px;
-  border-radius: 17px;
-  border: 1px solid rgba(124,63,29,0.15);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 900;
-  cursor: pointer;
-  transition: all 0.22s ease;
+
+.workflow-step.active .workflow-step-status {
+  color: #955a30;
 }
 
-.report-btn.generate {
-  color: white;
-  background: linear-gradient(
-    135deg,
-    #4a2412,
-    #7c3f1d 58%,
-    #c7833f
-  );
+
+/* COMPLETED */
+
+.workflow-step.done {
+  border-color: #afd3b5;
+
+  background: #f0f8f1;
 }
 
-.report-btn.refresh {
-  color: #5a2d17;
-  background: rgba(255,255,255,0.75);
+
+.workflow-step.done .workflow-step-status {
+  color: #3a8048;
 }
 
-.report-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-}
 
-.report-btn:disabled {
-  cursor: not-allowed;
+/* LOCKED */
+
+.workflow-step.locked {
   opacity: 0.48;
+
+  background: #f4f1ee;
 }
 
-.report-error {
-  margin-top: 15px;
-  border: 1px solid rgba(220,38,38,0.22);
-  background: rgba(220,38,38,0.08);
-  color: #b91c1c;
-  border-radius: 15px;
-  padding: 13px;
-  font-size: 12px;
-  font-weight: 800;
+
+.workflow-step.locked .workflow-step-status {
+  color: #998b83;
 }
 
-.report-success {
-  margin-top: 20px;
-  border: 1px solid rgba(25,135,84,0.22);
-  background: rgba(25,135,84,0.07);
-  border-radius: 20px;
-  padding: 20px;
+
+/* WAITING */
+
+.workflow-step.waiting {
+  background: #faf7f3;
 }
 
-.report-success-title {
-  font-family: 'Syne', sans-serif;
+
+.workflow-arrow {
+  text-align: center;
+
+  color: #bba99c;
+
   font-size: 20px;
-  font-weight: 900;
-  color: #166534;
-  margin-bottom: 8px;
+  font-weight: 700;
 }
 
-.report-success-meta {
-  color: #5f493d;
-  font-size: 13px;
-  line-height: 1.7;
-}
 
-.report-download-btn {
+/* CURRENT STATE */
+
+.workflow-current-state {
+  margin-top: 14px;
+
+  padding: 12px 14px;
+
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 52px;
-  margin-top: 15px;
-  border-radius: 15px;
-  background: #198754;
-  color: white;
-  text-decoration: none;
-  font-weight: 900;
+  justify-content: space-between;
+
+  gap: 16px;
+
+  border-radius: 12px;
+
+  border: 1px solid #e9ddd4;
+
+  background: #f8f3ee;
 }
 
-@media (max-width: 760px) {
-  .report-status-grid,
-  .report-actions {
+
+.workflow-current-label {
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: 0.08em;
+
+  color: #a18d80;
+
+  margin-bottom: 3px;
+}
+
+
+.workflow-current-value {
+  color: #563a2d;
+
+  font-family: 'IBM Plex Mono', monospace;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+
+.workflow-current-description {
+  color: #7c695e;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  text-align: right;
+}
+
+
+@media (max-width: 850px) {
+
+  .workflow-steps {
     grid-template-columns: 1fr;
   }
-}
 
+  .workflow-arrow {
+    transform: rotate(90deg);
+  }
+
+  .workflow-header,
+  .workflow-current-state {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .workflow-current-description {
+    text-align: left;
+  }
+
+  }
 
 `;
 
@@ -2490,6 +2819,15 @@ function SealUploadPage() {
   const [dragOver, setDragOver] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+    // Packet inspection session
+  const [activePacketId, setActivePacketId] = useState(null);
+  const [sessionStarting, setSessionStarting] = useState(false);
+  const [sessionError, setSessionError] = useState("");
+  const [visionStageDone, setVisionStageDone] = useState(false);
+  const [leakStageDone, setLeakStageDone] = useState(false);
+
+  const [stageError, setStageError] = useState("");
+
   // Main page tabs
   const [activeTab, setActiveTab] = useState("realtime");
 
@@ -2498,6 +2836,13 @@ function SealUploadPage() {
   const [deviceResult, setDeviceResult] = useState(null);
   const [deviceLoading, setDeviceLoading] = useState(false);
   const [deviceError, setDeviceError] = useState("");
+  const [leakHistory, setLeakHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  const [sealHistory, setSealHistory] = useState([]);
+  const [sealHistoryLoading, setSealHistoryLoading] = useState(false);
+
+  const [finalInspectionImage, setFinalInspectionImage] = useState(null);
 
   // Real-time two-stage AI state
   const [realtimeRunning, setRealtimeRunning] = useState(false);
@@ -2506,64 +2851,312 @@ function SealUploadPage() {
   const [realtimeError, setRealtimeError] = useState("");
   const [realtimeVideoUrl, setRealtimeVideoUrl] = useState("");
 
+  // Real-time 3-second inspection cycle UI
+  const REALTIME_CYCLE_MS = 3000;
+  const [realtimeElapsed, setRealtimeElapsed] = useState(0);
+  const [realtimeCycle, setRealtimeCycle] = useState(1);
+  const latestRealtimeResultRef = useRef(null);
+
   // Final inspection report state
   const [reportStatus, setReportStatus] = useState(null);
   const [generatedReport, setGeneratedReport] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState("");
 
+    const refreshSessionStatus = async () => {
+      try {
+        const data = await getCurrentInspectionSession();
+
+        if (data?.active && data?.inspection) {
+          const inspection = data.inspection;
+
+          const packetId =
+            inspection.packet_id || null;
+
+          const visionDone = Boolean(
+            inspection.vision_result ||
+            inspection.realtime_result ||
+            inspection.seal_result
+          );
+
+          const leakDone = Boolean(
+            inspection.leak_result ||
+            inspection.leak_test_result
+          );
+
+          // Restore active inspection state
+          setActivePacketId(packetId);
+          setVisionStageDone(visionDone);
+          setLeakStageDone(leakDone);
+
+          // ==========================================
+          // RESTORE CORRECT WORKFLOW PAGE
+          // ==========================================
+
+          if (!visionDone) {
+            // Stage 1 still needs to be completed
+            setActiveTab("realtime");
+
+          } else if (!leakDone) {
+            // Stage 1 completed.
+            // Continue from Leak Detection.
+            setActiveTab("device");
+
+          } else {
+            // Both inspection stages completed.
+            // Continue from Final Report.
+            setActiveTab("report");
+          }
+
+        } else {
+          // ==========================================
+          // NO ACTIVE INSPECTION
+          // Normal browsing mode
+          // ==========================================
+
+          setActivePacketId(null);
+          setVisionStageDone(false);
+          setLeakStageDone(false);
+
+          // Do NOT force navigation here.
+          // User can normally browse all 3 tabs.
+        }
+
+      } catch (error) {
+        console.error(
+          "Failed to refresh inspection session:",
+          error
+        );
+      }
+    };
+
+  const handleStartInspectionSession = async () => {
+  if (sessionStarting) {
+    return;
+  }
+
+  try {
+    setSessionStarting(true);
+    setSessionError("");
+    setStageError("");
+
+    // Safety check:
+    // Never create another packet while one inspection is active.
+    const current = await getCurrentInspectionSession();
+
+    if (current?.active && current?.inspection?.packet_id) {
+      setActivePacketId(current.inspection.packet_id);
+
+      setVisionStageDone(
+        Boolean(
+          current.inspection.vision_result ||
+          current.inspection.realtime_result ||
+          current.inspection.seal_result
+        )
+      );
+
+      setLeakStageDone(
+        Boolean(
+          current.inspection.leak_result ||
+          current.inspection.leak_test_result
+        )
+      );
+
+      setSessionError(
+        `Inspection ${current.inspection.packet_id} is already active.`
+      );
+
+      return;
+    }
+
+    const data = await startInspectionSession();
+
+      if (!data?.packet_id) {
+        throw new Error("Backend did not return a Packet ID.");
+      }
+
+      // New packet = completely fresh workflow.
+      setActivePacketId(data.packet_id);
+      setVisionStageDone(false);
+      setLeakStageDone(false);
+
+      // Clear old results from previous packet.
+      setRealtimeResult(null);
+      setRealtimeError("");
+      setDeviceResult(null);
+      setDeviceError("");
+
+      setReportStatus(null);
+      setGeneratedReport(null);
+      setReportError("");
+
+      setFinalInspectionImage(null);
+
+      // Always start at the first inspection stage.
+      setActiveTab("realtime");
+
+    } catch (error) {
+      console.error("Could not start inspection session:", error);
+
+      setSessionError(
+        error?.response?.data?.detail ||
+          error?.message ||
+          "Could not start a new inspection session."
+      );
+    } finally {
+      setSessionStarting(false);
+    }
+  };
+
   const checkReportStatus = async () => {
-  try {
-    setReportError("");
+    try {
+      setReportError("");
 
-    const data = await getInspectionReportStatus();
+      const data = await getInspectionReportStatus();
 
-    setReportStatus(data);
-  } catch (error) {
-    console.error(error);
+      setReportStatus(data);
+    } catch (error) {
+      console.error(error);
 
-    setReportStatus(null);
+      setReportStatus(null);
 
-    setReportError(
-      error?.response?.data?.detail ||
-        "Could not check final report status."
-    );
-  }
-};
+      setReportError(
+        error?.response?.data?.detail ||
+          "Could not check final report status."
+      );
+    }
+  };
 
+  const formatInspectionDateTime = (value) => {
+    if (!value) return "—";
 
-const handleGenerateReport = async () => {
-  try {
-    setReportLoading(true);
-    setReportError("");
-    setGeneratedReport(null);
+    // The backend stores/serialises timestamps as naive UTC strings
+    // (e.g. "2026-08-26T21:24:10.928000") with no trailing "Z" and no
+    // timezone offset. When a string like that is handed straight to
+    // `new Date()`, the browser treats it as LOCAL time instead of UTC,
+    // which silently shifts every displayed date/time by the local UTC
+    // offset (+5:30 for Sri Lanka) and can even roll the date over to
+    // the next/previous day. Normalise to a real UTC string first.
+    let normalized = String(value).trim();
 
-    const data = await generateInspectionReport();
+    const hasTimezoneInfo = /Z$|[+-]\d{2}:?\d{2}$/.test(normalized);
 
-    setGeneratedReport(data);
+    if (!hasTimezoneInfo) {
+      normalized = `${normalized}Z`;
+    }
 
-    // Refresh report status after generation
-    await checkReportStatus();
-  } catch (error) {
-    console.error(error);
+    const date = new Date(normalized);
 
-    setReportError(
-      error?.response?.data?.detail ||
-        "Could not generate the final inspection report."
-    );
-  } finally {
-    setReportLoading(false);
-  }
-};
-    useEffect(() => {
-      if (activeTab === "device") {
-        checkLeakDeviceStatus();
+    if (Number.isNaN(date.getTime())) {
+      return "—";
+    }
+
+    return date.toLocaleString("en-LK", {
+      timeZone: "Asia/Colombo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+  };
+
+  const handleGenerateReport = async () => {
+    if (!activePacketId) {
+      setReportError("No active inspection packet.");
+      return;
+    }
+
+    if (!visionStageDone) {
+      setReportError(
+        "Complete the Real-Time AI Seal Inspection first."
+      );
+      return;
+    }
+
+    if (!leakStageDone) {
+      setReportError(
+        "Complete the Packet Leak Detection first."
+      );
+      return;
+    }
+
+    try {
+      setReportLoading(true);
+      setReportError("");
+      setGeneratedReport(null);
+
+      const status = await getInspectionReportStatus();
+
+      setReportStatus(status);
+
+      if (!status?.ready) {
+        setReportError(
+          "The final inspection report is not ready yet. Please verify both inspection stages are completed."
+        );
+        return;
       }
 
-      if (activeTab === "report") {
-        checkReportStatus();
-      }
-    }, [activeTab]);
+      const data = await generateInspectionReport();
+
+      setGeneratedReport(data);
+
+      // Refresh final report status
+      await checkReportStatus();
+
+      // Final report is the last workflow stage.
+      // Re-sync the inspection session with backend.
+      // If backend has completed/closed this packet,
+      // activePacketId will become null and
+      // "Start New Inspection" becomes available again.
+      await refreshSessionStatus();
+
+    } catch (error) {
+      console.error(
+        "Final report generation error:",
+        error
+      );
+
+      setReportError(
+        error?.response?.data?.detail ||
+          "Could not generate the final inspection report."
+      );
+
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  useEffect(() => {
+  refreshSessionStatus();
+}, []);
+
+useEffect(() => {
+
+  if (activeTab === "device") {
+
+    checkLeakDeviceStatus();
+
+    loadLeakHistory();
+
+  }
+
+
+  if (activeTab === "report") {
+
+    checkReportStatus();
+
+  }
+
+  if (activeTab === "realtime") {
+
+    loadSealHistory();
+
+  }
+
+}, [activeTab]);
 
   const fileInputRef = useRef(null);
 
@@ -2666,105 +3259,556 @@ const handleGenerateReport = async () => {
     }
   };
 
-  const handleLeakDeviceTest = async () => {
-    if (!deviceStatus?.connected) {
+  // ======================================
+// loadLeakHistory() function
+// ======================================
+
+const loadLeakHistory = async () => {
+
+  try {
+
+    setHistoryLoading(true);
+
+    const data = await getLeakTestHistory();
+
+    setLeakHistory(
+      data?.history || []
+    );
+
+
+  } catch(error){
+
+    console.error(error);
+
+  } finally {
+
+    setHistoryLoading(false);
+
+  }
+
+};
+
+// ======================================
+// LOAD SEAL INSPECTION HISTORY
+// ======================================
+
+const loadSealHistory = async () => {
+
+  try {
+
+    setSealHistoryLoading(true);
+
+    const data = await getSealInspectionHistory();
+
+    const history = Array.isArray(data?.history)
+      ? [...data.history].sort(
+          (a, b) =>
+            new Date(b?.created_at || 0).getTime() -
+            new Date(a?.created_at || 0).getTime()
+        )
+      : [];
+
+    setSealHistory(history);
+
+
+    // Always keep the newest saved inspection image in sync.
+    if (history.length > 0 && history[0]?.image_path) {
+
+      setFinalInspectionImage(
+        buildImageUrl(history[0].image_path)
+      );
+
+    }
+
+    return history;
+
+  } catch(error){
+
+    console.error(error);
+    return [];
+
+  } finally {
+
+    setSealHistoryLoading(false);
+
+  }
+
+};
+
+const refreshRealtimeHistory = async () => {
+
+  // The backend saves the completed inspection in a background task.
+  // Give that save a short window, then verify that the newest record
+  // has appeared instead of showing stale historical data.
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+
+    const history = await loadSealHistory();
+
+    if (history.length > 0) {
+      return history;
+    }
+
+    await new Promise((resolve) =>
+      window.setTimeout(resolve, 350)
+    );
+
+  }
+
+  return [];
+
+};
+
+
+const handleLeakDeviceTest = async () => {
+  if (!activePacketId) {
+
+  setDeviceError("");
+
+}
+
+  if (activePacketId && !visionStageDone) {
+    setDeviceError(
+      "Complete the Real-Time AI Seal Inspection before running the Packet Leak Detection."
+    );
+    return;
+  }
+
+  if (leakStageDone) {
+    setDeviceError(
+      "Packet Leak Detection is already completed for this packet."
+    );
+    return;
+  }
+
+  if (!deviceStatus?.connected) {
+    setDeviceError(
+      "Device is not connected. Connect the Arduino and refresh the device status first."
+    );
+    return;
+  }
+
+  if (deviceLoading) {
+    return;
+  }
+
+  try {
+    setDeviceLoading(true);
+    setDeviceError("");
+    setStageError("");
+    setDeviceResult(null);
+
+    // Run physical packet leak test
+    const data = await runLeakDeviceTest();
+
+    const result = data?.result || null;
+
+    setDeviceResult(result);
+
+    // Explicit device/backend error
+    if (result?.error) {
       setDeviceError(
-        "Device is not connected. Connect the Arduino and refresh the device status first."
+        `Device error: ${result.error}`
       );
       return;
     }
 
-    try {
-      setDeviceLoading(true);
-      setDeviceError("");
-      setDeviceResult(null);
-
-      const data = await runLeakDeviceTest();
-      setDeviceResult(data.result || null);
-
-      if (data?.result?.error) {
-        setDeviceError(`Device error: ${data.result.error}`);
-      }
-    } catch (error) {
-      console.error(error);
-      const apiMessage =
-        error?.response?.data?.detail ||
-        "Packet leak test failed. Check the Arduino connection, HX711, and backend.";
-      setDeviceError(apiMessage);
-    } finally {
-      setDeviceLoading(false);
-    }
-  };
-
-  const handleStartRealtime = async () => {
-    try {
-      setRealtimeStarting(true);
-      setRealtimeError("");
-      setRealtimeResult(null);
-
-      const data = await startRealtimeSealInspection();
-
-      if (!data?.started) {
-        setRealtimeRunning(false);
-        setRealtimeError(
-          data?.message || "Could not start real-time seal inspection."
-        );
-        return;
-      }
-
-      setRealtimeRunning(true);
-      setRealtimeVideoUrl(`${getRealtimeVideoUrl()}?t=${Date.now()}`);
-    } catch (error) {
-      console.error(error);
-      setRealtimeRunning(false);
-      setRealtimeError(
-        error?.response?.data?.detail ||
-          "Could not start the IP Webcam real-time inspection."
+    if (!result) {
+      setDeviceError(
+        "Leak test finished without a valid result."
       );
-    } finally {
-      setRealtimeStarting(false);
+      return;
     }
-  };
+
+    // Refresh history only for UI display
+    await loadLeakHistory();
+
+    let leakCompleted = false;
+
+    // Verify that the CURRENT packet leak result
+    // has actually been saved in the backend.
+    for (let attempt = 0; attempt < 6; attempt++) {
+      try {
+        const current =
+          await getCurrentInspectionSession();
+
+        const inspection =
+          current?.inspection;
+
+        const samePacket =
+          current?.active &&
+          (
+            !activePacketId ||
+            inspection?.packet_id === activePacketId
+          );
+
+        const hasLeakResult = Boolean(
+          inspection?.leak_result ||
+          inspection?.leak_test_result
+        );
+
+        if (samePacket && hasLeakResult) {
+          leakCompleted = true;
+          break;
+        }
+
+      } catch (error) {
+        console.error(
+          "Could not verify Leak Test stage:",
+          error
+        );
+      }
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, 500)
+      );
+    }
+
+    if (leakCompleted) {
+      // CURRENT packet leak test really completed
+      setLeakStageDone(true);
+
+      setStageError("");
+      setDeviceError("");
+
+    } else {
+      setLeakStageDone(false);
+
+      setDeviceError(
+        "The leak test completed, but the result has not been saved for this packet yet."
+      );
+    }
+
+    // Final backend sync
+    await refreshSessionStatus();
+
+  } catch (error) {
+    console.error(
+      "Packet leak test error:",
+      error
+    );
+
+    const apiMessage =
+      error?.response?.data?.detail ||
+      "Packet leak test failed. Check the Arduino connection, HX711, and backend.";
+
+    setDeviceError(apiMessage);
+
+  } finally {
+    setDeviceLoading(false);
+  }
+};
+
+  
+
+      const handleStartRealtime = async () => {
+
+        if (visionStageDone) {
+          setRealtimeError(
+            "AI Vision inspection is already completed for this packet."
+          );
+          return;
+        }
+
+        if (realtimeRunning || realtimeStarting) {
+          return;
+        }
+
+        try {
+          setRealtimeStarting(true);
+          setRealtimeError("");
+          setStageError("");
+
+          setRealtimeResult(null);
+          latestRealtimeResultRef.current = null;
+
+          const data = await startRealtimeSealInspection();
+
+          if (!data?.started) {
+            setRealtimeRunning(false);
+
+            setRealtimeError(
+              data?.message ||
+                "Could not start real-time seal inspection."
+            );
+
+            return;
+          }
+
+          setRealtimeRunning(true);
+          setRealtimeElapsed(0);
+          setRealtimeCycle(1);
+
+          latestRealtimeResultRef.current = null;
+
+          setRealtimeResult(null);
+
+          setRealtimeVideoUrl(
+            `${getRealtimeVideoUrl()}?t=${Date.now()}`
+          );
+
+        } catch (error) {
+          console.error("Real-time start error:", error);
+
+          setRealtimeRunning(false);
+
+          setRealtimeError(
+            error?.response?.data?.detail ||
+              "Could not start the IP Webcam real-time inspection."
+          );
+
+        } finally {
+          setRealtimeStarting(false);
+        }
+      };
 
   const handleStopRealtime = async () => {
+    if (!realtimeRunning) {
+      return;
+    }
+
     try {
       setRealtimeError("");
+
       await stopRealtimeSealInspection();
+
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Real-time stop error:",
+        error
+      );
+
       setRealtimeError(
         error?.response?.data?.detail ||
           "Could not stop the real-time inspection cleanly."
       );
+
     } finally {
       setRealtimeRunning(false);
+
       setRealtimeVideoUrl("");
+      setRealtimeElapsed(0);
+      setRealtimeCycle(1);
+
+      latestRealtimeResultRef.current = null;
+
+      // Refresh history only for UI display.
+      // Do NOT use old history to complete the current packet.
+      await refreshRealtimeHistory();
+
+      let visionCompleted = false;
+
+      // Give the backend a short time to save
+      // the FINAL result for the CURRENT packet.
+      for (let attempt = 0; attempt < 6; attempt++) {
+        try {
+          const current =
+            await getCurrentInspectionSession();
+
+          const inspection =
+            current?.inspection;
+
+          const samePacket =
+            current?.active &&
+            inspection?.packet_id === activePacketId;
+
+          const hasVisionResult = Boolean(
+            inspection?.vision_result ||
+            inspection?.realtime_result ||
+            inspection?.seal_result
+          );
+
+          if (samePacket && hasVisionResult) {
+            visionCompleted = true;
+            break;
+          }
+
+        } catch (error) {
+          console.error(
+            "Could not verify AI stage:",
+            error
+          );
+        }
+
+        // Wait before checking backend again
+        await new Promise((resolve) =>
+          setTimeout(resolve, 500)
+        );
+      }
+
+      if (visionCompleted) {
+        // CURRENT packet AI stage is really completed.
+        setVisionStageDone(true);
+
+        setStageError("");
+
+      } else {
+        setVisionStageDone(false);
+
+        setRealtimeError(
+          "The AI inspection stopped, but a completed result has not been saved for this packet yet."
+        );
+      }
+
+      // Final sync with backend
+      await refreshSessionStatus();
     }
   };
 
-  const handleTabChange = async (nextTab) => {
-    if (activeTab === "realtime" && nextTab !== "realtime" && realtimeRunning) {
-      await handleStopRealtime();
+
+   const goToLeakTest = () => {
+    if (!activePacketId) {
+      setStageError(
+        "Please start a new inspection first."
+      );
+      return;
     }
 
-    setActiveTab(nextTab);
+    if (!visionStageDone) {
+      setStageError(
+        "Complete the Real-Time AI Seal Inspection first."
+      );
+      return;
+    }
+
+    setStageError("");
+    setActiveTab("device");
   };
 
-  
 
+  const goToFinalReport = async () => {
+    if (!activePacketId) {
+      setStageError(
+        "No active inspection packet."
+      );
+      return;
+    }
+
+    if (!visionStageDone) {
+      setStageError(
+        "Complete the Real-Time AI Seal Inspection first."
+      );
+      return;
+    }
+
+    if (!leakStageDone) {
+      setStageError(
+        "Complete the Packet Leak Detection first."
+      );
+      return;
+    }
+
+    setStageError("");
+
+    setActiveTab("report");
+
+    await checkReportStatus();
+  };
+
+
+      const handleTabChange = async (nextTab) => {
+        setStageError("");
+
+        // ==================================================
+        // NO ACTIVE INSPECTION
+        // Normal browsing mode.
+        // User can freely open all 3 pages.
+        // ==================================================
+        if (!activePacketId) {
+          setActiveTab(nextTab);
+          return;
+        }
+
+        // ==================================================
+        // ACTIVE INSPECTION WORKFLOW
+        // From here, strict stage order is enforced.
+        // ==================================================
+
+        // Stop live inspection before leaving realtime tab
+        if (
+          activeTab === "realtime" &&
+          nextTab !== "realtime" &&
+          realtimeRunning
+        ) {
+          await handleStopRealtime();
+        }
+
+        // ----------------------------------------------
+        // REAL-TIME AI STAGE
+        // ----------------------------------------------
+        if (nextTab === "realtime") {
+          // Once AI stage is completed,
+          // do not allow returning to it during this packet.
+          if (visionStageDone) {
+            setStageError(
+              "Real-Time AI Seal Inspection is already completed."
+            );
+            return;
+          }
+        }
+
+        // ----------------------------------------------
+        // LEAK TEST STAGE
+        // ----------------------------------------------
+        if (nextTab === "device") {
+          if (!visionStageDone) {
+            setStageError(
+              "Complete the Real-Time AI Seal Inspection first."
+            );
+            return;
+          }
+
+          if (leakStageDone) {
+            setStageError(
+              "Packet Leak Detection is already completed."
+            );
+            return;
+          }
+        }
+
+        // ----------------------------------------------
+        // FINAL REPORT STAGE
+        // ----------------------------------------------
+        if (nextTab === "report") {
+          if (!visionStageDone) {
+            setStageError(
+              "Complete the Real-Time AI Seal Inspection first."
+            );
+            return;
+          }
+
+          if (!leakStageDone) {
+            setStageError(
+              "Complete the Packet Leak Detection first."
+            );
+            return;
+          }
+        }
+
+        setActiveTab(nextTab);
+      };
+
+  // ==================================================
+  // REAL-TIME 3-SECOND INSPECTION CYCLE
+  // ==================================================
   useEffect(() => {
     if (!realtimeRunning) return undefined;
 
     let cancelled = false;
+    let resultPollId = null;
+    let cycleTimerId = null;
+    let elapsedTimerId = null;
 
     const loadLatestResult = async () => {
       try {
         const data = await getRealtimeSealResult();
-        if (!cancelled) {
-          setRealtimeResult(data?.result || null);
+
+        if (!cancelled && data?.result) {
+          latestRealtimeResultRef.current = data.result;
         }
       } catch (error) {
         console.error(error);
+
         if (!cancelled) {
           setRealtimeError(
             error?.response?.data?.detail ||
@@ -2775,13 +3819,78 @@ const handleGenerateReport = async () => {
     };
 
     loadLatestResult();
-    const intervalId = window.setInterval(loadLatestResult, 1200);
+
+    // Read the backend frequently, but do not visually replace the
+    // completed inspection summary until the 3-second cycle ends.
+    resultPollId = window.setInterval(loadLatestResult, 500);
+
+    const cycleStartedAt = Date.now();
+
+    elapsedTimerId = window.setInterval(() => {
+      if (cancelled) return;
+
+      const elapsed = Date.now() - cycleStartedAt;
+      setRealtimeElapsed(
+        Math.min(elapsed, REALTIME_CYCLE_MS)
+      );
+    }, 100);
+
+    cycleTimerId = window.setInterval(async () => {
+      if (cancelled) return;
+
+      const newestResult = latestRealtimeResultRef.current;
+
+      console.log("NEWEST RESULT", newestResult);
+
+      if (newestResult) {
+
+        const capturedFrames =
+        newestResult.inspection_cycle?.frames_captured ?? 0;
+
+
+        const requiredFrames =
+        newestResult.inspection_cycle?.required_frames ?? 3;
+
+
+        if (capturedFrames >= requiredFrames) {
+
+            setRealtimeResult(newestResult);
+
+            setRealtimeError("");
+
+        }
+
+      
+
+      }
+    
+
+      setRealtimeElapsed(0);
+      setRealtimeCycle((previous) => previous + 1);
+
+      // Backend history insertion happens in the background.
+      // Retry briefly so the new record appears immediately after save.
+      await refreshRealtimeHistory();
+
+    }, REALTIME_CYCLE_MS);
 
     return () => {
       cancelled = true;
-      window.clearInterval(intervalId);
+
+      if (resultPollId) {
+        window.clearInterval(resultPollId);
+      }
+
+      if (cycleTimerId) {
+        window.clearInterval(cycleTimerId);
+      }
+
+      if (elapsedTimerId) {
+        window.clearInterval(elapsedTimerId);
+      }
     };
   }, [realtimeRunning]);
+
 
   const getStatusClass = (status) => {
     if (!status) return "";
@@ -2817,6 +3926,8 @@ const handleGenerateReport = async () => {
     return `${cleanBase}/${cleanPath}`;
   };
 
+  const formatSriLankaDateTime = (value) => formatInspectionDateTime(value);
+
   const formatRealtimeConfidence = (value) => {
     const num = Number(value || 0);
     const pct = num <= 1 ? num * 100 : num;
@@ -2836,25 +3947,171 @@ const handleGenerateReport = async () => {
     ? realtimeResult.seals
     : [];
 
+  const realtimeProgress = Math.min(
+    100,
+    Math.max(0, (realtimeElapsed / REALTIME_CYCLE_MS) * 100)
+  );
+
+  const realtimeRemaining = Math.max(
+    0,
+    (REALTIME_CYCLE_MS - realtimeElapsed) / 1000
+  );
+
+  const realtimeCyclePhase =
+    realtimeElapsed < 900
+      ? "CAPTURING FRAMES"
+      : realtimeElapsed < 1900
+        ? "ANALYSING SEALS"
+        : realtimeElapsed < 2600
+          ? "VALIDATING RESULT"
+          : "FINALISING INSPECTION";
+
+  const normalizedWorkflowState = useMemo(() => {
+  // No inspection running
+  if (!activePacketId) {
+    return "NOT_STARTED";
+  }
+
+  // STEP 01
+  if (!visionStageDone) {
+    if (realtimeRunning) {
+      return "CAMERA_RUNNING";
+    }
+
+    return "CAMERA_READY";
+  }
+
+  // STEP 02
+  if (!leakStageDone) {
+    if (deviceLoading) {
+      return "LEAK_RUNNING";
+    }
+
+    return "LEAK_READY";
+  }
+
+  // STEP 03
+  if (reportLoading) {
+    return "REPORT_GENERATING";
+  }
+
+  if (generatedReport) {
+    return "COMPLETED";
+  }
+
+  return "REPORT_READY";
+
+}, [
+  activePacketId,
+  visionStageDone,
+  leakStageDone,
+  realtimeRunning,
+  deviceLoading,
+  reportLoading,
+  generatedReport
+]);
+
+
+const workflowLabel = useMemo(() => {
+  switch (normalizedWorkflowState) {
+    case "NOT_STARTED":
+      return "Start a new inspection to begin";
+
+    case "CAMERA_READY":
+      return "Ready for AI Seal Inspection";
+
+    case "CAMERA_RUNNING":
+      return "AI Seal Inspection is running";
+
+    case "LEAK_READY":
+      return "Ready for Physical Leak Test";
+
+    case "LEAK_RUNNING":
+      return "Physical Leak Test is running";
+
+    case "REPORT_READY":
+      return "Ready to generate Final Report";
+
+    case "REPORT_GENERATING":
+      return "Generating Final Inspection Report";
+
+    case "COMPLETED":
+      return "Inspection workflow completed";
+
+    default:
+      return "Waiting";
+  }
+}, [normalizedWorkflowState]);
+
+
+const workflowStepClass = (step) => {
+
+  // No workflow currently running
+  if (!activePacketId) {
+    return "waiting";
+  }
+
+  // ==========================================
+  // STEP 01 — AI Seal Inspection
+  // ==========================================
+  if (step === "camera") {
+
+    if (visionStageDone) {
+      return "done";
+    }
+
+    return "active";
+  }
+
+  // ==========================================
+  // STEP 02 — Leak Test
+  // ==========================================
+  if (step === "leak") {
+
+    if (leakStageDone) {
+      return "done";
+    }
+
+    if (visionStageDone) {
+      return "active";
+    }
+
+    return "locked";
+  }
+
+  // ==========================================
+  // STEP 03 — Final Report
+  // ==========================================
+  if (step === "report") {
+
+    if (generatedReport) {
+      return "done";
+    }
+
+    if (
+      visionStageDone &&
+      leakStageDone
+    ) {
+      return "active";
+    }
+
+    return "locked";
+  }
+
+  return "waiting";
+};
+
   return (
     <>
       <style>{styles}</style>
 
       <main className="seal-root">
-        <div className="seal-bg">
-          <div className="orb orb-1" />
-          <div className="orb orb-2" />
-          <div className="orb orb-3" />
-        </div>
-
-        <div className="scan-line" />
-
         <div className="seal-shell">
           <nav className="top-nav">
             <div className="brand">
               <div className="brand-logo">📦</div>
               <div className="brand-text">
-                <div className="brand-title">Coffee Seal Vision AI</div>
+                <div className="brand-title">Coffee Seal Vision</div>
                 <div className="brand-subtitle">Industrial packet seal quality inspection</div>
               </div>
             </div>
@@ -2862,12 +4119,271 @@ const handleGenerateReport = async () => {
             <div className="nav-pills">
               <div className="nav-pill nav-pill-live">
                 <span className="live-dot" />
-                AI Ready
+                 Ready
               </div>
               <div className="nav-pill">YOLO Detection</div>
               <div className="nav-pill">Seal QC</div>
             </div>
           </nav>
+
+                    <div className={`session-bar ${activePacketId ? "active" : ""}`}>
+            <div className="session-left">
+              <div className="session-icon">🏷️</div>
+              <div>
+                <div className="session-label">Active Inspection Session</div>
+                <div className="session-value">
+                  {activePacketId || "No active packet — start a new inspection"}
+                </div>
+              </div>
+            </div>
+
+            <div className="session-right">
+              <div className="session-stage">
+                <span className={`session-stage-dot ${visionStageDone ? "done" : ""}`} />
+                <span className="session-stage-text"> Vision</span>
+              </div>
+
+              <div className="session-stage">
+                <span className={`session-stage-dot ${leakStageDone ? "done" : ""}`} />
+                <span className="session-stage-text">Leak Test</span>
+              </div>
+
+              <button
+                type="button"
+                className="session-start-btn"
+                onClick={handleStartInspectionSession}
+                disabled={sessionStarting || !!activePacketId}
+              >
+                {sessionStarting
+                  ? "Starting..."
+                  : activePacketId
+                    ? "Inspection In Progress"
+                    : "＋ Start New Inspection"}
+              </button>
+            </div>
+
+            {sessionError && (
+              <div className="session-error">⚠️ {sessionError}</div>
+            )}
+
+            {stageError && (
+              <div className="session-error">
+                ⚠️ {stageError}
+              </div>
+            )}
+          </div>
+
+          {/* =================================================
+              INSPECTION WORKFLOW STATUS
+          ================================================= */}
+
+          <section className="workflow-panel">
+
+            <div className="workflow-header">
+
+              <div>
+                <div className="workflow-kicker">
+                  PACKET INSPECTION PROCESS
+                </div>
+
+                <div className="workflow-title">
+                  Inspection Workflow
+                </div>
+              </div>
+
+              <div
+                className={`workflow-current-badge ${
+                  normalizedWorkflowState === "COMPLETED"
+                    ? "completed"
+                    : activePacketId
+                      ? "running"
+                      : ""
+                }`}
+              >
+                {activePacketId
+                  ? workflowLabel
+                  : "No Active Inspection"}
+              </div>
+
+            </div>
+
+
+            <div className="workflow-steps">
+
+              {/* ==============================
+                  STEP 01
+              ============================== */}
+
+              <div
+                className={`workflow-step ${workflowStepClass(
+                  "camera"
+                )}`}
+              >
+
+                <div className="workflow-step-top">
+
+                  <div className="workflow-step-number">
+                    STEP 01
+                  </div>
+
+                  <div className="workflow-step-icon">
+                    📹
+                  </div>
+
+                </div>
+
+                <div className="workflow-step-title">
+                  Seal Inspection
+                </div>
+
+                <div className="workflow-step-status">
+
+                  {!activePacketId
+                    ? "Available"
+
+                    : visionStageDone
+                      ? "✓ Completed"
+
+                      : realtimeRunning
+                        ? "● Running"
+
+                        : "Ready"}
+
+                </div>
+
+              </div>
+
+
+              <div className="workflow-arrow">
+                →
+              </div>
+
+
+              {/* ==============================
+                  STEP 02
+              ============================== */}
+
+              <div
+                className={`workflow-step ${workflowStepClass(
+                  "leak"
+                )}`}
+              >
+
+                <div className="workflow-step-top">
+
+                  <div className="workflow-step-number">
+                    STEP 02
+                  </div>
+
+                  <div className="workflow-step-icon">
+                    ⚙️
+                  </div>
+
+                </div>
+
+                <div className="workflow-step-title">
+                  Physical Leak Test
+                </div>
+
+                <div className="workflow-step-status">
+
+                  {!activePacketId
+                    ? "Available"
+
+                    : leakStageDone
+                      ? "✓ Completed"
+
+                      : deviceLoading
+                        ? "● Running"
+
+                        : visionStageDone
+                          ? "Ready"
+
+                          : "🔒 Locked"}
+
+                </div>
+
+              </div>
+
+
+              <div className="workflow-arrow">
+                →
+              </div>
+
+
+              {/* ==============================
+                  STEP 03
+              ============================== */}
+
+              <div
+                className={`workflow-step ${workflowStepClass(
+                  "report"
+                )}`}
+              >
+
+                <div className="workflow-step-top">
+
+                  <div className="workflow-step-number">
+                    STEP 03
+                  </div>
+
+                  <div className="workflow-step-icon">
+                    📄
+                  </div>
+
+                </div>
+
+                <div className="workflow-step-title">
+                  Final Report
+                </div>
+
+                <div className="workflow-step-status">
+
+                  {!activePacketId
+                    ? "Available"
+
+                    : generatedReport
+                      ? "✓ Completed"
+
+                      : reportLoading
+                        ? "● Generating"
+
+                        : visionStageDone &&
+                          leakStageDone
+                          ? "Ready"
+
+                          : "🔒 Locked"}
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            {/* CURRENT WORKFLOW STATE */}
+
+            <div className="workflow-current-state">
+
+              <div>
+
+                <div className="workflow-current-label">
+                  CURRENT WORKFLOW STATE
+                </div>
+
+                <div className="workflow-current-value">
+                  {normalizedWorkflowState}
+                </div>
+
+              </div>
+
+              <div className="workflow-current-description">
+                {workflowLabel}
+              </div>
+
+            </div>
+
+          </section>
 
           <div className="mode-tabs">
             <div className="mode-tabs-inner">
@@ -2883,6 +4399,10 @@ const handleGenerateReport = async () => {
                 type="button"
                 className={`mode-tab ${activeTab === "realtime" ? "active" : ""}`}
                 onClick={() => handleTabChange("realtime")}
+                disabled={
+                  !!activePacketId &&
+                  visionStageDone
+                }
               >
                 📹 Real-Time Seal Inspection
               </button>
@@ -2891,6 +4411,13 @@ const handleGenerateReport = async () => {
                 type="button"
                 className={`mode-tab ${activeTab === "device" ? "active" : ""}`}
                 onClick={() => handleTabChange("device")}
+                disabled={
+                  !!activePacketId &&
+                  (
+                    !visionStageDone ||
+                    leakStageDone
+                  )
+                }
               >
                 ⚙️ Packet Leak Detection
               </button>
@@ -2899,6 +4426,13 @@ const handleGenerateReport = async () => {
                 type="button"
                 className={`mode-tab ${activeTab === "report" ? "active" : ""}`}
                 onClick={() => handleTabChange("report")}
+                disabled={
+                  !!activePacketId &&
+                  (
+                    !visionStageDone ||
+                    !leakStageDone
+                  )
+                }
               >
                 📄 Final Inspection Report
               </button>
@@ -2913,7 +4447,7 @@ const handleGenerateReport = async () => {
               <div className="hero-content">
                 <div className="seal-badge">
                   <span className="seal-badge-dot" />
-                  AI-Powered Inspection
+                  Powered Inspection
                 </div>
 
                 <h1 className="seal-title">
@@ -2922,7 +4456,7 @@ const handleGenerateReport = async () => {
                 </h1>
 
                 <p className="seal-subtitle">
-                  Upload a coffee packet seal image and let the AI model analyze
+                  Upload a coffee packet seal image and let the model analyze
                   packaging quality, identify possible seal defects, and generate
                   a visual prediction overlay for inspection support.
                 </p>
@@ -3094,7 +4628,7 @@ const handleGenerateReport = async () => {
                   </div>
                   <div className="guide-item">
                     <div className="guide-icon">2️⃣</div>
-                    <div className="guide-text">Run AI scan</div>
+                    <div className="guide-text">Run scan</div>
                   </div>
                   <div className="guide-item">
                     <div className="guide-icon">3️⃣</div>
@@ -3110,7 +4644,7 @@ const handleGenerateReport = async () => {
               <div className="results-head">
                 <div>
                   <div className="results-kicker">Inspection Completed</div>
-                  <h2 className="results-main-title">AI Detection Results</h2>
+                  <h2 className="results-main-title"> Detection Results</h2>
                 </div>
 
                 <div className="results-summary-pill">
@@ -3124,7 +4658,7 @@ const handleGenerateReport = async () => {
                   <div className="sc-label">Final Status</div>
                   <div className={`sc-value ${statusClass}`}>{result.status || "Unknown"}</div>
                   <div className="sc-caption">
-                    Overall seal quality decision from the AI inspection output.
+                    Overall seal quality decision from the inspection output.
                   </div>
                   <div className="sc-icon">{statusClass === "good" ? "✅" : "⚠️"}</div>
                 </div>
@@ -3331,14 +4865,67 @@ const handleGenerateReport = async () => {
                     )}
                   </div>
 
+                  {realtimeRunning && (
+                    <div className="realtime-cycle-card">
+                      <div className="realtime-cycle-top">
+                        <div className="realtime-cycle-left">
+                          <div className="realtime-cycle-kicker">
+                            Automatic Inspection Cycle
+                          </div>
+
+                          <div className="realtime-cycle-title">
+                            AI Frame Capture & Analysis
+                          </div>
+                        </div>
+
+                        <div className="realtime-cycle-phase">
+                          <span className="realtime-cycle-phase-dot" />
+                          {realtimeCyclePhase}
+                        </div>
+                      </div>
+
+                      <div className="realtime-progress-track">
+                        <div
+                          className="realtime-progress-fill"
+                          style={{ width: `${realtimeProgress}%` }}
+                        />
+                      </div>
+
+                      <div className="realtime-cycle-bottom">
+                        <div className="realtime-cycle-time">
+                          Capturing inspection frames...
+                      </div>
+
+                        <div className="realtime-cycle-number">
+                          Inspection Frame Analysis
+                        </div>
+                      </div>
+
+                      <div className="realtime-result-refresh-line">
+                        <span className="refresh-dot" />
+                        Camera captures multiple frames and AI selects the most reliable inspection result automatically.
+                      </div>
+                    </div>
+                  )}
+
                   <div className="realtime-controls">
                     <button
                       type="button"
                       className="realtime-btn start"
                       onClick={handleStartRealtime}
-                      disabled={realtimeRunning || realtimeStarting}
+                      disabled={ 
+                        visionStageDone || 
+                        realtimeRunning || 
+                        realtimeStarting 
+                      }
                     >
-                      {realtimeStarting ? "Connecting Camera..." : "▶ Start Live Inspection"}
+                      {realtimeStarting
+                        ? "Connecting Camera..."
+                        : visionStageDone
+                          ? "✓ AI Vision Completed"
+                          : !activePacketId
+                            ? "Start New Inspection First"
+                            : "▶ Start Live Inspection"}
                     </button>
 
                     <button
@@ -3351,6 +4938,17 @@ const handleGenerateReport = async () => {
                     </button>
                   </div>
 
+                  {visionStageDone && !realtimeRunning && (
+                    <button
+                      type="button"
+                      className="realtime-btn start"
+                      onClick={goToLeakTest}
+                      style={{ marginTop: "10px" }}
+                    >
+                      Next Step → Packet Leak Detection
+                    </button>
+                  )}
+
                   {realtimeError && (
                     <div className="realtime-error">⚠️ {realtimeError}</div>
                   )}
@@ -3361,6 +4959,41 @@ const handleGenerateReport = async () => {
                     <div>
                       <div className="realtime-kicker">Live AI Result</div>
                       <div className="realtime-title">Inspection Summary</div>
+                    </div>
+
+                    {realtimeRunning && (
+                      <div className="realtime-status running">
+                        <span className="device-dot" />
+                        Cycle #{realtimeCycle}
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    className={`realtime-current-result ${
+                      realtimeResult ? "ready" : "waiting"
+                    }`}
+                  >
+                    <div className="realtime-current-result-head">
+                      <div>
+                        <div className="realtime-current-result-label">
+                          Current AI Result
+                        </div>
+
+                        <div className="realtime-current-result-value">
+                          {realtimeResult
+                            ? "Latest completed inspection is displayed"
+                            : "Waiting for the first completed inspection"}
+                        </div>
+                      </div>
+
+                      <div
+                        className={`realtime-cycle-check ${
+                          realtimeResult ? "" : "waiting"
+                        }`}
+                      >
+                        {realtimeResult ? "✓" : "…"}
+                      </div>
                     </div>
                   </div>
 
@@ -3413,6 +5046,63 @@ const handleGenerateReport = async () => {
                     </div>
                   </div>
 
+                  {realtimeResult && (
+                    <div className="realtime-validation-strip">
+                      <div className="realtime-validation-icon">✓</div>
+
+                      <div className="realtime-validation-copy">
+                        <div className="realtime-validation-label">
+                          Frame Validation
+                        </div>
+
+                        <div className="realtime-validation-value">
+                          {realtimeResult.validation?.confirmed_frames ?? 0}
+                          {" / "}
+                          {realtimeResult.validation?.required_frames ?? 3}
+                          {" frames"}
+                        </div>
+                      </div>
+
+                      <div className="realtime-validation-status">
+                        {realtimeResult.validation?.status || "CHECKING"}
+                      </div>
+                    </div>
+                  )}
+
+                  {realtimeResult?.inspection_image && (
+                    <div className="realtime-snapshot-card">
+                      <div className="realtime-snapshot-head">
+                        <div>
+                          <div className="realtime-kicker">
+                            Completed Inspection Evidence
+                          </div>
+                          <div className="realtime-snapshot-title">
+                            Latest Annotated Snapshot
+                          </div>
+                        </div>
+
+                        <div className="realtime-snapshot-badge">
+                          AI FRAME ANALYSIS RESULT
+                        </div>
+                      </div>
+
+                      <div className="realtime-snapshot-frame">
+                        <img
+                          src={`${buildImageUrl(
+                            realtimeResult.inspection_image
+                          )}?cycle=${realtimeCycle}`}
+                          alt="Latest AI annotated seal inspection"
+                          className="realtime-snapshot-image"
+                        />
+                      </div>
+
+                      <div className="realtime-snapshot-caption">
+                        Seal and defect boundary boxes shown from the
+                        Completed multi-frame AI inspection.
+                      </div>
+                    </div>
+                  )}
+
                   <div className="realtime-seals">
                     {realtimeSeals.length > 0 ? (
                       realtimeSeals.map((seal, index) => {
@@ -3456,9 +5146,203 @@ const handleGenerateReport = async () => {
                     AI 1 detects and crops each seal region. AI 2 runs object detection on each crop,
                     and the overheat defect coordinates are mapped back onto the full packet frame.
                   </div>
+
+
+
+                  </div>
+
                 </div>
-              </div>
-            </section>
+              <div className="history-panel">
+
+  <div className="history-header">
+
+<h3>
+📋 Previous AI Seal Inspection History
+</h3>
+
+
+<div>
+
+<button
+type="button"
+className="refresh-device-btn"
+onClick={loadSealHistory}
+disabled={sealHistoryLoading}
+>
+
+{
+sealHistoryLoading
+?
+"Refreshing..."
+:
+"↻ Refresh"
+}
+
+</button>
+
+
+<span className="history-count">
+
+{sealHistory.length} Records
+
+</span>
+
+
+</div>
+
+
+</div>
+
+
+  <div className="history-table-container">
+
+    <table className="defect-table">
+
+      <thead>
+
+        <tr>
+
+          <th>Packet ID</th>
+          <th>Date</th>
+          <th>Result</th>
+          <th>Status</th>
+          <th>Defect</th>
+          <th>Screenshot</th>
+
+        </tr>
+
+      </thead>
+
+
+      <tbody>
+
+      {
+        sealHistory.length > 0 ?
+
+        [...sealHistory]
+        .sort(
+          (a,b)=>
+          new Date(b.created_at) -
+          new Date(a.created_at)
+        )
+        .map((item,index)=>(
+
+          <tr key={item._id || item.id || item.packet_id || `${item.created_at}-${index}`}>
+
+            <td>
+              {item.packet_id || `PKT-${index+1}`}
+            </td>
+
+
+            <td>
+              {formatSriLankaDateTime(item.created_at)}
+            </td>
+
+
+            <td>
+
+              <span
+                className={
+                  item.result_type === "PASS"
+                  ?
+                  "good-badge defect-badge"
+                  :
+                  "defect-badge"
+                }
+              >
+
+              {
+                item.result_type || "DEFECT"
+              }
+
+              </span>
+
+            </td>
+
+
+            <td>
+              {item.final_status || "UNKNOWN"}
+            </td>
+
+
+            <td>
+
+            {
+              item.overheat_result?.detected
+
+              ?
+
+              "🔥 Overheat"
+
+              :
+
+              "✅ Normal"
+
+            }
+
+            </td>
+
+
+            <td>
+
+            {
+              item.image_path ?
+
+              <img
+
+              src={`${buildImageUrl(item.image_path)}?history=${encodeURIComponent(
+                item.created_at || item.packet_id || index
+              )}`}
+
+              className="history-image"
+
+              alt="AI final inspection"
+
+              />
+
+              :
+
+              "Not Available"
+
+            }
+
+            </td>
+
+
+          </tr>
+
+        ))
+
+        :
+
+        <tr>
+
+          <td colSpan="6">
+
+            <div className="empty-state">
+
+              📭 No previous inspection records
+
+            </div>
+
+          </td>
+
+        </tr>
+
+      }
+
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+</div>
+
+            
+              
+          </section>
           ) : activeTab === "device" ? (
             <section className="device-page">
               <div className="device-hero">
@@ -3566,16 +5450,23 @@ const handleGenerateReport = async () => {
                     type="button"
                     className="device-test-btn"
                     onClick={handleLeakDeviceTest}
-                    disabled={deviceLoading || !deviceStatus?.connected}
+                    disabled={ 
+                      deviceLoading || 
+                      !deviceStatus?.connected || 
+                      (activePacketId && !visionStageDone) || 
+                      leakStageDone 
+                    }
                   >
                     <span className="device-test-btn-content">
                       {deviceLoading ? (
                         <>
                           <span className="spinner" />
-                          Running Physical Leak Test...
+                          Running Leak Test...
                         </>
+                      ) : leakStageDone ? (
+                        <>✓ Leak Test Completed</>
                       ) : (
-                        <>▶ Start Leak Test</>
+                        <>▶ Run Packet Leak Test</>
                       )}
                     </span>
                   </button>
@@ -3692,6 +5583,105 @@ const handleGenerateReport = async () => {
                         )}
                     </div>
                   )}
+
+                  {leakStageDone && (
+                    <button
+                      type="button"
+                      className="device-test-btn"
+                      onClick={goToFinalReport}
+                      style={{ marginTop: "12px" }}
+                    >
+                      Next Step → Final Inspection Report
+                    </button>
+                  )}
+
+                  {/* ======================================
+    PREVIOUS LEAK TEST HISTORY
+====================================== */}
+
+{leakHistory.length > 0 && (
+
+<div className="history-panel">
+
+    <h3>
+        📋 Previous AI Seal Inspection History
+    </h3>
+
+
+    <div className="history-table-container">
+
+        <table className="defect-table">
+
+<thead>
+
+<tr>
+<th>Date</th>
+<th>Status</th>
+<th>Average</th>
+<th>Range</th>
+</tr>
+
+</thead>
+
+
+<tbody>
+
+{
+leakHistory.map((item,index)=>(
+
+<tr key={index}>
+
+<td>
+{
+formatInspectionDateTime(item.created_at)
+}
+</td>
+
+
+<td>
+
+<span className={
+item.status === "GOOD"
+?
+"good-badge defect-badge"
+:
+"defect-badge"
+}>
+
+{item.status}
+
+</span>
+
+</td>
+
+
+<td>
+{item.average}
+</td>
+
+
+<td>
+{item.range}
+</td>
+
+
+</tr>
+
+))
+
+}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+)}
+
+
                 </div>
               </div>
                         </section>
@@ -3789,6 +5779,9 @@ const handleGenerateReport = async () => {
                     onClick={handleGenerateReport}
                     disabled={
                       reportLoading ||
+                      !activePacketId ||
+                      !visionStageDone ||
+                      !leakStageDone ||
                       !reportStatus?.ready
                     }
                   >

@@ -3,17 +3,17 @@ function BeanQualityStepper({ currentStep, onStepChange }) {
     {
       number: 1,
       title: "Sensor Analysis",
-      subtitle: "Sensor-based quality",
+      subtitle: "Connect, baseline & sample scan",
     },
     {
       number: 2,
       title: "Physical AI Analysis",
-      subtitle: "Computer vision",
+      subtitle: "Inspect bean appearance",
     },
     {
       number: 3,
       title: "Final Report",
-      subtitle: "Score & recommendations",
+      subtitle: "Decision & recommendations",
     },
   ];
 

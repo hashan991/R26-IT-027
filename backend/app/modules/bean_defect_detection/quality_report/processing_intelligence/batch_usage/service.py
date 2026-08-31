@@ -1,7 +1,11 @@
-from typing import Any, Dict, List
+from typing import Dict, List
+
+from ..defect_profile import (
+    DefectProfile,
+)
 
 from .schema import (
-    BatchUsageOption,
+    BatchUsageDefectRecommendation,
     BatchUsageRecommendation,
 )
 
@@ -9,68 +13,41 @@ from .schema import (
 # =========================================================
 # BATCH USAGE RECOMMENDATION SERVICE
 # =========================================================
+#
+# Module 4 is DEFECT-DRIVEN.
+#
+# Each detected defect independently creates a usage
+# recommendation.
+#
+# final_score, grade, sensor_status, physical_status and
+# quality_status DO NOT trigger Module 4 recommendations.
+#
+# =========================================================
 
 class BatchUsageService:
 
     # =====================================================
-    # RESEARCH-DEFINED THRESHOLDS
+    # AGGREGATION PRIORITY
     # =====================================================
     #
-    # These thresholds are used only for this research
-    # decision-support system.
+    # Higher value = more restrictive recommendation.
     #
-    # They are NOT official SCA commercial grading rules.
+    # No rule here automatically rejects the whole batch.
+    #
     # =====================================================
 
-    SEVERE_LOW_PERCENTAGE = 5.0
-
-    SEVERE_HIGH_PERCENTAGE = 20.0
-
-    BROKEN_LOW_PERCENTAGE = 5.0
-
-    BROKEN_HIGH_PERCENTAGE = 15.0
-
-    UNKNOWN_WARNING_PERCENTAGE = 3.0
-
-
-    # =====================================================
-    # SAFE INTEGER
-    # =====================================================
-
-    @staticmethod
-    def _safe_int(
-        value: Any,
-        default: int = 0,
-    ) -> int:
-
-        try:
-            return int(value)
-
-        except (
-            TypeError,
-            ValueError,
-        ):
-            return default
-
-
-    # =====================================================
-    # SAFE FLOAT
-    # =====================================================
-
-    @staticmethod
-    def _safe_float(
-        value: Any,
-        default: float = 0.0,
-    ) -> float:
-
-        try:
-            return float(value)
-
-        except (
-            TypeError,
-            ValueError,
-        ):
-            return default
+    RECOMMENDATION_PRIORITY: Dict[
+        str,
+        int,
+    ] = {
+        "DIRECT_USE": 0,
+        "SORT_AND_USE": 1,
+        "STABILIZE_AND_REASSESS": 2,
+        "CONDITION_AND_REASSESS": 3,
+        "HOLD_AND_STABILIZE": 4,
+        "HOLD_FOR_VERIFICATION": 5,
+        "INSPECTION_REQUIRED": 6,
+    }
 
 
     # =====================================================
@@ -97,142 +74,771 @@ class BatchUsageService:
 
 
     # =====================================================
-    # CREATE USAGE OPTION
+    # ADD DEFECT RECOMMENDATION
     # =====================================================
 
     @staticmethod
-    def _create_usage_option(
+    def _add_recommendation(
+        recommendations: List[
+            BatchUsageDefectRecommendation
+        ],
         *,
-        use_case: str,
-        suitability: str,
+        defect: str,
+        recommendation: str,
+        title: str,
         explanation: str,
-        conditions: List[str] | None = None,
-    ) -> BatchUsageOption:
+        required_action: str,
+        evidence_class: str,
+        detected_count=None,
+    ) -> None:
 
-        return BatchUsageOption(
+        recommendations.append(
+            BatchUsageDefectRecommendation(
 
-            use_case=use_case,
+                defect=defect,
 
-            suitability=suitability,
+                recommendation=(
+                    recommendation
+                ),
 
-            explanation=explanation,
+                title=title,
 
-            conditions=(
-                conditions
-                or []
-            ),
+                explanation=(
+                    explanation
+                ),
+
+                required_action=(
+                    required_action
+                ),
+
+                evidence_class=(
+                    evidence_class
+                ),
+
+                detected_count=(
+                    detected_count
+                ),
+            )
         )
 
 
     # =====================================================
-    # GENERATE BATCH USAGE RECOMMENDATION
+    # GET MOST RESTRICTIVE RECOMMENDATION
+    # =====================================================
+
+    def _get_primary_recommendation(
+        self,
+        recommendations: List[
+            BatchUsageDefectRecommendation
+        ],
+        *,
+        inspection_complete: bool,
+    ) -> str:
+
+        if not inspection_complete:
+            return "INSPECTION_REQUIRED"
+
+        if not recommendations:
+            return "DIRECT_USE"
+
+        return max(
+            (
+                item.recommendation
+                for item in recommendations
+            ),
+            key=lambda value:
+                self.RECOMMENDATION_PRIORITY[
+                    value
+                ],
+        )
+
+
+    # =====================================================
+    # BUILD OVERALL TEXT
+    # =====================================================
+
+    @staticmethod
+    def _get_overall_text(
+        primary_recommendation: str,
+    ):
+
+        mapping = {
+
+            "DIRECT_USE": {
+                "title": (
+                    "Batch Suitable for Direct Use"
+                ),
+                "summary": (
+                    "No active Processing Intelligence "
+                    "defect requires a special batch-use "
+                    "restriction."
+                ),
+                "recommended_use": (
+                    "The batch may continue through normal "
+                    "pre-roast factory preparation and "
+                    "standard quality controls."
+                ),
+            },
+
+            "SORT_AND_USE": {
+                "title": (
+                    "Sort the Batch Before Use"
+                ),
+                "summary": (
+                    "Physical defects were detected, but "
+                    "the current evidence supports "
+                    "continued use after defect removal or "
+                    "secondary sorting."
+                ),
+                "recommended_use": (
+                    "Complete the required sorting, remove "
+                    "the affected fraction, reinspect the "
+                    "remaining lot, and then evaluate it "
+                    "for normal processing."
+                ),
+            },
+
+            "STABILIZE_AND_REASSESS": {
+                "title": (
+                    "Stabilize the Batch Before Use"
+                ),
+                "summary": (
+                    "The batch environment should be "
+                    "stabilized before a direct processing "
+                    "decision is made."
+                ),
+                "recommended_use": (
+                    "Stabilize the pre-roast environment "
+                    "and reassess the batch before release "
+                    "to roasting."
+                ),
+            },
+
+            "CONDITION_AND_REASSESS": {
+                "title": (
+                    "Condition and Reassess the Batch"
+                ),
+                "summary": (
+                    "A moisture-related condition requires "
+                    "verification and correction before "
+                    "normal batch use."
+                ),
+                "recommended_use": (
+                    "Verify the actual bean moisture "
+                    "condition, correct it as required, and "
+                    "repeat the quality assessment before "
+                    "processing."
+                ),
+            },
+
+            "HOLD_AND_STABILIZE": {
+                "title": (
+                    "Hold and Stabilize the Batch"
+                ),
+                "summary": (
+                    "Abnormal humidity exposure requires a "
+                    "temporary hold while the storage "
+                    "condition is stabilized."
+                ),
+                "recommended_use": (
+                    "Keep the batch in a dry protected "
+                    "environment, prevent further moisture "
+                    "reabsorption, and reassess moisture "
+                    "and humidity before use."
+                ),
+            },
+
+            "HOLD_FOR_VERIFICATION": {
+                "title": (
+                    "Hold Batch for Verification"
+                ),
+                "summary": (
+                    "One or more non-specific gas-sensor "
+                    "signals require verification before "
+                    "the batch is assigned to direct "
+                    "production use."
+                ),
+                "recommended_use": (
+                    "Temporarily hold the batch, inspect "
+                    "for environmental volatile or odour "
+                    "sources, repeat the relevant sensor "
+                    "assessment, and release only after the "
+                    "condition is verified."
+                ),
+            },
+
+            "INSPECTION_REQUIRED": {
+                "title": (
+                    "Complete Inspection Before Batch Use"
+                ),
+                "summary": (
+                    "Required sensor or physical inspection "
+                    "evidence is incomplete."
+                ),
+                "recommended_use": (
+                    "Do not make a direct batch-use "
+                    "decision until the required quality "
+                    "inspection is complete."
+                ),
+            },
+        }
+
+        return mapping[
+            primary_recommendation
+        ]
+
+
+    # =====================================================
+    # GENERATE MODULE 4
     # =====================================================
 
     def generate(
         self,
         *,
-        sensor_status: str,
-        physical_status: str,
-        final_score: float,
-        grade: str,
-        quality_status: str,
-        counts: Dict[str, Any],
+        defect_profile: DefectProfile,
     ) -> BatchUsageRecommendation:
 
-        # -------------------------------------------------
-        # NORMALIZE
-        # -------------------------------------------------
+        sensor = (
+            defect_profile.sensor
+        )
 
-        sensor_status = (
-            sensor_status
-            or "SKIPPED"
-        ).upper()
+        physical = (
+            defect_profile.physical
+        )
+
+        yield_counts = (
+            defect_profile.yield_counts
+        )
+
+        inspection = (
+            defect_profile.inspection
+        )
+
+        recommendations: List[
+            BatchUsageDefectRecommendation
+        ] = []
 
 
-        physical_status = (
-            physical_status
-            or "NO_DATA"
-        ).upper()
+        # =================================================
+        # 1. MQ2 ABNORMAL
+        # =================================================
+
+        if sensor.mq2_abnormal:
+
+            self._add_recommendation(
+                recommendations,
+
+                defect="MQ2_ABNORMAL",
+
+                recommendation=(
+                    "HOLD_FOR_VERIFICATION"
+                ),
+
+                title=(
+                    "Hold for MQ-2 Signal Verification"
+                ),
+
+                explanation=(
+                    "MQ-2 is a broad smoke and "
+                    "flammable-gas sensor. An abnormal "
+                    "response should not be treated as a "
+                    "confirmed coffee defect, but it should "
+                    "be verified before direct production "
+                    "use."
+                ),
+
+                required_action=(
+                    "Inspect for smoke, fuel, combustion "
+                    "exhaust or other combustible-vapour "
+                    "exposure and repeat the MQ-2 "
+                    "assessment in a clean environment."
+                ),
+
+                evidence_class=(
+                    "SENSOR_TECHNICAL_RULE"
+                ),
+            )
 
 
-        grade = (
-            grade
-            or "Reject"
+        # =================================================
+        # 2. MQ3 ABNORMAL
+        # =================================================
+
+        if sensor.mq3_abnormal:
+
+            self._add_recommendation(
+                recommendations,
+
+                defect="MQ3_ABNORMAL",
+
+                recommendation=(
+                    "HOLD_FOR_VERIFICATION"
+                ),
+
+                title=(
+                    "Hold for MQ-3 Signal Verification"
+                ),
+
+                explanation=(
+                    "MQ-3 is alcohol-sensitive and the "
+                    "signal does not by itself confirm "
+                    "coffee fermentation. The batch should "
+                    "therefore be verified before direct "
+                    "use."
+                ),
+
+                required_action=(
+                    "Inspect for unusual fermentative "
+                    "odours and external alcohol or solvent "
+                    "vapours, then repeat the MQ-3 "
+                    "assessment."
+                ),
+
+                evidence_class=(
+                    "SENSOR_TECHNICAL_RULE"
+                ),
+            )
+
+
+        # =================================================
+        # 3. MQ135 ABNORMAL
+        # =================================================
+
+        if sensor.mq135_abnormal:
+
+            self._add_recommendation(
+                recommendations,
+
+                defect="MQ135_ABNORMAL",
+
+                recommendation=(
+                    "HOLD_FOR_VERIFICATION"
+                ),
+
+                title=(
+                    "Hold for VOC / Odour Verification"
+                ),
+
+                explanation=(
+                    "MQ-135 responds broadly to several "
+                    "air-quality gases and vapours. An "
+                    "abnormal response requires "
+                    "environmental verification rather "
+                    "than automatic coffee-defect "
+                    "confirmation."
+                ),
+
+                required_action=(
+                    "Inspect for chemicals, fuels, smoke "
+                    "and strong odours, move the coffee to "
+                    "a clean ventilated environment when "
+                    "necessary, and repeat the assessment."
+                ),
+
+                evidence_class=(
+                    "SENSOR_TECHNICAL_RULE"
+                ),
+            )
+
+
+        # =================================================
+        # 4. MOISTURE DEFECT
+        # =================================================
+
+        if sensor.moisture_defect:
+
+            self._add_recommendation(
+                recommendations,
+
+                defect="MOISTURE_DEFECT",
+
+                recommendation=(
+                    "CONDITION_AND_REASSESS"
+                ),
+
+                title=(
+                    "Verify Moisture Before Batch Use"
+                ),
+
+                explanation=(
+                    "The experimental moisture response "
+                    "indicates a moisture anomaly. Because "
+                    "the current raw sensor response does "
+                    "not directly provide standardized bean "
+                    "moisture percentage, the actual "
+                    "condition must be verified before use."
+                ),
+
+                required_action=(
+                    "Verify actual bean moisture with an "
+                    "appropriate calibrated or reference "
+                    "method, correct the condition if "
+                    "required, and reassess the batch."
+                ),
+
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+            )
+
+
+        # =================================================
+        # 5. TEMPERATURE ABNORMAL
+        # =================================================
+
+        if sensor.temperature_abnormal:
+
+            self._add_recommendation(
+                recommendations,
+
+                defect="TEMPERATURE_ABNORMAL",
+
+                recommendation=(
+                    "STABILIZE_AND_REASSESS"
+                ),
+
+                title=(
+                    "Stabilize Temperature Before Use"
+                ),
+
+                explanation=(
+                    "An abnormal pre-roast environmental "
+                    "temperature condition was flagged by "
+                    "the separate temperature rule."
+                ),
+
+                required_action=(
+                    "Move the batch away from excessive "
+                    "heat or rapid temperature fluctuation, "
+                    "stabilize the environment, and "
+                    "reassess before processing."
+                ),
+
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+            )
+
+
+        # =================================================
+        # 6. HUMIDITY ABNORMAL
+        # =================================================
+
+        if sensor.humidity_abnormal:
+
+            self._add_recommendation(
+                recommendations,
+
+                defect="HUMIDITY_ABNORMAL",
+
+                recommendation=(
+                    "HOLD_AND_STABILIZE"
+                ),
+
+                title=(
+                    "Hold and Stabilize Humidity Condition"
+                ),
+
+                explanation=(
+                    "Abnormal humidity exposure can "
+                    "contribute to moisture reabsorption "
+                    "and storage-quality deterioration."
+                ),
+
+                required_action=(
+                    "Move the batch to dry, protected and "
+                    "well-ventilated storage, prevent "
+                    "condensation or re-wetting, and "
+                    "reassess humidity and bean moisture."
+                ),
+
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+            )
+
+
+        # =================================================
+        # 7. BROKEN BEANS
+        # =================================================
+        #
+        # physical.broken already equals:
+        #
+        #   broken + black_and_broken
+        #
+        # =================================================
+
+        if physical.broken > 0:
+
+            self._add_recommendation(
+                recommendations,
+
+                defect="BROKEN_BEANS",
+
+                recommendation=(
+                    "SORT_AND_USE"
+                ),
+
+                title=(
+                    "Sort Broken Beans Before Use"
+                ),
+
+                explanation=(
+                    f"{physical.broken} beans contribute "
+                    "to the normalized broken-bean defect "
+                    "profile. Broken beans can roast "
+                    "differently from whole beans and "
+                    "should be controlled through sorting."
+                ),
+
+                required_action=(
+                    "Perform secondary sorting, separate "
+                    "the broken fraction, and reinspect the "
+                    "remaining batch before normal use."
+                ),
+
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+
+                detected_count=(
+                    physical.broken
+                ),
+            )
+
+
+        # =================================================
+        # 8. BLACK BEANS
+        # =================================================
+        #
+        # physical.black already equals:
+        #
+        #   black + black_and_broken
+        #
+        # One black bean does NOT automatically reject the
+        # whole batch in this research module.
+        #
+        # =================================================
+
+        if physical.black > 0:
+
+            self._add_recommendation(
+                recommendations,
+
+                defect="BLACK_BEANS",
+
+                recommendation=(
+                    "SORT_AND_USE"
+                ),
+
+                title=(
+                    "Remove Black Beans Before Use"
+                ),
+
+                explanation=(
+                    f"{physical.black} beans contribute "
+                    "to the normalized black-bean defect "
+                    "profile. Black beans are a recognized "
+                    "green-coffee defect with sensory "
+                    "quality concern, but their presence "
+                    "does not automatically reject the "
+                    "entire batch in this module."
+                ),
+
+                required_action=(
+                    "Remove the detected black-bean "
+                    "fraction, keep rejected material "
+                    "separate, and reassess the remaining "
+                    "lot before normal processing."
+                ),
+
+                evidence_class=(
+                    "STANDARD_SUPPORTED_RESEARCH_RULE"
+                ),
+
+                detected_count=(
+                    physical.black
+                ),
+            )
+
+
+        # =================================================
+        # INSPECTION COMPLETENESS
+        # =================================================
+
+        inspection_complete = (
+            inspection.sensor_complete
+            and
+            inspection.physical_complete
         )
 
 
-        quality_status = (
-            quality_status
-            or "Needs Review"
-        )
+        # =================================================
+        # PRIMARY RECOMMENDATION
+        # =================================================
 
+        primary_recommendation = (
+            self._get_primary_recommendation(
 
-        final_score = self._safe_float(
-            final_score
-        )
+                recommendations,
 
-
-        # -------------------------------------------------
-        # COUNTS
-        # -------------------------------------------------
-
-        total = self._safe_int(
-            counts.get(
-                "total_beans",
-                0,
+                inspection_complete=(
+                    inspection_complete
+                ),
             )
         )
 
 
-        good = self._safe_int(
-            counts.get(
-                "good",
-                0,
+        overall_text = (
+            self._get_overall_text(
+                primary_recommendation
             )
         )
 
 
-        broken = self._safe_int(
-            counts.get(
-                "broken",
-                0,
-            )
+        # =================================================
+        # ACTION FLAGS
+        # =================================================
+
+        direct_use_allowed = (
+            primary_recommendation
+            ==
+            "DIRECT_USE"
         )
 
 
-        black = self._safe_int(
-            counts.get(
-                "black",
-                0,
-            )
+        sorting_required = any(
+            item.recommendation
+            ==
+            "SORT_AND_USE"
+            for item in recommendations
         )
 
 
-        black_and_broken = (
-            self._safe_int(
-                counts.get(
-                    "black_and_broken",
-                    0,
+        stabilization_required = any(
+            item.recommendation
+            in {
+                "STABILIZE_AND_REASSESS",
+                "HOLD_AND_STABILIZE",
+            }
+            for item in recommendations
+        )
+
+
+        conditioning_required = any(
+            item.recommendation
+            ==
+            "CONDITION_AND_REASSESS"
+            for item in recommendations
+        )
+
+
+        verification_required = any(
+            item.recommendation
+            ==
+            "HOLD_FOR_VERIFICATION"
+            for item in recommendations
+        )
+
+
+        reinspection_required = (
+            not direct_use_allowed
+        )
+
+
+        rework_required = any(
+            [
+                sorting_required,
+                stabilization_required,
+                conditioning_required,
+                verification_required,
+            ]
+        )
+
+
+        # =================================================
+        # RESTRICTIONS
+        # =================================================
+
+        restrictions: List[str] = []
+
+
+        if not inspection_complete:
+
+            restrictions.append(
+                (
+                    "Do not release the batch for direct "
+                    "use until the required sensor and "
+                    "physical inspections are complete."
                 )
             )
-        )
 
 
-        unknown = self._safe_int(
-            counts.get(
-                "unknown",
-                0,
+        if verification_required:
+
+            restrictions.append(
+                (
+                    "Do not treat abnormal MQ sensor "
+                    "responses as confirmed coffee defects; "
+                    "verify the environment and repeat the "
+                    "relevant sensor assessment."
+                )
             )
+
+
+        if conditioning_required:
+
+            restrictions.append(
+                (
+                    "Do not release the batch based only on "
+                    "the raw moisture-sensor anomaly; "
+                    "verify actual bean moisture first."
+                )
+            )
+
+
+        if stabilization_required:
+
+            restrictions.append(
+                (
+                    "Do not proceed to normal use until the "
+                    "environmental condition has been "
+                    "stabilized and reassessed."
+                )
+            )
+
+
+        if sorting_required:
+
+            restrictions.append(
+                (
+                    "Complete the required physical sorting "
+                    "and reassess the remaining coffee lot "
+                    "before normal processing."
+                )
+            )
+
+
+        # =================================================
+        # COMPATIBILITY PERCENTAGES
+        # =================================================
+        #
+        # physical.broken and physical.black are defect
+        # PROPERTY counts. They overlap for black_and_broken.
+        #
+        # Therefore broken_percentage and
+        # severe_defect_percentage must not be added together.
+        #
+        # =================================================
+
+        total = (
+            yield_counts.total_beans
         )
 
-
-        # -------------------------------------------------
-        # PERCENTAGES
-        # -------------------------------------------------
 
         good_percentage = (
             self._percentage(
-                good,
+                yield_counts.good,
                 total,
             )
         )
@@ -240,1421 +846,98 @@ class BatchUsageService:
 
         broken_percentage = (
             self._percentage(
-                broken,
+                physical.broken,
                 total,
             )
-        )
-
-
-        severe_defect_count = (
-            black
-            + black_and_broken
         )
 
 
         severe_defect_percentage = (
             self._percentage(
-                severe_defect_count,
+                physical.black,
                 total,
             )
         )
 
 
-        unknown_percentage = (
-            self._percentage(
-                unknown,
-                total,
-            )
-        )
-
-
-        # -------------------------------------------------
-        # DEFAULT FLAGS
-        # -------------------------------------------------
-
-        direct_use_allowed = False
-
-        rework_required = False
-
-        sorting_required = False
-
-        reinspection_required = False
-
-        blend_evaluation_required = False
-
-        restrictions: List[str] = []
-
-        alternative_uses: List[str] = []
-
-        usage_options: List[
-            BatchUsageOption
-        ] = []
-
-
         # =================================================
-        # NO PHYSICAL INSPECTION DATA
-        # =================================================
-
-        if (
-            total <= 0
-            or
-            physical_status
-            == "NO_DATA"
-        ):
-
-            usage_options.extend(
-                [
-                    self._create_usage_option(
-                        use_case=(
-                            "Premium Product Evaluation"
-                        ),
-                        suitability=(
-                            "NOT_RECOMMENDED"
-                        ),
-                        explanation=(
-                            "Physical bean quality data "
-                            "is incomplete."
-                        ),
-                        conditions=[
-                            (
-                                "Complete physical AI "
-                                "inspection first."
-                            ),
-                        ],
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Standard Coffee Product"
-                        ),
-                        suitability=(
-                            "NOT_RECOMMENDED"
-                        ),
-                        explanation=(
-                            "The batch cannot be released "
-                            "for production use without "
-                            "physical quality evidence."
-                        ),
-                        conditions=[
-                            (
-                                "Complete inspection and "
-                                "generate a new report."
-                            ),
-                        ],
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Commercial Blend"
-                        ),
-                        suitability=(
-                            "NOT_RECOMMENDED"
-                        ),
-                        explanation=(
-                            "Blend suitability cannot be "
-                            "evaluated until inspection "
-                            "is complete."
-                        ),
-                        conditions=[
-                            (
-                                "Complete physical quality "
-                                "assessment."
-                            ),
-                        ],
-                    ),
-                ]
-            )
-
-
-            return BatchUsageRecommendation(
-
-                primary_recommendation=(
-                    "INSPECTION_REQUIRED"
-                ),
-
-                title=(
-                    "Batch Usage Cannot Be Determined"
-                ),
-
-                summary=(
-                    "The system does not have enough "
-                    "physical quality data to recommend "
-                    "a production use for this batch."
-                ),
-
-                recommended_use=(
-                    "Complete quality inspection before "
-                    "assigning the batch to a product."
-                ),
-
-                alternative_uses=[],
-
-                usage_options=(
-                    usage_options
-                ),
-
-                direct_use_allowed=False,
-
-                rework_required=False,
-
-                sorting_required=False,
-
-                reinspection_required=True,
-
-                blend_evaluation_required=False,
-
-                good_percentage=0.0,
-
-                broken_percentage=0.0,
-
-                severe_defect_percentage=0.0,
-
-                unknown_percentage=0.0,
-
-                sensor_status=(
-                    sensor_status
-                ),
-
-                physical_status=(
-                    physical_status
-                ),
-
-                final_grade=(
-                    grade
-                ),
-
-                restrictions=[
-                    (
-                        "Do not assign the batch to "
-                        "production before physical "
-                        "inspection is completed."
-                    ),
-                ],
-
-                methodology_note=(
-                    "Batch usage recommendations require "
-                    "both physical defect information "
-                    "and overall quality assessment. "
-                    "The recommendations are "
-                    "research-defined and are not "
-                    "official commercial coffee grades."
-                ),
-            )
-
-
-        # =================================================
-        # COMMON QUALITY FLAGS
-        # =================================================
-
-        if (
-            severe_defect_count
-            > 0
-        ):
-            sorting_required = True
-
-
-        if (
-            broken_percentage
-            >= self.BROKEN_LOW_PERCENTAGE
-        ):
-            sorting_required = True
-
-
-        if (
-            unknown_percentage
-            > 0
-        ):
-            reinspection_required = True
-
-
-        if (
-            sensor_status
-            in {
-                "BAD",
-                "REVIEW",
-                "SKIPPED",
-            }
-        ):
-            reinspection_required = True
-
-
-        if (
-            physical_status
-            in {
-                "POOR",
-                "REVIEW",
-            }
-        ):
-            reinspection_required = True
-
-
-        # =================================================
-        # REJECT CONDITION
-        # =================================================
-
-        if (
-            grade == "Reject"
-            or
-            (
-                sensor_status == "BAD"
-                and
-                physical_status == "POOR"
-            )
-        ):
-
-            restrictions.extend(
-                [
-                    (
-                        "Do not use the batch directly "
-                        "for normal production."
-                    ),
-                    (
-                        "Do not release the current batch "
-                        "to roasting without corrective "
-                        "action and reassessment."
-                    ),
-                ]
-            )
-
-
-            usage_options.extend(
-                [
-                    self._create_usage_option(
-                        use_case=(
-                            "Premium Product Evaluation"
-                        ),
-                        suitability=(
-                            "NOT_RECOMMENDED"
-                        ),
-                        explanation=(
-                            "The current quality condition "
-                            "does not support premium "
-                            "product evaluation."
-                        ),
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Standard Coffee Product"
-                        ),
-                        suitability=(
-                            "NOT_RECOMMENDED"
-                        ),
-                        explanation=(
-                            "The batch does not currently "
-                            "meet the research system's "
-                            "minimum condition for direct "
-                            "standard product use."
-                        ),
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Commercial Blend"
-                        ),
-                        suitability=(
-                            "NOT_RECOMMENDED"
-                        ),
-                        explanation=(
-                            "Direct blending is not "
-                            "recommended while the batch "
-                            "remains in a reject condition."
-                        ),
-                        conditions=[
-                            (
-                                "Consider only after major "
-                                "rework and complete "
-                                "reinspection."
-                            ),
-                        ],
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Rework / Secondary Processing"
-                        ),
-                        suitability=(
-                            "CONDITIONAL"
-                        ),
-                        explanation=(
-                            "The batch may be evaluated "
-                            "for recovery through sorting "
-                            "and quality reassessment."
-                        ),
-                        conditions=[
-                            (
-                                "Remove severe defects."
-                            ),
-                            (
-                                "Repeat sensor analysis."
-                            ),
-                            (
-                                "Repeat physical AI "
-                                "inspection."
-                            ),
-                        ],
-                    ),
-                ]
-            )
-
-
-            return BatchUsageRecommendation(
-
-                primary_recommendation=(
-                    "REJECT"
-                ),
-
-                title=(
-                    "Batch Not Recommended for "
-                    "Direct Production Use"
-                ),
-
-                summary=(
-                    "The current quality result indicates "
-                    "that the batch should not be used "
-                    "directly in normal production."
-                ),
-
-                recommended_use=(
-                    "Hold or reject the batch. "
-                    "Only evaluate recovery after major "
-                    "re-sorting and complete quality "
-                    "reassessment."
-                ),
-
-                alternative_uses=[
-                    (
-                        "Rework / secondary sorting "
-                        "followed by reassessment."
-                    ),
-                ],
-
-                usage_options=(
-                    usage_options
-                ),
-
-                direct_use_allowed=False,
-
-                rework_required=True,
-
-                sorting_required=True,
-
-                reinspection_required=True,
-
-                blend_evaluation_required=False,
-
-                good_percentage=(
-                    good_percentage
-                ),
-
-                broken_percentage=(
-                    broken_percentage
-                ),
-
-                severe_defect_percentage=(
-                    severe_defect_percentage
-                ),
-
-                unknown_percentage=(
-                    unknown_percentage
-                ),
-
-                sensor_status=(
-                    sensor_status
-                ),
-
-                physical_status=(
-                    physical_status
-                ),
-
-                final_grade=(
-                    grade
-                ),
-
-                restrictions=(
-                    restrictions
-                ),
-
-                methodology_note=(
-                    "The REJECT recommendation is a "
-                    "research-defined system decision. "
-                    "It is not an official SCA grade or "
-                    "commercial classification."
-                ),
-            )
-
-
-        # =================================================
-        # MAJOR REWORK CONDITION
-        # =================================================
-
-        if (
-            physical_status == "POOR"
-            or
-            severe_defect_percentage
-            >= self.SEVERE_HIGH_PERCENTAGE
-            or
-            quality_status
-            == "Needs Review"
-        ):
-
-            rework_required = True
-
-            sorting_required = True
-
-            reinspection_required = True
-
-            blend_evaluation_required = True
-
-
-            restrictions.extend(
-                [
-                    (
-                        "Do not use this batch directly "
-                        "for premium or standard product "
-                        "production."
-                    ),
-                    (
-                        "Remove severe defects before "
-                        "evaluating any production use."
-                    ),
-                    (
-                        "Repeat quality inspection after "
-                        "re-sorting."
-                    ),
-                ]
-            )
-
-
-            usage_options.extend(
-                [
-                    self._create_usage_option(
-                        use_case=(
-                            "Premium Product Evaluation"
-                        ),
-                        suitability=(
-                            "NOT_RECOMMENDED"
-                        ),
-                        explanation=(
-                            "The current defect profile "
-                            "contains excessive quality "
-                            "variation for premium product "
-                            "evaluation."
-                        ),
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Standard Coffee Product"
-                        ),
-                        suitability=(
-                            "NOT_RECOMMENDED"
-                        ),
-                        explanation=(
-                            "Direct standard product use "
-                            "is not recommended before "
-                            "corrective sorting."
-                        ),
-                        conditions=[
-                            (
-                                "Improve batch quality "
-                                "through sorting and "
-                                "reinspection."
-                            ),
-                        ],
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Commercial Blend"
-                        ),
-                        suitability=(
-                            "CONDITIONAL"
-                        ),
-                        explanation=(
-                            "The batch may potentially be "
-                            "considered for a commercial "
-                            "blend after severe defects "
-                            "are removed."
-                        ),
-                        conditions=[
-                            (
-                                "Complete secondary "
-                                "sorting."
-                            ),
-                            (
-                                "Repeat physical AI "
-                                "inspection."
-                            ),
-                            (
-                                "Confirm acceptable "
-                                "quality after rework."
-                            ),
-                            (
-                                "Perform separate blend "
-                                "evaluation before use."
-                            ),
-                        ],
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Economy Product"
-                        ),
-                        suitability=(
-                            "CONDITIONAL"
-                        ),
-                        explanation=(
-                            "Lower-tier product use may "
-                            "be evaluated only after "
-                            "quality correction and "
-                            "reinspection."
-                        ),
-                        conditions=[
-                            (
-                                "Remove severe defects."
-                            ),
-                            (
-                                "Pass post-rework quality "
-                                "inspection."
-                            ),
-                        ],
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Rework / Secondary Processing"
-                        ),
-                        suitability=(
-                            "SUITABLE"
-                        ),
-                        explanation=(
-                            "The current batch should "
-                            "first be directed to "
-                            "corrective sorting and "
-                            "quality recovery."
-                        ),
-                        conditions=[
-                            (
-                                "Remove black beans."
-                            ),
-                            (
-                                "Remove black-and-broken "
-                                "beans."
-                            ),
-                            (
-                                "Sort broken beans."
-                            ),
-                            (
-                                "Inspect uncertain beans."
-                            ),
-                        ],
-                    ),
-                ]
-            )
-
-
-            return BatchUsageRecommendation(
-
-                primary_recommendation=(
-                    "REWORK_ONLY"
-                ),
-
-                title=(
-                    "Rework Required Before Product Use"
-                ),
-
-                summary=(
-                    "The batch should not be assigned "
-                    "directly to a finished coffee "
-                    "product. Corrective sorting and "
-                    "reinspection are required first."
-                ),
-
-                recommended_use=(
-                    "Secondary sorting and quality "
-                    "reassessment before any production "
-                    "allocation."
-                ),
-
-                alternative_uses=[
-                    (
-                        "Commercial blend evaluation "
-                        "after successful rework."
-                    ),
-                    (
-                        "Economy product evaluation "
-                        "after successful rework."
-                    ),
-                ],
-
-                usage_options=(
-                    usage_options
-                ),
-
-                direct_use_allowed=False,
-
-                rework_required=True,
-
-                sorting_required=(
-                    sorting_required
-                ),
-
-                reinspection_required=True,
-
-                blend_evaluation_required=True,
-
-                good_percentage=(
-                    good_percentage
-                ),
-
-                broken_percentage=(
-                    broken_percentage
-                ),
-
-                severe_defect_percentage=(
-                    severe_defect_percentage
-                ),
-
-                unknown_percentage=(
-                    unknown_percentage
-                ),
-
-                sensor_status=(
-                    sensor_status
-                ),
-
-                physical_status=(
-                    physical_status
-                ),
-
-                final_grade=(
-                    grade
-                ),
-
-                restrictions=(
-                    restrictions
-                ),
-
-                methodology_note=(
-                    "Commercial blend and economy "
-                    "product suggestions are only "
-                    "decision-support options. Exact "
-                    "blend ratios and final product "
-                    "quality require separate roasting "
-                    "and sensory validation."
-                ),
-            )
-
-
-        # =================================================
-        # GRADE A — HIGH QUALITY CONDITION
-        # =================================================
-
-        if (
-            grade == "A"
-            and
-            sensor_status == "GOOD"
-            and
-            physical_status
-            in {
-                "EXCELLENT",
-                "GOOD",
-            }
-            and
-            severe_defect_percentage
-            < self.SEVERE_LOW_PERCENTAGE
-        ):
-
-            direct_use_allowed = True
-
-
-            usage_options.extend(
-                [
-                    self._create_usage_option(
-                        use_case=(
-                            "Premium Product Evaluation"
-                        ),
-                        suitability=(
-                            "CONDITIONAL"
-                        ),
-                        explanation=(
-                            "The raw-bean quality profile "
-                            "supports further premium "
-                            "product evaluation."
-                        ),
-                        conditions=[
-                            (
-                                "Confirm roast performance."
-                            ),
-                            (
-                                "Perform sensory / cupping "
-                                "evaluation before making "
-                                "a premium product claim."
-                            ),
-                        ],
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Standard Coffee Product"
-                        ),
-                        suitability=(
-                            "SUITABLE"
-                        ),
-                        explanation=(
-                            "The current quality profile "
-                            "supports standard production "
-                            "use after normal preparation."
-                        ),
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Commercial Blend"
-                        ),
-                        suitability=(
-                            "SUITABLE"
-                        ),
-                        explanation=(
-                            "The batch can also be "
-                            "evaluated as a quality "
-                            "component of a commercial "
-                            "blend."
-                        ),
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Economy Product"
-                        ),
-                        suitability=(
-                            "SUITABLE"
-                        ),
-                        explanation=(
-                            "The batch quality is adequate "
-                            "for this use, although higher "
-                            "value product evaluation may "
-                            "be more appropriate."
-                        ),
-                    ),
-                ]
-            )
-
-
-            return BatchUsageRecommendation(
-
-                primary_recommendation=(
-                    "PREMIUM_EVALUATION"
-                ),
-
-                title=(
-                    "High-Quality Batch Usage Potential"
-                ),
-
-                summary=(
-                    "The current sensor and physical "
-                    "quality profile supports normal "
-                    "production and further evaluation "
-                    "for higher-value product use."
-                ),
-
-                recommended_use=(
-                    "Standard production or premium "
-                    "product evaluation after roasting "
-                    "and sensory validation."
-                ),
-
-                alternative_uses=[
-                    (
-                        "Standard coffee product."
-                    ),
-                    (
-                        "Commercial blend component."
-                    ),
-                ],
-
-                usage_options=(
-                    usage_options
-                ),
-
-                direct_use_allowed=True,
-
-                rework_required=False,
-
-                sorting_required=(
-                    sorting_required
-                ),
-
-                reinspection_required=(
-                    reinspection_required
-                ),
-
-                blend_evaluation_required=False,
-
-                good_percentage=(
-                    good_percentage
-                ),
-
-                broken_percentage=(
-                    broken_percentage
-                ),
-
-                severe_defect_percentage=(
-                    severe_defect_percentage
-                ),
-
-                unknown_percentage=(
-                    unknown_percentage
-                ),
-
-                sensor_status=(
-                    sensor_status
-                ),
-
-                physical_status=(
-                    physical_status
-                ),
-
-                final_grade=(
-                    grade
-                ),
-
-                restrictions=[
-                    (
-                        "Raw-bean quality alone cannot "
-                        "confirm premium cup quality."
-                    ),
-                    (
-                        "Premium positioning requires "
-                        "roast and sensory evaluation."
-                    ),
-                ],
-
-                methodology_note=(
-                    "Premium evaluation means that the "
-                    "batch may proceed to further "
-                    "high-quality product assessment. "
-                    "The system does not claim premium "
-                    "coffee status from visual and sensor "
-                    "analysis alone."
-                ),
-            )
-
-
-        # =================================================
-        # GRADE B — STANDARD PRODUCT CONDITION
-        # =================================================
-
-        if (
-            grade == "B"
-        ):
-
-            if (
-                severe_defect_percentage
-                > 0
-                or
-                broken_percentage
-                >= self.BROKEN_LOW_PERCENTAGE
-            ):
-                sorting_required = True
-
-
-            rework_required = (
-                sorting_required
-            )
-
-
-            direct_use_allowed = (
-                not sorting_required
-                and
-                sensor_status
-                == "GOOD"
-                and
-                physical_status
-                in {
-                    "EXCELLENT",
-                    "GOOD",
-                }
-            )
-
-
-            usage_options.extend(
-                [
-                    self._create_usage_option(
-                        use_case=(
-                            "Premium Product Evaluation"
-                        ),
-                        suitability=(
-                            "NOT_RECOMMENDED"
-                        ),
-                        explanation=(
-                            "The current Grade B profile "
-                            "is not sufficient for premium "
-                            "product recommendation from "
-                            "this system."
-                        ),
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Standard Coffee Product"
-                        ),
-                        suitability=(
-                            "CONDITIONAL"
-                            if sorting_required
-                            else "SUITABLE"
-                        ),
-                        explanation=(
-                            "The batch may be suitable "
-                            "for standard production "
-                            "depending on completion of "
-                            "the required quality "
-                            "preparation."
-                        ),
-                        conditions=(
-                            [
-                                (
-                                    "Complete sorting and "
-                                    "reinspection."
-                                ),
-                            ]
-                            if sorting_required
-                            else []
-                        ),
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Commercial Blend"
-                        ),
-                        suitability=(
-                            "SUITABLE"
-                            if not sorting_required
-                            else "CONDITIONAL"
-                        ),
-                        explanation=(
-                            "The batch may be evaluated "
-                            "for use as a commercial blend "
-                            "component."
-                        ),
-                        conditions=[
-                            (
-                                "Perform blend-specific "
-                                "quality evaluation before "
-                                "production."
-                            ),
-                        ],
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Economy Product"
-                        ),
-                        suitability=(
-                            "SUITABLE"
-                        ),
-                        explanation=(
-                            "The current quality level can "
-                            "support lower-tier product "
-                            "evaluation after required "
-                            "quality controls."
-                        ),
-                    ),
-                ]
-            )
-
-
-            return BatchUsageRecommendation(
-
-                primary_recommendation=(
-                    "STANDARD_PRODUCT"
-                    if not sorting_required
-                    else "COMMERCIAL_BLEND"
-                ),
-
-                title=(
-                    "Standard Production Use "
-                    "Recommended"
-                    if not sorting_required
-                    else
-                    "Conditional Product Use "
-                    "Recommended"
-                ),
-
-                summary=(
-                    "The Grade B batch has usable "
-                    "production potential, but detected "
-                    "defects determine whether sorting "
-                    "is required before use."
-                ),
-
-                recommended_use=(
-                    "Standard coffee production."
-                    if not sorting_required
-                    else
-                    "Re-sort the batch and evaluate it "
-                    "for standard production or a "
-                    "commercial blend."
-                ),
-
-                alternative_uses=[
-                    (
-                        "Commercial blend."
-                    ),
-                    (
-                        "Economy product."
-                    ),
-                ],
-
-                usage_options=(
-                    usage_options
-                ),
-
-                direct_use_allowed=(
-                    direct_use_allowed
-                ),
-
-                rework_required=(
-                    rework_required
-                ),
-
-                sorting_required=(
-                    sorting_required
-                ),
-
-                reinspection_required=(
-                    sorting_required
-                    or
-                    reinspection_required
-                ),
-
-                blend_evaluation_required=True,
-
-                good_percentage=(
-                    good_percentage
-                ),
-
-                broken_percentage=(
-                    broken_percentage
-                ),
-
-                severe_defect_percentage=(
-                    severe_defect_percentage
-                ),
-
-                unknown_percentage=(
-                    unknown_percentage
-                ),
-
-                sensor_status=(
-                    sensor_status
-                ),
-
-                physical_status=(
-                    physical_status
-                ),
-
-                final_grade=(
-                    grade
-                ),
-
-                restrictions=[
-                    (
-                        "Premium product quality is not "
-                        "confirmed by this Grade B result."
-                    ),
-                    (
-                        "Exact commercial blend ratio is "
-                        "not generated by the current "
-                        "system."
-                    ),
-                ],
-
-                methodology_note=(
-                    "Grade B usage recommendations are "
-                    "research-defined. Final product "
-                    "allocation should consider roasting "
-                    "performance and sensory quality."
-                ),
-            )
-
-
-        # =================================================
-        # GRADE C — LOWER QUALITY / COMMERCIAL USE
-        # =================================================
-
-        if (
-            grade == "C"
-        ):
-
-            rework_required = True
-
-            sorting_required = True
-
-            reinspection_required = True
-
-            blend_evaluation_required = True
-
-
-            usage_options.extend(
-                [
-                    self._create_usage_option(
-                        use_case=(
-                            "Premium Product Evaluation"
-                        ),
-                        suitability=(
-                            "NOT_RECOMMENDED"
-                        ),
-                        explanation=(
-                            "The current quality profile "
-                            "does not support premium "
-                            "product evaluation."
-                        ),
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Standard Coffee Product"
-                        ),
-                        suitability=(
-                            "NOT_RECOMMENDED"
-                        ),
-                        explanation=(
-                            "Direct standard product use "
-                            "is not recommended at the "
-                            "current quality level."
-                        ),
-                        conditions=[
-                            (
-                                "Quality must improve after "
-                                "rework before reconsidering "
-                                "standard product use."
-                            ),
-                        ],
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Commercial Blend"
-                        ),
-                        suitability=(
-                            "CONDITIONAL"
-                        ),
-                        explanation=(
-                            "Commercial blend use may be "
-                            "evaluated after corrective "
-                            "sorting and reinspection."
-                        ),
-                        conditions=[
-                            (
-                                "Remove severe defects."
-                            ),
-                            (
-                                "Repeat quality assessment."
-                            ),
-                            (
-                                "Perform blend-specific "
-                                "evaluation."
-                            ),
-                        ],
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Economy Product"
-                        ),
-                        suitability=(
-                            "CONDITIONAL"
-                        ),
-                        explanation=(
-                            "Economy product use may be "
-                            "considered after successful "
-                            "rework and quality approval."
-                        ),
-                        conditions=[
-                            (
-                                "Complete secondary sorting."
-                            ),
-                            (
-                                "Pass post-rework "
-                                "inspection."
-                            ),
-                        ],
-                    ),
-
-                    self._create_usage_option(
-                        use_case=(
-                            "Rework / Secondary Processing"
-                        ),
-                        suitability=(
-                            "SUITABLE"
-                        ),
-                        explanation=(
-                            "Corrective processing is the "
-                            "recommended immediate use of "
-                            "the current batch."
-                        ),
-                    ),
-                ]
-            )
-
-
-            return BatchUsageRecommendation(
-
-                primary_recommendation=(
-                    "REWORK_ONLY"
-                ),
-
-                title=(
-                    "Rework Before Commercial Use"
-                ),
-
-                summary=(
-                    "The Grade C quality profile "
-                    "requires corrective processing "
-                    "before the batch is allocated to "
-                    "a finished product."
-                ),
-
-                recommended_use=(
-                    "Re-sort and re-test the batch, "
-                    "then evaluate commercial blend or "
-                    "economy product use."
-                ),
-
-                alternative_uses=[
-                    (
-                        "Commercial blend after "
-                        "successful rework."
-                    ),
-                    (
-                        "Economy product after "
-                        "successful rework."
-                    ),
-                ],
-
-                usage_options=(
-                    usage_options
-                ),
-
-                direct_use_allowed=False,
-
-                rework_required=True,
-
-                sorting_required=True,
-
-                reinspection_required=True,
-
-                blend_evaluation_required=True,
-
-                good_percentage=(
-                    good_percentage
-                ),
-
-                broken_percentage=(
-                    broken_percentage
-                ),
-
-                severe_defect_percentage=(
-                    severe_defect_percentage
-                ),
-
-                unknown_percentage=(
-                    unknown_percentage
-                ),
-
-                sensor_status=(
-                    sensor_status
-                ),
-
-                physical_status=(
-                    physical_status
-                ),
-
-                final_grade=(
-                    grade
-                ),
-
-                restrictions=[
-                    (
-                        "Do not use directly for premium "
-                        "or standard product production."
-                    ),
-                    (
-                        "Commercial or economy use "
-                        "requires successful rework."
-                    ),
-                ],
-
-                methodology_note=(
-                    "Grade C usage recommendations are "
-                    "research-defined and require "
-                    "post-rework validation before "
-                    "production use."
-                ),
-            )
-
-
-        # =================================================
-        # FALLBACK
+        # RESPONSE
         # =================================================
 
         return BatchUsageRecommendation(
 
             primary_recommendation=(
-                "INSPECTION_REQUIRED"
+                primary_recommendation
             ),
 
             title=(
-                "Additional Quality Review Required"
+                overall_text[
+                    "title"
+                ]
             ),
 
             summary=(
-                "The available quality combination does "
-                "not support an automatic batch usage "
-                "decision."
+                overall_text[
+                    "summary"
+                ]
             ),
 
             recommended_use=(
-                "Hold the batch for manual quality "
-                "review and repeat inspection."
+                overall_text[
+                    "recommended_use"
+                ]
             ),
 
-            alternative_uses=[],
+            recommendations=(
+                recommendations
+            ),
 
-            usage_options=[
-                self._create_usage_option(
-                    use_case=(
-                        "Production Use"
-                    ),
-                    suitability=(
-                        "CONDITIONAL"
-                    ),
-                    explanation=(
-                        "A complete quality review is "
-                        "required before product "
-                        "allocation."
-                    ),
-                    conditions=[
-                        (
-                            "Repeat quality inspection."
-                        ),
-                    ],
-                ),
-            ],
+            active_defect_count=(
+                defect_profile
+                .active_defect_count
+            ),
 
-            direct_use_allowed=False,
+            inspection_complete=(
+                inspection_complete
+            ),
 
-            rework_required=False,
+            direct_use_allowed=(
+                direct_use_allowed
+            ),
 
             sorting_required=(
                 sorting_required
             ),
 
-            reinspection_required=True,
+            stabilization_required=(
+                stabilization_required
+            ),
+
+            conditioning_required=(
+                conditioning_required
+            ),
+
+            verification_required=(
+                verification_required
+            ),
+
+            reinspection_required=(
+                reinspection_required
+            ),
+
+            rework_required=(
+                rework_required
+            ),
 
             blend_evaluation_required=False,
+
+            # Old product-tier suggestions are deliberately
+            # not generated by the new defect-driven module.
+            alternative_uses=[],
+
+            usage_options=[],
+
+            restrictions=restrictions,
 
             good_percentage=(
                 good_percentage
@@ -1668,33 +951,45 @@ class BatchUsageService:
                 severe_defect_percentage
             ),
 
-            unknown_percentage=(
-                unknown_percentage
-            ),
+            unknown_percentage=0.0,
 
             sensor_status=(
-                sensor_status
+                "DEFECT_DRIVEN"
             ),
 
             physical_status=(
-                physical_status
+                "DEFECT_DRIVEN"
             ),
 
             final_grade=(
-                grade
+                "NOT_USED"
             ),
 
-            restrictions=[
-                (
-                    "Manual quality review is required "
-                    "before production use."
-                ),
-            ],
-
             methodology_note=(
-                "This fallback prevents automatic "
-                "product allocation when the quality "
-                "combination is uncertain."
+                "Module 4 is defect-driven. Every active "
+                "defect independently creates a batch-use "
+                "recommendation, and the overall result is "
+                "the most restrictive active condition. "
+                "Final score, grade and overall sensor or "
+                "physical status do not trigger these "
+                "rules. MQ-2, MQ-3 and MQ-135 outputs are "
+                "treated as non-specific verification "
+                "signals. Moisture, environmental and "
+                "physical-defect usage actions are "
+                "standard-supported research rules. "
+                "DIRECT_USE / SORT_AND_USE / "
+                "STABILIZE_AND_REASSESS / "
+                "CONDITION_AND_REASSESS / "
+                "HOLD_AND_STABILIZE / "
+                "HOLD_FOR_VERIFICATION and their priority "
+                "order are research-defined software "
+                "decision labels. No single detected black "
+                "or broken bean automatically rejects the "
+                "whole batch. The normalized broken and "
+                "black defect-property counts both include "
+                "black-and-broken beans, so their displayed "
+                "percentages can overlap and must not be "
+                "summed."
             ),
         )
 

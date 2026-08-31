@@ -1,0 +1,5570 @@
+/* ========================================================================== 
+   Coffee Bean Quality Control — unified light coffee theme
+   Scope: BeanQualityPage shell + Step 01 Sensor Analysis
+   Functional behavior is intentionally untouched.
+   ========================================================================== */
+
+.bean-quality-page {
+  --bq-bg: #f7f2eb;
+  --bq-surface: #fffdf9;
+  --bq-surface-soft: #fbf6ef;
+  --bq-surface-warm: #f3e8d9;
+  --bq-border: #e5dbcf;
+  --bq-border-strong: #d8c9ba;
+  --bq-ink: #2f211b;
+  --bq-ink-soft: #604f45;
+  --bq-muted: #81736a;
+  --bq-coffee-950: #2b160f;
+  --bq-coffee-900: #351c13;
+  --bq-coffee-850: #3d2117;
+  --bq-coffee-800: #4b2a1d;
+  --bq-coffee-700: #613a29;
+  --bq-caramel: #c78845;
+  --bq-caramel-deep: #a96d35;
+  --bq-caramel-soft: #f3e4d0;
+  --bq-green: #68836e;
+  --bq-green-deep: #496b53;
+  --bq-green-soft: #edf5ee;
+  --bq-red: #a75147;
+  --bq-red-soft: #fbefed;
+  --bq-amber: #a9772e;
+  --bq-amber-soft: #fbf4e7;
+  --bq-shadow: 0 18px 45px rgba(65, 41, 27, 0.08);
+  --bq-shadow-soft: 0 8px 24px rgba(65, 41, 27, 0.055);
+
+  min-height: 100vh !important;
+  color: var(--bq-ink) !important;
+  background: var(--bq-bg) !important;
+}
+
+.bean-quality-page::before,
+.bean-quality-page .coffee-noise,
+.bean-quality-page .background-glow,
+.bean-quality-page .floating-bean {
+  display: none !important;
+}
+
+.bean-quality-page .quality-container {
+  width: min(1320px, calc(100% - 40px)) !important;
+  margin: 0 auto !important;
+  padding: 28px 0 42px !important;
+}
+
+/* --------------------------------------------------------------------------
+   Page hero
+   -------------------------------------------------------------------------- */
+
+.bean-quality-page .quality-hero {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: 72px minmax(0, 1fr) 210px !important;
+  align-items: center !important;
+  gap: 26px !important;
+  min-height: 250px !important;
+  padding: 34px 38px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(92, 55, 35, 0.28) !important;
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at 92% 20%, rgba(214, 153, 92, 0.18), transparent 27%),
+    radial-gradient(circle at 73% 120%, rgba(144, 91, 53, 0.22), transparent 38%),
+    linear-gradient(118deg, var(--bq-coffee-900), var(--bq-coffee-950)) !important;
+  box-shadow: var(--bq-shadow) !important;
+}
+
+.bean-quality-page .quality-hero::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: auto -70px -120px auto !important;
+  width: 360px !important;
+  height: 260px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+  pointer-events: none !important;
+}
+
+.bean-quality-page .hero-coffee-mark {
+  width: 58px !important;
+  height: 58px !important;
+  display: grid !important;
+  place-items: center !important;
+  align-self: start !important;
+  border: 1px solid rgba(240, 200, 158, 0.18) !important;
+  border-radius: 17px !important;
+  color: #f4c88e !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.bean-quality-page .hero-copy {
+  max-width: 790px !important;
+}
+
+.bean-quality-page .hero-eyebrow,
+.bean-quality-page .workflow-heading > div:first-child > span,
+.bean-quality-page .sensor-step-label,
+.bean-quality-page .sensor-section-heading > div > span,
+.bean-quality-page .quick-guide-copy > span,
+.bean-quality-page .toolbar-kicker {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1.45px !important;
+  text-transform: uppercase !important;
+}
+
+.bean-quality-page .hero-eyebrow {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 13px !important;
+  color: #efd4b1 !important;
+}
+
+.bean-quality-page .eyebrow-dot {
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 50% !important;
+  background: #7fa084 !important;
+  box-shadow: 0 0 0 4px rgba(127, 160, 132, 0.12) !important;
+}
+
+.bean-quality-page .hero-copy h1 {
+  margin: 0 !important;
+  color: #fffaf3 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: clamp(38px, 4.3vw, 62px) !important;
+  font-weight: 500 !important;
+  line-height: 0.98 !important;
+  letter-spacing: -2px !important;
+}
+
+.bean-quality-page .hero-copy h1 span {
+  display: block !important;
+  margin-top: 7px !important;
+  color: #d9a060 !important;
+  font-style: italic !important;
+  font-weight: 400 !important;
+}
+
+.bean-quality-page .hero-copy > p {
+  max-width: 710px !important;
+  margin: 18px 0 22px !important;
+  color: rgba(255, 247, 236, 0.68) !important;
+  font-size: 13px !important;
+  line-height: 1.72 !important;
+}
+
+.bean-quality-page .hero-meta {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 17px !important;
+  margin-top: 0 !important;
+}
+
+.bean-quality-page .hero-meta-item span {
+  display: block !important;
+  margin-bottom: 4px !important;
+  color: rgba(255, 242, 226, 0.38) !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1.1px !important;
+}
+
+.bean-quality-page .hero-meta-item strong {
+  color: #fff4e5 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+
+.bean-quality-page .hero-meta-divider {
+  width: 1px !important;
+  height: 28px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.bean-quality-page .system-ready {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  color: #bdd7c1 !important;
+}
+
+.bean-quality-page .system-ready i {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: #88aa8c !important;
+  box-shadow: 0 0 0 4px rgba(136, 170, 140, 0.1) !important;
+}
+
+.bean-quality-page .hero-bean-cluster {
+  width: 178px !important;
+  height: 178px !important;
+  justify-self: end !important;
+  opacity: 0.88 !important;
+}
+
+.bean-quality-page .hero-bean-cluster::before {
+  border-color: rgba(255, 226, 191, 0.11) !important;
+}
+
+.bean-quality-page .hero-bean-core {
+  width: 104px !important;
+  height: 104px !important;
+  color: #d6a168 !important;
+  border-color: rgba(239, 197, 151, 0.18) !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+}
+
+.bean-quality-page .bean-orbit {
+  color: rgba(237, 190, 139, 0.42) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Workflow heading + stepper
+   -------------------------------------------------------------------------- */
+
+.bean-quality-page .workflow-heading {
+  display: flex !important;
+  align-items: end !important;
+  justify-content: space-between !important;
+  gap: 24px !important;
+  margin: 31px 2px 14px !important;
+}
+
+.bean-quality-page .workflow-heading > div:first-child > span {
+  color: var(--bq-caramel-deep) !important;
+}
+
+.bean-quality-page .workflow-heading h2 {
+  margin: 5px 0 0 !important;
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 29px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.7px !important;
+}
+
+.bean-quality-page .workflow-step-number {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.bean-quality-page .workflow-step-number > span {
+  color: var(--bq-muted) !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1px !important;
+}
+
+.bean-quality-page .workflow-step-number strong {
+  color: var(--bq-coffee-800) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 28px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page .workflow-step-number small {
+  margin-left: 3px !important;
+  color: #aa9d94 !important;
+  font-size: 13px !important;
+}
+
+.bean-quality-page .stepper-shell {
+  position: relative !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 19px !important;
+  background: var(--bq-surface) !important;
+  box-shadow: var(--bq-shadow-soft) !important;
+}
+
+.bean-quality-page .stepper-accent {
+  display: none !important;
+}
+
+.bean-quality-page .quality-stepper {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 0 !important;
+  padding: 7px !important;
+  border: 0 !important;
+  border-radius: 18px !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+.bean-quality-page .stepper-item-wrap {
+  min-width: 0 !important;
+}
+
+.bean-quality-page .stepper-item {
+  min-height: 74px !important;
+  gap: 12px !important;
+  padding: 12px 14px !important;
+  color: #9c8f86 !important;
+  border: 1px solid transparent !important;
+  border-radius: 14px !important;
+  background: transparent !important;
+  transition: 0.2s ease !important;
+}
+
+.bean-quality-page .stepper-item:hover {
+  background: #faf6f0 !important;
+}
+
+.bean-quality-page .step-circle {
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  display: grid !important;
+  place-items: center !important;
+  color: #8c7c70 !important;
+  border: 1px solid #ded3c7 !important;
+  border-radius: 12px !important;
+  background: #f8f2eb !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+}
+
+.bean-quality-page .step-text strong {
+  color: #75665d !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+}
+
+.bean-quality-page .step-text span {
+  margin-top: 3px !important;
+  color: #a09288 !important;
+  font-size: 10px !important;
+  line-height: 1.35 !important;
+}
+
+.bean-quality-page .active-step {
+  color: var(--bq-coffee-900) !important;
+  border-color: #eadfd2 !important;
+  background: #f7eee3 !important;
+}
+
+.bean-quality-page .active-step .step-circle {
+  color: #fff8ee !important;
+  border-color: var(--bq-coffee-800) !important;
+  background: var(--bq-coffee-800) !important;
+  box-shadow: 0 5px 12px rgba(73, 42, 29, 0.16) !important;
+}
+
+.bean-quality-page .active-step .step-text strong {
+  color: var(--bq-coffee-900) !important;
+}
+
+.bean-quality-page .active-step .step-text span {
+  color: #826e60 !important;
+}
+
+.bean-quality-page .completed-step {
+  color: var(--bq-green-deep) !important;
+}
+
+.bean-quality-page .completed-step .step-circle {
+  color: var(--bq-green-deep) !important;
+  border-color: #d6e5d8 !important;
+  background: var(--bq-green-soft) !important;
+}
+
+.bean-quality-page .step-line {
+  position: absolute !important;
+  right: -1px !important;
+  width: 1px !important;
+  height: 42px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background: var(--bq-border) !important;
+}
+
+.bean-quality-page .line-completed {
+  background: #cfe0d2 !important;
+}
+
+.bean-quality-page .analysis-shell {
+  margin-top: 18px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Sensor analysis main surface
+   -------------------------------------------------------------------------- */
+
+.bean-quality-page .sensor-analysis {
+  margin-top: 0 !important;
+}
+
+.bean-quality-page .sensor-main-card {
+  padding: 30px !important;
+  overflow: hidden !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 22px !important;
+  color: var(--bq-ink) !important;
+  background: var(--bq-surface) !important;
+  box-shadow: var(--bq-shadow) !important;
+}
+
+.bean-quality-page .sensor-heading {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 28px !important;
+  margin: 0 !important;
+  padding: 0 0 23px !important;
+  border-bottom: 1px solid #eee5db !important;
+}
+
+.bean-quality-page .sensor-heading > div:first-child {
+  max-width: 760px !important;
+}
+
+.bean-quality-page .sensor-step-label {
+  display: block !important;
+  margin-bottom: 8px !important;
+  color: var(--bq-caramel-deep) !important;
+}
+
+.bean-quality-page .sensor-heading h2 {
+  margin: 0 !important;
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: clamp(27px, 3vw, 36px) !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.8px !important;
+  line-height: 1.12 !important;
+}
+
+.bean-quality-page .sensor-heading p {
+  max-width: 720px !important;
+  margin: 10px 0 0 !important;
+  color: var(--bq-muted) !important;
+  font-size: 12.5px !important;
+  line-height: 1.7 !important;
+}
+
+.bean-quality-page .header-status-area {
+  display: flex !important;
+  justify-content: flex-end !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  min-width: 235px !important;
+}
+
+.bean-quality-page .monitor-status-chip,
+.bean-quality-page .header-stability-chip {
+  min-height: 30px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 7px 10px !important;
+  color: #78695f !important;
+  border: 1px solid #e6ddd3 !important;
+  border-radius: 999px !important;
+  background: #f8f4ef !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.35px !important;
+}
+
+.bean-quality-page .monitor-status-dot {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: #b1a39a !important;
+}
+
+.bean-quality-page .monitor-status-live,
+.bean-quality-page .header-stability-stable,
+.bean-quality-page .monitor-status-locked {
+  color: var(--bq-green-deep) !important;
+  border-color: #d4e2d6 !important;
+  background: var(--bq-green-soft) !important;
+}
+
+.bean-quality-page .monitor-dot-live,
+.bean-quality-page .monitor-dot-locked {
+  background: #6e9475 !important;
+  box-shadow: 0 0 0 4px rgba(110, 148, 117, 0.1) !important;
+}
+
+.bean-quality-page .header-stability-stabilizing {
+  color: var(--bq-amber) !important;
+  border-color: #ead7b4 !important;
+  background: var(--bq-amber-soft) !important;
+}
+
+/* Quick guide */
+
+.bean-quality-page .sensor-quick-guide {
+  display: grid !important;
+  grid-template-columns: minmax(210px, 0.72fr) minmax(0, 2fr) !important;
+  align-items: center !important;
+  gap: 24px !important;
+  margin: 22px 0 16px !important;
+  padding: 17px 18px !important;
+  border: 1px solid #eadfd3 !important;
+  border-radius: 17px !important;
+  background: #fbf6ef !important;
+}
+
+.bean-quality-page .quick-guide-copy > span {
+  display: block !important;
+  margin-bottom: 5px !important;
+  color: var(--bq-caramel-deep) !important;
+}
+
+.bean-quality-page .quick-guide-copy > strong {
+  display: block !important;
+  color: #4d392f !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+}
+
+.bean-quality-page .quick-guide-steps {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.bean-quality-page .quick-guide-item {
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding-left: 12px !important;
+  border-left: 1px solid #e5d8cb !important;
+}
+
+.bean-quality-page .quick-guide-item > span {
+  width: 28px !important;
+  height: 28px !important;
+  flex: 0 0 28px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 9px !important;
+  color: #fffaf4 !important;
+  background: var(--bq-coffee-800) !important;
+  font-size: 10px !important;
+  font-weight: 850 !important;
+}
+
+.bean-quality-page .quick-guide-item strong,
+.bean-quality-page .quick-guide-item small {
+  display: block !important;
+}
+
+.bean-quality-page .quick-guide-item strong {
+  color: #4a372d !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+}
+
+.bean-quality-page .quick-guide-item small {
+  margin-top: 2px !important;
+  color: #8b7b70 !important;
+  font-size: 9px !important;
+  line-height: 1.35 !important;
+}
+
+/* Device + live monitor setup */
+
+.bean-quality-page .sensor-setup-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 12px !important;
+  margin: 0 0 18px !important;
+}
+
+.bean-quality-page .sensor-main-card .device-status-card,
+.bean-quality-page .sensor-toolbar {
+  min-height: 92px !important;
+  margin: 0 !important;
+  padding: 14px 15px !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 16px !important;
+  color: var(--bq-ink) !important;
+  background: var(--bq-surface) !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page .sensor-main-card .device-icon {
+  width: 42px !important;
+  height: 42px !important;
+  border: 1px solid #ead7c2 !important;
+  border-radius: 12px !important;
+  color: var(--bq-caramel-deep) !important;
+  background: #f7eadb !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+}
+
+.bean-quality-page .sensor-main-card .device-label,
+.bean-quality-page .toolbar-kicker {
+  color: #9a806d !important;
+  font-size: 8px !important;
+}
+
+.bean-quality-page .sensor-main-card .device-left strong {
+  color: #46332a !important;
+  font-size: 12px !important;
+}
+
+.bean-quality-page .sensor-main-card .device-meta span,
+.bean-quality-page .sensor-main-card .device-meta small {
+  color: #9a8a80 !important;
+  font-size: 9px !important;
+}
+
+.bean-quality-page .connection-status {
+  padding: 6px 9px !important;
+  border-radius: 999px !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+}
+
+.bean-quality-page .sensor-main-card .device-connected {
+  color: var(--bq-green-deep) !important;
+  border-color: #d4e3d7 !important;
+  background: var(--bq-green-soft) !important;
+}
+
+.bean-quality-page .sensor-main-card .device-connected .connection-dot {
+  background: #6f9576 !important;
+  box-shadow: 0 0 0 4px rgba(111, 149, 118, 0.09) !important;
+}
+
+.bean-quality-page .sensor-main-card .device-disconnected {
+  color: var(--bq-red) !important;
+  border-color: #edd6d2 !important;
+  background: var(--bq-red-soft) !important;
+}
+
+.bean-quality-page .sensor-main-card .device-disconnected .connection-dot {
+  background: #c36d63 !important;
+}
+
+.bean-quality-page .sensor-toolbar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+}
+
+.bean-quality-page .toolbar-kicker {
+  display: block !important;
+  margin-bottom: 4px !important;
+}
+
+.bean-quality-page .toolbar-title {
+  display: block !important;
+  color: #49362d !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+.bean-quality-page .toolbar-description {
+  display: block !important;
+  margin-top: 5px !important;
+  color: #92837a !important;
+  font-size: 9.5px !important;
+  line-height: 1.45 !important;
+}
+
+.bean-quality-page .monitor-toggle-button {
+  min-height: 38px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  padding: 9px 12px !important;
+  white-space: nowrap !important;
+  border-radius: 11px !important;
+  font-size: 9px !important;
+  font-weight: 850 !important;
+  transition: 0.18s ease !important;
+}
+
+.bean-quality-page .start-monitor-button {
+  color: #fffaf4 !important;
+  border: 1px solid var(--bq-coffee-800) !important;
+  background: var(--bq-coffee-800) !important;
+  box-shadow: 0 5px 12px rgba(70, 40, 28, 0.13) !important;
+}
+
+.bean-quality-page .start-monitor-button:hover {
+  transform: translateY(-1px) !important;
+  background: var(--bq-coffee-700) !important;
+}
+
+.bean-quality-page .stop-monitor-button {
+  color: #8f4139 !important;
+  border: 1px solid #e7c9c4 !important;
+  background: #fbefed !important;
+}
+
+.bean-quality-page .stop-monitor-button:hover {
+  transform: translateY(-1px) !important;
+  background: #f7e5e2 !important;
+}
+
+.bean-quality-page .play-symbol {
+  font-size: 8px !important;
+}
+
+.bean-quality-page .stop-square {
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 2px !important;
+  background: currentColor !important;
+}
+
+/* Error */
+
+.bean-quality-page .sensor-error {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 11px !important;
+  margin: 0 0 18px !important;
+  padding: 13px 14px !important;
+  color: #7b413a !important;
+  border: 1px solid #eed7d3 !important;
+  border-radius: 14px !important;
+  background: #fcf1ef !important;
+}
+
+.bean-quality-page .sensor-error-icon {
+  width: 28px !important;
+  height: 28px !important;
+  flex: 0 0 28px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 9px !important;
+  color: #fff !important;
+  background: #b96359 !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+}
+
+.bean-quality-page .sensor-error strong {
+  display: block !important;
+  color: #743b35 !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .sensor-error span,
+.bean-quality-page .sensor-error small {
+  display: block !important;
+  margin-top: 3px !important;
+  color: #9a625b !important;
+  font-size: 9.5px !important;
+  line-height: 1.45 !important;
+}
+
+/* --------------------------------------------------------------------------
+   Reusable section headers inside Sensor Analysis
+   -------------------------------------------------------------------------- */
+
+.bean-quality-page .sensor-section-heading {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 24px !important;
+  margin: 25px 0 12px !important;
+}
+
+.bean-quality-page .sensor-section-heading > div > span {
+  display: block !important;
+  margin-bottom: 5px !important;
+  color: var(--bq-caramel-deep) !important;
+}
+
+.bean-quality-page .sensor-section-heading h3 {
+  margin: 0 !important;
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 21px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.35px !important;
+}
+
+.bean-quality-page .sensor-section-heading > p {
+  max-width: 520px !important;
+  margin: 0 !important;
+  color: #8a7b72 !important;
+  font-size: 9.5px !important;
+  line-height: 1.55 !important;
+  text-align: right !important;
+}
+
+.bean-quality-page .sensor-diagnostics-heading {
+  margin-top: 25px !important;
+}
+
+/* --------------------------------------------------------------------------
+   Primary guided workflow — dark focus panel
+   -------------------------------------------------------------------------- */
+
+.bean-quality-page .sensor-primary-workflow {
+  margin: 4px 0 0 !important;
+  padding: 23px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(84, 50, 32, 0.32) !important;
+  border-radius: 20px !important;
+  background:
+    radial-gradient(circle at 94% 0%, rgba(207, 147, 87, 0.14), transparent 30%),
+    linear-gradient(130deg, #43251a, #2d1710) !important;
+  box-shadow: 0 14px 34px rgba(62, 37, 24, 0.11) !important;
+}
+
+.bean-quality-page .sensor-primary-workflow .sensor-section-heading {
+  margin: 0 0 15px !important;
+  padding: 0 1px !important;
+}
+
+.bean-quality-page .sensor-section-heading-light > div > span {
+  color: #d8a46c !important;
+}
+
+.bean-quality-page .sensor-section-heading-light h3 {
+  color: #fff8ef !important;
+}
+
+.bean-quality-page .sensor-section-heading-light > p {
+  color: rgba(255, 242, 227, 0.5) !important;
+}
+
+.bean-quality-page .scan-workflow-dark-wrap {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page .scan-workflow-dark-wrap > * {
+  width: 100% !important;
+}
+
+.bean-quality-page .scan-workflow {
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #f8eee3 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.bean-quality-page .scan-workflow-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  margin: 0 0 14px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.bean-quality-page .scan-section-label {
+  display: block !important;
+  margin-bottom: 4px !important;
+  color: rgba(226, 180, 132, 0.72) !important;
+  font-size: 8px !important;
+  font-weight: 850 !important;
+  letter-spacing: 1.25px !important;
+}
+
+.bean-quality-page .scan-workflow-header h3 {
+  margin: 0 !important;
+  color: #fff8ef !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 18px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page .scan-workflow-header p {
+  max-width: 640px !important;
+  margin: 5px 0 0 !important;
+  color: rgba(255, 241, 226, 0.5) !important;
+  font-size: 9.5px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page .scan-task-status {
+  flex: 0 0 auto !important;
+  padding: 7px 10px !important;
+  color: #d7b78f !important;
+  border: 1px solid rgba(230, 191, 148, 0.14) !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  font-size: 8.5px !important;
+  font-weight: 850 !important;
+}
+
+.bean-quality-page .scan-task-complete {
+  color: #b9d9bd !important;
+  border-color: rgba(136, 177, 143, 0.2) !important;
+  background: rgba(101, 146, 108, 0.1) !important;
+}
+
+.bean-quality-page .scan-stage-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 9px !important;
+  margin: 0 0 12px !important;
+}
+
+.bean-quality-page .scan-stage-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-height: 60px !important;
+  padding: 11px 12px !important;
+  border: 1px solid rgba(255, 235, 211, 0.1) !important;
+  border-radius: 13px !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+
+.bean-quality-page .scan-stage-active {
+  border-color: rgba(223, 173, 119, 0.3) !important;
+  background: rgba(203, 137, 73, 0.1) !important;
+  box-shadow: inset 3px 0 0 #c88a4d !important;
+}
+
+.bean-quality-page .scan-stage-finished {
+  border-color: rgba(127, 170, 135, 0.22) !important;
+  background: rgba(95, 139, 102, 0.09) !important;
+}
+
+.bean-quality-page .scan-stage-number {
+  width: 31px !important;
+  height: 31px !important;
+  flex: 0 0 31px !important;
+  display: grid !important;
+  place-items: center !important;
+  color: #f7d5b0 !important;
+  border: 1px solid rgba(234, 190, 145, 0.16) !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+}
+
+.bean-quality-page .scan-stage-card strong {
+  display: block !important;
+  color: #fff6ea !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .scan-stage-card span {
+  display: block !important;
+  margin-top: 2px !important;
+  color: rgba(255, 240, 223, 0.43) !important;
+  font-size: 8.5px !important;
+}
+
+.bean-quality-page .scan-stage-content {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+/* Primary instruction uses a light card so the next action is obvious. */
+.bean-quality-page .scan-instruction {
+  display: grid !important;
+  grid-template-columns: 40px minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 15px !important;
+  border: 1px solid rgba(255, 255, 255, 0.76) !important;
+  border-radius: 14px !important;
+  color: var(--bq-ink) !important;
+  background: #fffaf3 !important;
+  box-shadow: 0 8px 20px rgba(25, 12, 7, 0.08) !important;
+}
+
+.bean-quality-page .scan-instruction-icon {
+  width: 38px !important;
+  height: 38px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 11px !important;
+  color: #fff8ef !important;
+  background: var(--bq-coffee-800) !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+}
+
+.bean-quality-page .scan-instruction-text strong {
+  display: block !important;
+  color: #3f2c23 !important;
+  font-size: 11px !important;
+}
+
+.bean-quality-page .scan-instruction-text span {
+  display: block !important;
+  margin-top: 3px !important;
+  color: #817168 !important;
+  font-size: 9.5px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page .scan-primary-button {
+  min-height: 38px !important;
+  padding: 9px 13px !important;
+  white-space: nowrap !important;
+  color: #fffaf3 !important;
+  border: 1px solid var(--bq-coffee-800) !important;
+  border-radius: 10px !important;
+  background: var(--bq-coffee-800) !important;
+  box-shadow: 0 6px 14px rgba(67, 37, 25, 0.14) !important;
+  font-size: 9px !important;
+  font-weight: 850 !important;
+}
+
+.bean-quality-page .scan-primary-button:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+  background: var(--bq-coffee-700) !important;
+}
+
+.bean-quality-page .scan-primary-button:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+}
+
+.bean-quality-page .scan-monitoring-box,
+.bean-quality-page .sample-exposure-box {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  padding: 14px 15px !important;
+  border: 1px solid rgba(244, 219, 190, 0.12) !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+}
+
+.bean-quality-page .scan-monitoring-left,
+.bean-quality-page .exposure-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.bean-quality-page .scan-pulse,
+.bean-quality-page .exposure-icon {
+  width: 36px !important;
+  height: 36px !important;
+  flex: 0 0 36px !important;
+  display: grid !important;
+  place-items: center !important;
+  border: 1px solid rgba(226, 177, 125, 0.15) !important;
+  border-radius: 11px !important;
+  background: rgba(201, 135, 69, 0.1) !important;
+}
+
+.bean-quality-page .scan-pulse span,
+.bean-quality-page .exposure-live-dot {
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 50% !important;
+  background: #d5a269 !important;
+  box-shadow: 0 0 0 5px rgba(213, 162, 105, 0.08) !important;
+}
+
+.bean-quality-page .scan-monitoring-left strong,
+.bean-quality-page .exposure-left strong {
+  display: block !important;
+  color: #fff5e8 !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .scan-monitoring-left span,
+.bean-quality-page .exposure-left span {
+  display: block !important;
+  margin-top: 3px !important;
+  color: rgba(255, 239, 220, 0.46) !important;
+  font-size: 9px !important;
+  line-height: 1.45 !important;
+}
+
+.bean-quality-page .scan-stability-state {
+  flex: 0 0 auto !important;
+  padding: 7px 9px !important;
+  border-radius: 999px !important;
+  font-size: 8.5px !important;
+  font-weight: 850 !important;
+}
+
+.bean-quality-page .scan-collecting,
+.bean-quality-page .scan-stabilizing {
+  color: #e7bd83 !important;
+  border: 1px solid rgba(225, 179, 117, 0.16) !important;
+  background: rgba(194, 133, 58, 0.08) !important;
+}
+
+.bean-quality-page .scan-stable {
+  color: #b8d8bc !important;
+  border: 1px solid rgba(134, 175, 141, 0.18) !important;
+  background: rgba(96, 139, 103, 0.09) !important;
+}
+
+.bean-quality-page .sample-exposure-wrapper {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.bean-quality-page .exposure-timer {
+  min-width: 76px !important;
+  text-align: right !important;
+}
+
+.bean-quality-page .exposure-timer strong {
+  display: block !important;
+  color: #f5c78f !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 25px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page .exposure-timer span {
+  color: rgba(255, 238, 218, 0.42) !important;
+  font-size: 8px !important;
+}
+
+.bean-quality-page .exposure-progress {
+  height: 6px !important;
+  margin: 10px 2px 0 !important;
+  overflow: hidden !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.bean-quality-page .exposure-progress-fill {
+  height: 100% !important;
+  border-radius: inherit !important;
+  background: linear-gradient(90deg, #a86f39, #d5a166) !important;
+}
+
+.bean-quality-page .exposure-note {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+  color: rgba(255, 239, 221, 0.42) !important;
+  font-size: 8.7px !important;
+  line-height: 1.45 !important;
+}
+
+.bean-quality-page .scan-success-box,
+.bean-quality-page .scan-task-complete-box {
+  display: flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  padding: 13px 14px !important;
+  border: 1px solid rgba(129, 171, 137, 0.2) !important;
+  border-radius: 13px !important;
+  background: rgba(98, 142, 106, 0.09) !important;
+}
+
+.bean-quality-page .scan-success-icon,
+.bean-quality-page .complete-checkmark {
+  width: 30px !important;
+  height: 30px !important;
+  flex: 0 0 30px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 10px !important;
+  color: #d7ebd9 !important;
+  background: rgba(119, 162, 126, 0.16) !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+}
+
+.bean-quality-page .scan-success-box strong,
+.bean-quality-page .scan-task-complete-box strong {
+  display: block !important;
+  color: #e9f4e9 !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .scan-success-box span,
+.bean-quality-page .scan-task-complete-box span {
+  display: block !important;
+  margin-top: 3px !important;
+  color: rgba(220, 239, 223, 0.52) !important;
+  font-size: 9px !important;
+}
+
+.bean-quality-page .capture-time-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin-top: 9px !important;
+}
+
+.bean-quality-page .capture-time-grid > div {
+  padding: 10px 11px !important;
+  border: 1px solid rgba(255, 235, 211, 0.1) !important;
+  border-radius: 11px !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+
+.bean-quality-page .capture-time-grid span {
+  display: block !important;
+  color: rgba(255, 238, 217, 0.36) !important;
+  font-size: 8px !important;
+}
+
+.bean-quality-page .capture-time-grid strong {
+  display: block !important;
+  margin-top: 3px !important;
+  color: #fff5e8 !important;
+  font-size: 9.5px !important;
+}
+
+/* Completed test results become a readable paper surface within the dark panel. */
+.bean-quality-page .scan-result-section {
+  margin-top: 10px !important;
+  padding: 16px !important;
+  border: 1px solid #eadfd3 !important;
+  border-radius: 14px !important;
+  color: var(--bq-ink) !important;
+  background: #fffaf3 !important;
+}
+
+.bean-quality-page .scan-result-heading {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  margin-bottom: 11px !important;
+}
+
+.bean-quality-page .scan-result-heading span {
+  color: var(--bq-caramel-deep) !important;
+  font-size: 8px !important;
+  font-weight: 850 !important;
+  letter-spacing: 1.15px !important;
+}
+
+.bean-quality-page .scan-result-heading h4 {
+  margin: 3px 0 0 !important;
+  color: #3e2c23 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page .new-test-button {
+  padding: 7px 10px !important;
+  color: #6e513f !important;
+  border: 1px solid #dfd0c2 !important;
+  border-radius: 9px !important;
+  background: #f7eee4 !important;
+  font-size: 8.5px !important;
+  font-weight: 800 !important;
+}
+
+.bean-quality-page .scan-result-table-wrapper {
+  overflow-x: auto !important;
+  border: 1px solid #e9dfd5 !important;
+  border-radius: 11px !important;
+  background: #fff !important;
+}
+
+.bean-quality-page .scan-result-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  color: #514038 !important;
+  background: transparent !important;
+}
+
+.bean-quality-page .scan-result-table th {
+  padding: 9px 10px !important;
+  color: #8c786a !important;
+  border-bottom: 1px solid #e9dfd5 !important;
+  background: #faf6f0 !important;
+  font-size: 8px !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.65px !important;
+  text-transform: uppercase !important;
+}
+
+.bean-quality-page .scan-result-table td {
+  padding: 9px 10px !important;
+  color: #66544a !important;
+  border-bottom: 1px solid #f0e8df !important;
+  font-size: 9.5px !important;
+}
+
+.bean-quality-page .scan-result-table tbody tr:last-child td {
+  border-bottom: 0 !important;
+}
+
+.bean-quality-page .scan-result-table td:first-child {
+  color: #443229 !important;
+  font-weight: 800 !important;
+}
+
+.bean-quality-page .response-value {
+  color: var(--bq-caramel-deep) !important;
+  font-weight: 800 !important;
+}
+
+/* Sensor quality assessment */
+
+.bean-quality-page .sensor-quality-assessment {
+  margin-top: 12px !important;
+  padding: 15px !important;
+  border: 1px solid #e6dbd0 !important;
+  border-radius: 13px !important;
+  background: #fff !important;
+}
+
+.bean-quality-page .sensor-quality-good {
+  border-color: #d2e2d5 !important;
+  background: #fbfefb !important;
+}
+
+.bean-quality-page .sensor-quality-review {
+  border-color: #ead9bc !important;
+  background: #fffdf8 !important;
+}
+
+.bean-quality-page .sensor-quality-bad {
+  border-color: #ead1cd !important;
+  background: #fffafa !important;
+}
+
+.bean-quality-page .sensor-quality-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+}
+
+.bean-quality-page .sensor-quality-label {
+  color: #9b7b65 !important;
+  font-size: 8px !important;
+  font-weight: 850 !important;
+  letter-spacing: 1.1px !important;
+}
+
+.bean-quality-page .sensor-quality-header h4 {
+  margin: 4px 0 0 !important;
+  color: #3f2e25 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page .sensor-quality-header p {
+  max-width: 620px !important;
+  margin: 5px 0 0 !important;
+  color: #8b7b72 !important;
+  font-size: 8.8px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page .sensor-quality-status {
+  padding: 6px 9px !important;
+  border-radius: 999px !important;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.55px !important;
+}
+
+.bean-quality-page .sensor-quality-status-good {
+  color: var(--bq-green-deep) !important;
+  border: 1px solid #d2e2d5 !important;
+  background: var(--bq-green-soft) !important;
+}
+
+.bean-quality-page .sensor-quality-status-review {
+  color: var(--bq-amber) !important;
+  border: 1px solid #ead8b9 !important;
+  background: var(--bq-amber-soft) !important;
+}
+
+.bean-quality-page .sensor-quality-status-bad {
+  color: var(--bq-red) !important;
+  border: 1px solid #ebd2ce !important;
+  background: var(--bq-red-soft) !important;
+}
+
+.bean-quality-page .sensor-quality-main-grid {
+  display: grid !important;
+  grid-template-columns: minmax(170px, 0.58fr) minmax(0, 1.7fr) !important;
+  gap: 10px !important;
+  margin-top: 11px !important;
+}
+
+.bean-quality-page .sensor-quality-score-card,
+.bean-quality-page .sensor-quality-detail-card {
+  padding: 11px !important;
+  border: 1px solid #ece3da !important;
+  border-radius: 10px !important;
+  color: #4b392f !important;
+  background: #fbf8f4 !important;
+}
+
+.bean-quality-page .sensor-quality-score-card > span,
+.bean-quality-page .sensor-quality-detail-card > span {
+  color: #95857a !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+}
+
+.bean-quality-page .sensor-quality-score-value {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 3px !important;
+  margin-top: 5px !important;
+}
+
+.bean-quality-page .sensor-quality-score-value strong {
+  color: #3e2b22 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 28px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page .sensor-quality-score-value small {
+  color: #a08f84 !important;
+  font-size: 9px !important;
+}
+
+.bean-quality-page .sensor-quality-score-track {
+  height: 5px !important;
+  margin-top: 8px !important;
+  overflow: hidden !important;
+  border-radius: 999px !important;
+  background: #e8ded4 !important;
+}
+
+.bean-quality-page .sensor-quality-score-fill {
+  height: 100% !important;
+  border-radius: inherit !important;
+  background: linear-gradient(90deg, #a56a38, #7f987f) !important;
+}
+
+.bean-quality-page .sensor-quality-vote-count {
+  margin-top: 7px !important;
+  color: #8e7e73 !important;
+  font-size: 8.5px !important;
+}
+
+.bean-quality-page .sensor-quality-detail-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 7px !important;
+}
+
+.bean-quality-page .sensor-quality-detail-card strong {
+  display: block !important;
+  margin-top: 4px !important;
+  color: #4a362c !important;
+  font-size: 12px !important;
+}
+
+.bean-quality-page .sensor-quality-detail-card small {
+  display: block !important;
+  margin-top: 2px !important;
+  color: #9b8b81 !important;
+  font-size: 7.5px !important;
+  line-height: 1.35 !important;
+}
+
+.bean-quality-page .sensor-quality-note {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  margin-top: 9px !important;
+  padding: 9px 10px !important;
+  border-radius: 9px !important;
+  background: #f7f1ea !important;
+}
+
+.bean-quality-page .sensor-quality-note > span {
+  width: 20px !important;
+  height: 20px !important;
+  flex: 0 0 20px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 7px !important;
+  color: #7a5a43 !important;
+  background: #eee1d4 !important;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+}
+
+.bean-quality-page .sensor-quality-note p {
+  margin: 0 !important;
+  color: #89776c !important;
+  font-size: 8px !important;
+  line-height: 1.5 !important;
+}
+
+/* --------------------------------------------------------------------------
+   Live measurement cards
+   -------------------------------------------------------------------------- */
+
+.bean-quality-page .sensor-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin: 0 !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-metric-card {
+  min-height: 156px !important;
+  padding: 15px !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 15px !important;
+  color: var(--bq-ink) !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  transition: 0.18s ease !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-metric-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: #d8c8b8 !important;
+  background: #fff !important;
+  box-shadow: 0 8px 20px rgba(66, 42, 29, 0.06) !important;
+}
+
+.bean-quality-page .sensor-card-top {
+  margin-bottom: 12px !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-icon {
+  width: 38px !important;
+  height: 38px !important;
+  display: grid !important;
+  place-items: center !important;
+  border: 1px solid #ecdcca !important;
+  border-radius: 11px !important;
+  color: #8d5c34 !important;
+  background: #f8ebdd !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+}
+
+.bean-quality-page .sensor-status {
+  padding: 5px 7px !important;
+  border-radius: 999px !important;
+  font-size: 7px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.55px !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-measured {
+  color: var(--bq-green-deep) !important;
+  border: 1px solid #d5e4d8 !important;
+  background: var(--bq-green-soft) !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-waiting {
+  color: #99743d !important;
+  border: 1px solid #ead8bd !important;
+  background: #fbf5e9 !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-name {
+  margin-bottom: 4px !important;
+  color: #716158 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+
+.bean-quality-page .sensor-value-row {
+  gap: 5px !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-value-row strong {
+  color: #33231c !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 28px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.8px !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-value-row span {
+  color: var(--bq-caramel-deep) !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-metric-card p {
+  margin: 7px 0 0 !important;
+  color: #9a8b82 !important;
+  font-size: 8.8px !important;
+  line-height: 1.45 !important;
+}
+
+/* --------------------------------------------------------------------------
+   Stability summary
+   -------------------------------------------------------------------------- */
+
+.bean-quality-page .stability-panel {
+  display: grid !important;
+  grid-template-columns: 42px minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin: 0 !important;
+  padding: 14px 15px !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 14px !important;
+  color: var(--bq-ink) !important;
+  background: #fbf8f4 !important;
+}
+
+.bean-quality-page .stability-panel-collecting {
+  border-color: #e8ddd2 !important;
+  background: #faf7f2 !important;
+}
+
+.bean-quality-page .stability-panel-stabilizing {
+  border-color: #e7d5b6 !important;
+  background: #fffaf0 !important;
+}
+
+.bean-quality-page .stability-panel-stable {
+  border-color: #d3e2d5 !important;
+  background: #f7fcf8 !important;
+}
+
+.bean-quality-page .stability-main-icon {
+  width: 40px !important;
+  height: 40px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+}
+
+.bean-quality-page .stability-icon-collecting {
+  color: #76675e !important;
+  background: #eee6de !important;
+}
+
+.bean-quality-page .stability-icon-stabilizing {
+  color: #9d722f !important;
+  background: #f6ead4 !important;
+}
+
+.bean-quality-page .stability-icon-stable {
+  color: var(--bq-green-deep) !important;
+  background: #e3f0e5 !important;
+}
+
+.bean-quality-page .stability-content strong {
+  color: #48362d !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .stability-content p {
+  margin: 3px 0 0 !important;
+  color: #8f8076 !important;
+  font-size: 9px !important;
+  line-height: 1.45 !important;
+}
+
+.bean-quality-page .stability-progress-track {
+  height: 5px !important;
+  margin-top: 8px !important;
+  overflow: hidden !important;
+  border-radius: 999px !important;
+  background: #e9e0d8 !important;
+}
+
+.bean-quality-page .stability-progress-fill {
+  height: 100% !important;
+  border-radius: inherit !important;
+  background: linear-gradient(90deg, #a97543, #cf9b63) !important;
+}
+
+.bean-quality-page .stability-badge {
+  padding: 6px 8px !important;
+  border-radius: 999px !important;
+  font-size: 7.5px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.55px !important;
+}
+
+.bean-quality-page .stability-badge-collecting {
+  color: #7c6c63 !important;
+  background: #eee7e0 !important;
+}
+
+.bean-quality-page .stability-badge-stabilizing {
+  color: #9f742f !important;
+  background: #f5e8d0 !important;
+}
+
+.bean-quality-page .stability-badge-stable {
+  color: var(--bq-green-deep) !important;
+  background: #e4f0e6 !important;
+}
+
+.bean-quality-page .small-reading-spinner {
+  border-color: #d8c9bb !important;
+  border-top-color: var(--bq-caramel-deep) !important;
+}
+
+/* Individual stability charts */
+
+.bean-quality-page .stability-chart-section {
+  margin-top: 12px !important;
+  padding: 17px !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 16px !important;
+  background: #fbf8f4 !important;
+}
+
+.bean-quality-page .stability-chart-header {
+  margin-bottom: 11px !important;
+}
+
+.bean-quality-page .stability-chart-header strong {
+  color: #49362d !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page .stability-chart-header p {
+  max-width: 760px !important;
+  margin: 4px 0 0 !important;
+  color: #93847a !important;
+  font-size: 8.8px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page .stability-chart-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 9px !important;
+}
+
+.bean-quality-page .stability-chart-card {
+  padding: 12px !important;
+  border: 1px solid #e8dfd6 !important;
+  border-radius: 12px !important;
+  color: #4b392f !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page .stability-chart-card:hover {
+  transform: none !important;
+  box-shadow: 0 6px 16px rgba(64, 42, 29, 0.05) !important;
+}
+
+.bean-quality-page .stability-chart-card-stabilizing {
+  border-color: #ead9ba !important;
+}
+
+.bean-quality-page .stability-chart-card-stable {
+  border-color: #d7e6d9 !important;
+}
+
+.bean-quality-page .chart-sensor-name,
+.bean-quality-page .chart-current-value {
+  color: #45332a !important;
+}
+
+.bean-quality-page .chart-sensor-name {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+}
+
+.bean-quality-page .chart-sensor-description {
+  margin-top: 2px !important;
+  color: #9a8b81 !important;
+  font-size: 7.8px !important;
+}
+
+.bean-quality-page .chart-status-badge {
+  padding: 5px 7px !important;
+  border-radius: 999px !important;
+  font-size: 7px !important;
+  font-weight: 850 !important;
+}
+
+.bean-quality-page .chart-status-collecting {
+  color: #7a6a60 !important;
+  background: #eee7e0 !important;
+}
+
+.bean-quality-page .chart-status-stabilizing {
+  color: #9d722f !important;
+  background: #f7ead4 !important;
+}
+
+.bean-quality-page .chart-status-stable {
+  color: var(--bq-green-deep) !important;
+  background: #e5f1e7 !important;
+}
+
+.bean-quality-page .chart-status-collecting .chart-status-dot {
+  background: #9f9187 !important;
+}
+
+.bean-quality-page .chart-status-stabilizing .chart-status-dot {
+  background: #c49148 !important;
+}
+
+.bean-quality-page .chart-status-stable .chart-status-dot {
+  background: #719577 !important;
+}
+
+.bean-quality-page .chart-current-reading {
+  margin-top: 9px !important;
+}
+
+.bean-quality-page .chart-current-value {
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 20px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page .chart-current-unit {
+  color: var(--bq-caramel-deep) !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+}
+
+.bean-quality-page .chart-box,
+.bean-quality-page .chart-meta-item {
+  border-color: #ece3da !important;
+  background: #faf7f3 !important;
+}
+
+.bean-quality-page .chart-box {
+  margin-top: 7px !important;
+  border-radius: 9px !important;
+}
+
+.bean-quality-page .chart-base-line {
+  stroke: #e2d7cd !important;
+}
+
+.bean-quality-page .chart-empty-state,
+.bean-quality-page .chart-meta-item span {
+  color: #9d8e84 !important;
+}
+
+.bean-quality-page .chart-meta-row {
+  gap: 6px !important;
+  margin-top: 7px !important;
+}
+
+.bean-quality-page .chart-meta-item {
+  padding: 7px !important;
+  border-radius: 8px !important;
+}
+
+.bean-quality-page .chart-meta-item span {
+  font-size: 7px !important;
+}
+
+.bean-quality-page .chart-meta-item strong {
+  margin-top: 2px !important;
+  color: #59463c !important;
+  font-size: 8px !important;
+}
+
+/* Sensor snapshot success */
+
+.bean-quality-page .sensor-success {
+  display: grid !important;
+  grid-template-columns: 34px minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 11px !important;
+  margin-top: 12px !important;
+  padding: 13px 14px !important;
+  border: 1px solid #d8e6da !important;
+  border-radius: 14px !important;
+  color: #49664f !important;
+  background: #f4faf5 !important;
+}
+
+.bean-quality-page .success-icon {
+  width: 32px !important;
+  height: 32px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 10px !important;
+  color: var(--bq-green-deep) !important;
+  background: #dfede2 !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+}
+
+.bean-quality-page .sensor-success strong,
+.bean-quality-page .sensor-locked-success strong {
+  color: #426049 !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .sensor-success span,
+.bean-quality-page .sensor-locked-success span {
+  color: #728d77 !important;
+  font-size: 9px !important;
+  line-height: 1.4 !important;
+}
+
+.bean-quality-page .reading-indicator,
+.bean-quality-page .locked-indicator {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 6px 8px !important;
+  color: var(--bq-green-deep) !important;
+  border-radius: 999px !important;
+  background: #e4efe6 !important;
+  font-size: 7.5px !important;
+  font-weight: 900 !important;
+}
+
+.bean-quality-page .reading-indicator > span,
+.bean-quality-page .locked-indicator > span {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: #6d9274 !important;
+}
+
+/* Final CTA for Step 01 */
+
+.bean-quality-page .sensor-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  margin-top: 18px !important;
+  padding: 15px !important;
+  border: 1px solid #e5d9cd !important;
+  border-radius: 15px !important;
+  background: #f7f0e8 !important;
+}
+
+.bean-quality-page .sensor-helper {
+  max-width: 670px !important;
+  color: #79695f !important;
+  font-size: 9.5px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page .continue-button {
+  min-height: 41px !important;
+  padding: 10px 15px !important;
+  white-space: nowrap !important;
+  color: #fffaf4 !important;
+  border: 1px solid var(--bq-coffee-800) !important;
+  border-radius: 11px !important;
+  background: var(--bq-coffee-800) !important;
+  box-shadow: 0 6px 14px rgba(68, 40, 28, 0.13) !important;
+  font-size: 9px !important;
+  font-weight: 850 !important;
+}
+
+.bean-quality-page .continue-button:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+  background: var(--bq-coffee-700) !important;
+}
+
+.bean-quality-page .continue-button:disabled {
+  color: #aaa097 !important;
+  border-color: #dfd5cb !important;
+  background: #ebe5df !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+}
+
+/* --------------------------------------------------------------------------
+   Footer strip
+   -------------------------------------------------------------------------- */
+
+.bean-quality-page .quality-footer-strip {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  margin: 18px 2px 0 !important;
+  padding: 11px 2px !important;
+  color: #907f74 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.bean-quality-page .quality-footer-strip > div {
+  color: #6e5c51 !important;
+}
+
+.bean-quality-page .quality-footer-strip > div span {
+  font-size: 9px !important;
+  font-weight: 800 !important;
+}
+
+.bean-quality-page .quality-footer-strip p {
+  color: #9a8b81 !important;
+  font-size: 8.5px !important;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive behavior
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 1080px) {
+  .bean-quality-page .quality-hero {
+    grid-template-columns: 58px minmax(0, 1fr) 145px !important;
+    padding: 30px !important;
+  }
+
+  .bean-quality-page .hero-bean-cluster {
+    width: 140px !important;
+    height: 140px !important;
+  }
+
+  .bean-quality-page .sensor-quick-guide {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bean-quality-page .quick-guide-steps {
+    gap: 8px !important;
+  }
+
+  .bean-quality-page .sensor-quality-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .bean-quality-page .quality-container {
+    width: min(100% - 28px, 1320px) !important;
+    padding-top: 18px !important;
+  }
+
+  .bean-quality-page .quality-hero {
+    grid-template-columns: 54px minmax(0, 1fr) !important;
+    min-height: auto !important;
+    padding: 26px !important;
+  }
+
+  .bean-quality-page .hero-bean-cluster {
+    display: none !important;
+  }
+
+  .bean-quality-page .quality-stepper {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bean-quality-page .step-line {
+    display: none !important;
+  }
+
+  .bean-quality-page .stepper-item {
+    min-height: 60px !important;
+  }
+
+  .bean-quality-page .sensor-main-card {
+    padding: 22px !important;
+  }
+
+  .bean-quality-page .sensor-heading,
+  .bean-quality-page .sensor-section-heading,
+  .bean-quality-page .scan-workflow-header {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
+
+  .bean-quality-page .header-status-area {
+    justify-content: flex-start !important;
+    min-width: 0 !important;
+  }
+
+  .bean-quality-page .sensor-section-heading > p {
+    max-width: 100% !important;
+    text-align: left !important;
+  }
+
+  .bean-quality-page .sensor-setup-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bean-quality-page .sensor-grid,
+  .bean-quality-page .stability-chart-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .bean-quality-page .quality-container {
+    width: min(100% - 20px, 1320px) !important;
+  }
+
+  .bean-quality-page .quality-hero {
+    grid-template-columns: 1fr !important;
+    padding: 22px !important;
+    border-radius: 19px !important;
+  }
+
+  .bean-quality-page .hero-coffee-mark {
+    width: 46px !important;
+    height: 46px !important;
+  }
+
+  .bean-quality-page .hero-meta {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .bean-quality-page .hero-meta-divider {
+    display: none !important;
+  }
+
+  .bean-quality-page .workflow-heading {
+    align-items: flex-start !important;
+  }
+
+  .bean-quality-page .workflow-heading h2 {
+    font-size: 23px !important;
+  }
+
+  .bean-quality-page .workflow-step-number {
+    display: none !important;
+  }
+
+  .bean-quality-page .sensor-main-card {
+    padding: 17px !important;
+    border-radius: 18px !important;
+  }
+
+  .bean-quality-page .sensor-heading {
+    gap: 15px !important;
+  }
+
+  .bean-quality-page .quick-guide-steps {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bean-quality-page .quick-guide-item {
+    padding: 8px 0 0 !important;
+    border-top: 1px solid #e6dbcf !important;
+    border-left: 0 !important;
+  }
+
+  .bean-quality-page .sensor-toolbar {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
+
+  .bean-quality-page .toolbar-actions,
+  .bean-quality-page .monitor-toggle-button {
+    width: 100% !important;
+  }
+
+  .bean-quality-page .sensor-primary-workflow {
+    padding: 16px !important;
+  }
+
+  .bean-quality-page .scan-stage-grid,
+  .bean-quality-page .sensor-grid,
+  .bean-quality-page .stability-chart-grid,
+  .bean-quality-page .sensor-quality-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bean-quality-page .scan-instruction {
+    grid-template-columns: 36px minmax(0, 1fr) !important;
+  }
+
+  .bean-quality-page .scan-primary-button {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+  }
+
+  .bean-quality-page .scan-monitoring-box,
+  .bean-quality-page .sample-exposure-box {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
+
+  .bean-quality-page .exposure-timer {
+    text-align: left !important;
+  }
+
+  .bean-quality-page .stability-panel,
+  .bean-quality-page .sensor-success {
+    grid-template-columns: 38px minmax(0, 1fr) !important;
+  }
+
+  .bean-quality-page .stability-badge,
+  .bean-quality-page .reading-indicator {
+    grid-column: 1 / -1 !important;
+    justify-self: start !important;
+  }
+
+  .bean-quality-page .sensor-actions {
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  .bean-quality-page .continue-button {
+    width: 100% !important;
+    white-space: normal !important;
+  }
+
+  .bean-quality-page .quality-footer-strip {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
+}
+
+/* ========================================================================== 
+   Readability pass — larger text + stronger contrast
+   Added after the visual redesign so the complete Sensor Analysis page remains
+   easy to read on normal laptop/desktop screens without changing any logic.
+   ========================================================================== */
+
+/* Shared micro labels */
+.bean-quality-page .hero-eyebrow,
+.bean-quality-page .workflow-heading > div:first-child > span,
+.bean-quality-page .sensor-step-label,
+.bean-quality-page .sensor-section-heading > div > span,
+.bean-quality-page .quick-guide-copy > span,
+.bean-quality-page .toolbar-kicker {
+  font-size: 11px !important;
+  letter-spacing: 1.2px !important;
+}
+
+/* Hero readability */
+.bean-quality-page .hero-copy > p {
+  color: rgba(255, 247, 236, 0.82) !important;
+  font-size: 14.5px !important;
+  line-height: 1.68 !important;
+}
+
+.bean-quality-page .hero-meta-item span {
+  color: rgba(255, 242, 226, 0.62) !important;
+  font-size: 10px !important;
+}
+
+.bean-quality-page .hero-meta-item strong {
+  font-size: 12.5px !important;
+}
+
+/* Workflow / stepper */
+.bean-quality-page .workflow-step-number > span {
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .step-text strong {
+  font-size: 13px !important;
+}
+
+.bean-quality-page .step-text span {
+  color: #887970 !important;
+  font-size: 11.5px !important;
+  line-height: 1.45 !important;
+}
+
+.bean-quality-page .active-step .step-text span {
+  color: #6f594b !important;
+}
+
+/* Step 01 heading + status */
+.bean-quality-page .sensor-heading p {
+  color: #6d5d53 !important;
+  font-size: 14px !important;
+  line-height: 1.65 !important;
+}
+
+.bean-quality-page .monitor-status-chip,
+.bean-quality-page .header-stability-chip {
+  min-height: 34px !important;
+  padding: 8px 12px !important;
+  font-size: 10.5px !important;
+}
+
+/* How this step works */
+.bean-quality-page .quick-guide-copy > strong {
+  font-size: 13px !important;
+}
+
+.bean-quality-page .quick-guide-item > span {
+  font-size: 11px !important;
+}
+
+.bean-quality-page .quick-guide-item strong {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .quick-guide-item small {
+  color: #75665c !important;
+  font-size: 10.5px !important;
+  line-height: 1.45 !important;
+}
+
+/* Device / live monitor cards */
+.bean-quality-page .sensor-main-card .device-icon {
+  font-size: 10px !important;
+}
+
+.bean-quality-page .sensor-main-card .device-label,
+.bean-quality-page .toolbar-kicker {
+  color: #9c6635 !important;
+  font-size: 10px !important;
+}
+
+.bean-quality-page .sensor-main-card .device-left strong,
+.bean-quality-page .toolbar-title {
+  font-size: 13px !important;
+}
+
+.bean-quality-page .sensor-main-card .device-meta span,
+.bean-quality-page .sensor-main-card .device-meta small {
+  color: #74655b !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .connection-status {
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .toolbar-description {
+  color: #76665c !important;
+  font-size: 11.5px !important;
+  line-height: 1.45 !important;
+}
+
+.bean-quality-page .monitor-toggle-button {
+  min-height: 34px !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .play-symbol {
+  font-size: 9px !important;
+}
+
+/* Error / section headings */
+.bean-quality-page .sensor-error strong {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .sensor-error span,
+.bean-quality-page .sensor-error small {
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .sensor-section-heading > p {
+  color: #78685e !important;
+  font-size: 11.5px !important;
+  line-height: 1.55 !important;
+}
+
+/* Primary dark guided workflow */
+.bean-quality-page .scan-section-label {
+  color: rgba(238, 190, 139, 0.9) !important;
+  font-size: 10px !important;
+}
+
+.bean-quality-page .scan-workflow-header p {
+  color: rgba(255, 241, 226, 0.72) !important;
+  font-size: 11.5px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page .scan-task-status {
+  font-size: 10px !important;
+}
+
+.bean-quality-page .scan-stage-number {
+  font-size: 11px !important;
+}
+
+.bean-quality-page .scan-stage-card strong {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .scan-stage-card span {
+  color: rgba(255, 240, 223, 0.7) !important;
+  font-size: 10.5px !important;
+  line-height: 1.45 !important;
+}
+
+.bean-quality-page .scan-instruction-icon {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .scan-instruction-text strong {
+  font-size: 12.5px !important;
+}
+
+.bean-quality-page .scan-instruction-text span {
+  color: rgba(74, 51, 38, 0.78) !important;
+  font-size: 10.8px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page .scan-primary-button {
+  min-height: 38px !important;
+  padding-inline: 14px !important;
+  font-size: 10.8px !important;
+}
+
+.bean-quality-page .scan-monitoring-left strong,
+.bean-quality-page .exposure-left strong {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .scan-monitoring-left span,
+.bean-quality-page .exposure-left span {
+  color: rgba(255, 239, 220, 0.7) !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .scan-stability-state {
+  font-size: 10px !important;
+}
+
+.bean-quality-page .exposure-timer span {
+  color: rgba(255, 238, 218, 0.68) !important;
+  font-size: 10px !important;
+}
+
+.bean-quality-page .exposure-note {
+  color: rgba(255, 239, 221, 0.72) !important;
+  font-size: 10.5px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page .scan-success-box strong,
+.bean-quality-page .scan-task-complete-box strong {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .scan-success-box span,
+.bean-quality-page .scan-task-complete-box span {
+  color: rgba(220, 239, 223, 0.78) !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .capture-time-grid span {
+  color: rgba(255, 238, 217, 0.62) !important;
+  font-size: 9.5px !important;
+}
+
+.bean-quality-page .capture-time-grid strong {
+  font-size: 11px !important;
+}
+
+/* Baseline vs sample results */
+.bean-quality-page .scan-result-heading span {
+  font-size: 9.5px !important;
+}
+
+.bean-quality-page .scan-result-heading h4 {
+  font-size: 18px !important;
+}
+
+.bean-quality-page .new-test-button {
+  min-height: 34px !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .scan-result-table th {
+  font-size: 10px !important;
+}
+
+.bean-quality-page .scan-result-table td {
+  font-size: 11.5px !important;
+}
+
+/* Sensor quality assessment */
+.bean-quality-page .sensor-quality-label {
+  font-size: 10px !important;
+}
+
+.bean-quality-page .sensor-quality-header h4 {
+  font-size: 17px !important;
+}
+
+.bean-quality-page .sensor-quality-header p {
+  color: #77685e !important;
+  font-size: 10.8px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page .sensor-quality-status {
+  font-size: 9.5px !important;
+}
+
+.bean-quality-page .sensor-quality-score-card > span,
+.bean-quality-page .sensor-quality-detail-card > span,
+.bean-quality-page .sensor-quality-note > span {
+  font-size: 9.5px !important;
+}
+
+.bean-quality-page .sensor-quality-score-value small,
+.bean-quality-page .sensor-quality-vote-count {
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .sensor-quality-detail-card strong {
+  font-size: 13px !important;
+}
+
+.bean-quality-page .sensor-quality-detail-card small {
+  color: #75665c !important;
+  font-size: 10px !important;
+  line-height: 1.45 !important;
+}
+
+.bean-quality-page .sensor-quality-note p {
+  color: #716158 !important;
+  font-size: 10.5px !important;
+  line-height: 1.5 !important;
+}
+
+/* Current sensor metric cards */
+.bean-quality-page .sensor-main-card .sensor-icon {
+  font-size: 10px !important;
+}
+
+.bean-quality-page .sensor-status {
+  min-height: 24px !important;
+  padding: 5px 7px !important;
+  font-size: 9px !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-name {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-value-row strong {
+  font-size: 30px !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-value-row span {
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-metric-card p {
+  color: #74655c !important;
+  font-size: 10.5px !important;
+  line-height: 1.45 !important;
+}
+
+/* Stability summary */
+.bean-quality-page .stability-content strong {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .stability-content p {
+  color: #677d6b !important;
+  font-size: 10.5px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page .stability-badge {
+  font-size: 9px !important;
+}
+
+/* Individual sensor charts */
+.bean-quality-page .stability-chart-header strong {
+  font-size: 17px !important;
+}
+
+.bean-quality-page .stability-chart-header p {
+  color: #786a60 !important;
+  font-size: 10.5px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page .chart-sensor-name {
+  font-size: 11.5px !important;
+}
+
+.bean-quality-page .chart-sensor-description {
+  color: #7f7167 !important;
+  font-size: 10px !important;
+  line-height: 1.4 !important;
+}
+
+.bean-quality-page .chart-status-badge {
+  padding: 6px 8px !important;
+  font-size: 9px !important;
+}
+
+.bean-quality-page .chart-current-unit {
+  font-size: 9.5px !important;
+}
+
+.bean-quality-page .chart-meta-item span {
+  color: #7e7067 !important;
+  font-size: 9.5px !important;
+}
+
+.bean-quality-page .chart-meta-item strong {
+  font-size: 10.5px !important;
+}
+
+/* Stable confirmation */
+.bean-quality-page .sensor-success strong,
+.bean-quality-page .sensor-locked-success strong {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .sensor-success span,
+.bean-quality-page .sensor-locked-success span {
+  color: #617a66 !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .reading-indicator,
+.bean-quality-page .locked-indicator {
+  font-size: 9px !important;
+}
+
+/* Final action */
+.bean-quality-page .sensor-helper {
+  color: #68584f !important;
+  font-size: 11px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page .continue-button {
+  min-height: 44px !important;
+  padding: 11px 17px !important;
+  font-size: 11px !important;
+}
+
+/* Footer */
+.bean-quality-page .quality-footer-strip > div span {
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page .quality-footer-strip p {
+  color: #76685f !important;
+  font-size: 10px !important;
+}
+
+/* Slightly more breathing room for readable text at normal laptop widths */
+@media (max-width: 900px) {
+  .bean-quality-page .hero-copy > p,
+  .bean-quality-page .sensor-heading p {
+    font-size: 13.5px !important;
+  }
+
+  .bean-quality-page .quick-guide-item small,
+  .bean-quality-page .sensor-main-card .sensor-metric-card p,
+  .bean-quality-page .chart-sensor-description {
+    font-size: 10.5px !important;
+  }
+}
+
+/* ========================================================================== 
+   Large readability pass — user requested larger text across Sensor Analysis.
+   Visual-only overrides. No component logic, API calls, timers or callbacks changed.
+   ========================================================================== */
+
+/* Global supporting text */
+.bean-quality-page .hero-eyebrow,
+.bean-quality-page .workflow-heading > div:first-child > span,
+.bean-quality-page .sensor-step-label,
+.bean-quality-page .sensor-section-heading > div > span,
+.bean-quality-page .quick-guide-copy > span,
+.bean-quality-page .toolbar-kicker {
+  font-size: 12.5px !important;
+  letter-spacing: 1.15px !important;
+}
+
+.bean-quality-page .hero-copy > p {
+  font-size: 16px !important;
+  line-height: 1.7 !important;
+}
+
+.bean-quality-page .hero-meta-item span {
+  font-size: 11.5px !important;
+}
+
+.bean-quality-page .hero-meta-item strong {
+  font-size: 14px !important;
+}
+
+/* Workflow / stepper */
+.bean-quality-page .workflow-step-number > span {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .step-text strong {
+  font-size: 15px !important;
+}
+
+.bean-quality-page .step-text span {
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+/* Step heading */
+.bean-quality-page .sensor-heading p {
+  font-size: 15.5px !important;
+  line-height: 1.7 !important;
+}
+
+.bean-quality-page .monitor-status-chip,
+.bean-quality-page .header-stability-chip {
+  font-size: 12px !important;
+  min-height: 36px !important;
+  padding: 9px 13px !important;
+}
+
+/* How this step works */
+.bean-quality-page .quick-guide-copy > strong {
+  font-size: 15px !important;
+}
+
+.bean-quality-page .quick-guide-item > span {
+  font-size: 13px !important;
+}
+
+.bean-quality-page .quick-guide-item strong {
+  font-size: 14px !important;
+}
+
+.bean-quality-page .quick-guide-item small {
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+}
+
+/* Device + live monitor */
+.bean-quality-page .sensor-main-card .device-icon {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .sensor-main-card .device-label,
+.bean-quality-page .toolbar-kicker {
+  font-size: 11.5px !important;
+}
+
+.bean-quality-page .sensor-main-card .device-left strong,
+.bean-quality-page .toolbar-title {
+  font-size: 15px !important;
+}
+
+.bean-quality-page .sensor-main-card .device-meta span,
+.bean-quality-page .sensor-main-card .device-meta small,
+.bean-quality-page .connection-status {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .toolbar-description {
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page .monitor-toggle-button {
+  font-size: 12px !important;
+  min-height: 38px !important;
+}
+
+.bean-quality-page .play-symbol {
+  font-size: 10.5px !important;
+}
+
+/* General section helpers */
+.bean-quality-page .sensor-error strong {
+  font-size: 14px !important;
+}
+
+.bean-quality-page .sensor-error span,
+.bean-quality-page .sensor-error small {
+  font-size: 12.5px !important;
+}
+
+.bean-quality-page .sensor-section-heading > p {
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+}
+
+/* Guided dark workflow */
+.bean-quality-page .scan-section-label {
+  font-size: 11.5px !important;
+}
+
+.bean-quality-page .scan-workflow-header p {
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+}
+
+.bean-quality-page .scan-task-status {
+  font-size: 11.5px !important;
+}
+
+.bean-quality-page .scan-stage-number {
+  font-size: 12.5px !important;
+}
+
+.bean-quality-page .scan-stage-card strong {
+  font-size: 14px !important;
+}
+
+.bean-quality-page .scan-stage-card span {
+  font-size: 12.5px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page .scan-instruction-icon {
+  font-size: 14px !important;
+}
+
+.bean-quality-page .scan-instruction-text strong {
+  font-size: 14px !important;
+}
+
+.bean-quality-page .scan-instruction-text span {
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page .scan-primary-button {
+  font-size: 12.5px !important;
+  min-height: 42px !important;
+  padding-inline: 16px !important;
+}
+
+.bean-quality-page .scan-monitoring-left strong,
+.bean-quality-page .exposure-left strong {
+  font-size: 14px !important;
+}
+
+.bean-quality-page .scan-monitoring-left span,
+.bean-quality-page .exposure-left span,
+.bean-quality-page .exposure-note {
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page .scan-stability-state,
+.bean-quality-page .exposure-timer span {
+  font-size: 11.5px !important;
+}
+
+.bean-quality-page .scan-success-box strong,
+.bean-quality-page .scan-task-complete-box strong {
+  font-size: 14px !important;
+}
+
+.bean-quality-page .scan-success-box span,
+.bean-quality-page .scan-task-complete-box span {
+  font-size: 12.5px !important;
+}
+
+.bean-quality-page .capture-time-grid span {
+  font-size: 11px !important;
+}
+
+.bean-quality-page .capture-time-grid strong {
+  font-size: 12.5px !important;
+}
+
+/* Baseline/sample results */
+.bean-quality-page .scan-result-heading span {
+  font-size: 11px !important;
+}
+
+.bean-quality-page .scan-result-heading h4 {
+  font-size: 21px !important;
+}
+
+.bean-quality-page .new-test-button {
+  font-size: 12px !important;
+  min-height: 38px !important;
+}
+
+.bean-quality-page .scan-result-table th {
+  font-size: 11.5px !important;
+}
+
+.bean-quality-page .scan-result-table td {
+  font-size: 13px !important;
+}
+
+/* Sensor quality assessment */
+.bean-quality-page .sensor-quality-label {
+  font-size: 11.5px !important;
+}
+
+.bean-quality-page .sensor-quality-header h4 {
+  font-size: 20px !important;
+}
+
+.bean-quality-page .sensor-quality-header p {
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page .sensor-quality-status {
+  font-size: 11px !important;
+}
+
+.bean-quality-page .sensor-quality-score-card > span,
+.bean-quality-page .sensor-quality-detail-card > span,
+.bean-quality-page .sensor-quality-note > span {
+  font-size: 11px !important;
+}
+
+.bean-quality-page .sensor-quality-score-value small,
+.bean-quality-page .sensor-quality-vote-count {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .sensor-quality-detail-card strong {
+  font-size: 15px !important;
+}
+
+.bean-quality-page .sensor-quality-detail-card small,
+.bean-quality-page .sensor-quality-note p {
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+}
+
+/* Current sensor cards */
+.bean-quality-page .sensor-main-card .sensor-icon {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .sensor-status {
+  font-size: 10.5px !important;
+  min-height: 27px !important;
+  padding: 6px 9px !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-name {
+  font-size: 14px !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-value-row strong {
+  font-size: 34px !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-value-row span {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .sensor-main-card .sensor-metric-card p {
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+}
+
+/* Stability summary */
+.bean-quality-page .stability-content strong {
+  font-size: 14px !important;
+}
+
+.bean-quality-page .stability-content p {
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page .stability-badge {
+  font-size: 10.5px !important;
+}
+
+/* Individual sensor stability charts */
+.bean-quality-page .stability-chart-header strong {
+  font-size: 20px !important;
+}
+
+.bean-quality-page .stability-chart-header p {
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page .chart-sensor-name {
+  font-size: 13.5px !important;
+}
+
+.bean-quality-page .chart-sensor-description {
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page .chart-status-badge {
+  font-size: 10.5px !important;
+  padding: 7px 9px !important;
+}
+
+.bean-quality-page .chart-current-unit {
+  font-size: 11px !important;
+}
+
+.bean-quality-page .chart-meta-item span {
+  font-size: 11px !important;
+}
+
+.bean-quality-page .chart-meta-item strong {
+  font-size: 12px !important;
+}
+
+/* Stable confirmation */
+.bean-quality-page .sensor-success strong,
+.bean-quality-page .sensor-locked-success strong {
+  font-size: 14px !important;
+}
+
+.bean-quality-page .sensor-success span,
+.bean-quality-page .sensor-locked-success span {
+  font-size: 12.5px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page .reading-indicator,
+.bean-quality-page .locked-indicator {
+  font-size: 10.5px !important;
+}
+
+/* Final action */
+.bean-quality-page .sensor-helper {
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+}
+
+.bean-quality-page .continue-button {
+  font-size: 13px !important;
+  min-height: 48px !important;
+  padding: 13px 19px !important;
+}
+
+/* Footer */
+.bean-quality-page .quality-footer-strip > div span {
+  font-size: 12px !important;
+}
+
+.bean-quality-page .quality-footer-strip p {
+  font-size: 11.5px !important;
+}
+
+/* Mobile/tablet: keep text readable instead of shrinking it back down */
+@media (max-width: 900px) {
+  .bean-quality-page .hero-copy > p,
+  .bean-quality-page .sensor-heading p {
+    font-size: 15px !important;
+  }
+
+  .bean-quality-page .step-text strong,
+  .bean-quality-page .quick-guide-item strong,
+  .bean-quality-page .sensor-main-card .sensor-name {
+    font-size: 14px !important;
+  }
+
+  .bean-quality-page .step-text span,
+  .bean-quality-page .quick-guide-item small,
+  .bean-quality-page .sensor-main-card .sensor-metric-card p,
+  .bean-quality-page .chart-sensor-description,
+  .bean-quality-page .sensor-helper {
+    font-size: 12.5px !important;
+  }
+}
+
+/* ========================================================================== 
+   STEP 02 — Physical AI Analysis
+   Unified light coffee redesign. All selectors are scoped to step 2 so the
+   existing functions, sensor page and final report behavior remain untouched.
+   ========================================================================== */
+
+.bean-quality-page.bean-quality-step-2 .physical-analysis {
+  margin-top: 0 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-main-card {
+  padding: 30px !important;
+  overflow: hidden !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 22px !important;
+  color: var(--bq-ink) !important;
+  background: var(--bq-surface) !important;
+  box-shadow: var(--bq-shadow) !important;
+  backdrop-filter: none !important;
+}
+
+/* Main heading ------------------------------------------------------------ */
+
+.bean-quality-page.bean-quality-step-2 .physical-heading {
+  align-items: center !important;
+  margin-bottom: 20px !important;
+  padding-bottom: 21px !important;
+  border-bottom: 1px solid var(--bq-border) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-step-label,
+.bean-quality-page.bean-quality-step-2 .physical-quick-guide-heading > div > span,
+.bean-quality-page.bean-quality-step-2 .analysis-mode-heading > div > span,
+.bean-quality-page.bean-quality-step-2 .image-source-heading > div > span,
+.bean-quality-page.bean-quality-step-2 .multi-view-heading > div > span,
+.bean-quality-page.bean-quality-step-2 .phone-camera-header > div > span,
+.bean-quality-page.bean-quality-step-2 .individual-view-results-heading > div > span,
+.bean-quality-page.bean-quality-step-2 .physical-quality-heading > div > span,
+.bean-quality-page.bean-quality-step-2 .section-title-row > div > span,
+.bean-quality-page.bean-quality-step-2 .multi-upload-intro > span,
+.bean-quality-page.bean-quality-step-2 .final-result-summary-heading > span,
+.bean-quality-page.bean-quality-step-2 .physical-run-heading > div > span,
+.bean-quality-page.bean-quality-step-2 .weight-card-header > div > span,
+.bean-quality-page.bean-quality-step-2 .summary-heading > span,
+.bean-quality-page.bean-quality-step-2 .category-heading > span,
+.bean-quality-page.bean-quality-step-2 .result-image-header > div > span {
+  color: var(--bq-caramel-deep) !important;
+  font-size: 11px !important;
+  font-weight: 850 !important;
+  letter-spacing: 1.35px !important;
+  text-transform: uppercase !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-heading h2 {
+  margin: 4px 0 0 !important;
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 34px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.8px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-heading p {
+  max-width: 760px !important;
+  margin-top: 9px !important;
+  color: var(--bq-muted) !important;
+  font-size: 15px !important;
+  line-height: 1.65 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-status-chip,
+.bean-quality-page.bean-quality-step-2 .analysis-mode-current,
+.bean-quality-page.bean-quality-step-2 .image-source-status,
+.bean-quality-page.bean-quality-step-2 .individual-view-count-chip,
+.bean-quality-page.bean-quality-step-2 .physical-run-status,
+.bean-quality-page.bean-quality-step-2 .physical-guide-note {
+  flex-shrink: 0 !important;
+  padding: 8px 12px !important;
+  border: 1px solid #ead8c3 !important;
+  border-radius: 999px !important;
+  color: var(--bq-coffee-800) !important;
+  background: #f7eee4 !important;
+  font-size: 11.5px !important;
+  font-weight: 800 !important;
+}
+
+/* How this step works ----------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-2 .physical-quick-guide {
+  margin-bottom: 18px !important;
+  padding: 20px !important;
+  border: 1px solid #eadfd3 !important;
+  border-radius: 19px !important;
+  background: var(--bq-surface-soft) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-quick-guide-heading,
+.bean-quality-page.bean-quality-step-2 .physical-run-heading {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-quick-guide-heading h3,
+.bean-quality-page.bean-quality-step-2 .physical-run-heading h3 {
+  margin: 4px 0 0 !important;
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 22px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.35px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-guide-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin-top: 16px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-guide-item {
+  min-width: 0 !important;
+  display: flex !important;
+  gap: 11px !important;
+  padding: 14px !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 15px !important;
+  background: var(--bq-surface) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-guide-number {
+  width: 31px !important;
+  height: 31px !important;
+  flex: 0 0 31px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 10px !important;
+  color: #fffaf2 !important;
+  background: var(--bq-coffee-800) !important;
+  font-size: 10.5px !important;
+  font-weight: 850 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-guide-item strong {
+  display: block !important;
+  color: var(--bq-ink) !important;
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-guide-item p {
+  margin: 5px 0 0 !important;
+  color: var(--bq-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.52 !important;
+}
+
+/* Shared section surfaces ------------------------------------------------ */
+
+.bean-quality-page.bean-quality-step-2 .physical-weight-card,
+.bean-quality-page.bean-quality-step-2 .analysis-mode-card,
+.bean-quality-page.bean-quality-step-2 .image-source-card,
+.bean-quality-page.bean-quality-step-2 .multi-view-card,
+.bean-quality-page.bean-quality-step-2 .physical-section-card,
+.bean-quality-page.bean-quality-step-2 .individual-view-results-section,
+.bean-quality-page.bean-quality-step-2 .physical-quality-card {
+  padding: 20px !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 19px !important;
+  color: var(--bq-ink) !important;
+  background: var(--bq-surface) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-weight-card {
+  margin: 0 0 18px !important;
+  background: #fffdfa !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .analysis-mode-card,
+.bean-quality-page.bean-quality-step-2 .image-source-card,
+.bean-quality-page.bean-quality-step-2 .multi-view-card {
+  margin-top: 14px !important;
+  background: var(--bq-surface-soft) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .analysis-mode-heading,
+.bean-quality-page.bean-quality-step-2 .image-source-heading,
+.bean-quality-page.bean-quality-step-2 .multi-view-heading,
+.bean-quality-page.bean-quality-step-2 .phone-camera-header,
+.bean-quality-page.bean-quality-step-2 .individual-view-results-heading,
+.bean-quality-page.bean-quality-step-2 .physical-quality-heading,
+.bean-quality-page.bean-quality-step-2 .section-title-row,
+.bean-quality-page.bean-quality-step-2 .weight-card-header,
+.bean-quality-page.bean-quality-step-2 .result-image-header {
+  align-items: flex-start !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .analysis-mode-heading h3,
+.bean-quality-page.bean-quality-step-2 .image-source-heading h3,
+.bean-quality-page.bean-quality-step-2 .multi-view-heading h3,
+.bean-quality-page.bean-quality-step-2 .phone-camera-header h3,
+.bean-quality-page.bean-quality-step-2 .individual-view-results-heading h3,
+.bean-quality-page.bean-quality-step-2 .physical-quality-heading h3,
+.bean-quality-page.bean-quality-step-2 .section-title-row h3,
+.bean-quality-page.bean-quality-step-2 .multi-upload-intro h3,
+.bean-quality-page.bean-quality-step-2 .final-result-summary-heading h3,
+.bean-quality-page.bean-quality-step-2 .weight-card-header h3,
+.bean-quality-page.bean-quality-step-2 .summary-heading h3,
+.bean-quality-page.bean-quality-step-2 .category-heading h3,
+.bean-quality-page.bean-quality-step-2 .result-image-header h3 {
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 21px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.3px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-heading p,
+.bean-quality-page.bean-quality-step-2 .analysis-mode-heading p,
+.bean-quality-page.bean-quality-step-2 .image-source-description,
+.bean-quality-page.bean-quality-step-2 .multi-view-heading p,
+.bean-quality-page.bean-quality-step-2 .phone-camera-description,
+.bean-quality-page.bean-quality-step-2 .individual-view-results-heading p,
+.bean-quality-page.bean-quality-step-2 .physical-quality-heading p,
+.bean-quality-page.bean-quality-step-2 .multi-upload-intro p,
+.bean-quality-page.bean-quality-step-2 .final-result-summary-heading p,
+.bean-quality-page.bean-quality-step-2 .weight-description,
+.bean-quality-page.bean-quality-step-2 .result-image-description {
+  color: var(--bq-muted) !important;
+  font-size: 13.5px !important;
+  line-height: 1.62 !important;
+}
+
+/* Sample weight ---------------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-2 .weight-status,
+.bean-quality-page.bean-quality-step-2 .phone-connection-chip {
+  padding: 7px 11px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .weight-status.connected,
+.bean-quality-page.bean-quality-step-2 .phone-connection-chip.connected {
+  color: var(--bq-green-deep) !important;
+  background: var(--bq-green-soft) !important;
+  border: 1px solid #d3e2d5 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .weight-status.disconnected,
+.bean-quality-page.bean-quality-step-2 .phone-connection-chip.disconnected {
+  color: var(--bq-red) !important;
+  background: var(--bq-red-soft) !important;
+  border: 1px solid #efd4d0 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .weight-status .status-dot,
+.bean-quality-page.bean-quality-step-2 .phone-status-dot {
+  width: 7px !important;
+  height: 7px !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .scale-zero-section {
+  margin-bottom: 12px !important;
+  padding: 15px !important;
+  border: 1px solid #e9ddd0 !important;
+  border-radius: 15px !important;
+  background: #fbf6ef !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .scale-step-label,
+.bean-quality-page.bean-quality-step-2 .live-weight-label {
+  color: var(--bq-caramel-deep) !important;
+  font-size: 10.5px !important;
+  font-weight: 850 !important;
+  letter-spacing: 1px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .scale-zero-info strong {
+  color: var(--bq-ink) !important;
+  font-size: 14.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .scale-zero-info p {
+  color: var(--bq-muted) !important;
+  font-size: 12.5px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .zero-status {
+  padding: 7px 10px !important;
+  font-size: 10.5px !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .zero-status.zeroed {
+  color: var(--bq-green-deep) !important;
+  background: var(--bq-green-soft) !important;
+  border: 1px solid #d3e2d5 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .zero-status.not-zeroed {
+  color: var(--bq-amber) !important;
+  background: var(--bq-amber-soft) !important;
+  border: 1px solid #ead8b7 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .zero-scale-button,
+.bean-quality-page.bean-quality-step-2 .refresh-phone-button,
+.bean-quality-page.bean-quality-step-2 .multi-view-reset-button {
+  border: 1px solid #d9c8b6 !important;
+  color: var(--bq-coffee-800) !important;
+  background: #fffdfa !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .zero-scale-button:hover:not(:disabled),
+.bean-quality-page.bean-quality-step-2 .refresh-phone-button:hover:not(:disabled),
+.bean-quality-page.bean-quality-step-2 .multi-view-reset-button:hover:not(:disabled) {
+  border-color: #c8ad91 !important;
+  background: #f8efe5 !important;
+  transform: translateY(-1px) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .live-weight-area {
+  min-height: 145px !important;
+  border: 1px solid rgba(91, 58, 40, 0.18) !important;
+  border-radius: 16px !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(212, 150, 88, 0.15), transparent 48%),
+    linear-gradient(135deg, var(--bq-coffee-900), var(--bq-coffee-950)) !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .live-weight-label,
+.bean-quality-page.bean-quality-step-2 .weight-device {
+  color: rgba(255, 244, 230, 0.65) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .weight-value strong,
+.bean-quality-page.bean-quality-step-2 .weight-not-ready strong,
+.bean-quality-page.bean-quality-step-2 .weight-loading {
+  color: #fff8ee !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .weight-value strong {
+  font-size: 42px !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .weight-value > span,
+.bean-quality-page.bean-quality-step-2 .weight-not-ready span {
+  color: #d8b58f !important;
+  font-size: 14px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .capture-weight-button,
+.bean-quality-page.bean-quality-step-2 .phone-capture-button,
+.bean-quality-page.bean-quality-step-2 .run-ai-button {
+  min-height: 46px !important;
+  border: 1px solid var(--bq-coffee-800) !important;
+  border-radius: 13px !important;
+  color: #fffaf2 !important;
+  background: var(--bq-coffee-800) !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  box-shadow: 0 8px 18px rgba(69, 38, 25, 0.12) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .capture-weight-button:hover:not(:disabled),
+.bean-quality-page.bean-quality-step-2 .phone-capture-button:hover:not(:disabled),
+.bean-quality-page.bean-quality-step-2 .run-ai-button:hover:not(:disabled) {
+  background: var(--bq-coffee-700) !important;
+  transform: translateY(-1px) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .capture-weight-button:disabled,
+.bean-quality-page.bean-quality-step-2 .phone-capture-button:disabled,
+.bean-quality-page.bean-quality-step-2 .run-ai-button:disabled {
+  color: #a89b91 !important;
+  border-color: #e1d7cd !important;
+  background: #eee9e3 !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .captured-weight-box {
+  border: 1px solid #d2e2d4 !important;
+  background: var(--bq-green-soft) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .captured-weight-box span,
+.bean-quality-page.bean-quality-step-2 .captured-weight-box strong,
+.bean-quality-page.bean-quality-step-2 .captured-check {
+  color: var(--bq-green-deep) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .weight-error,
+.bean-quality-page.bean-quality-step-2 .phone-camera-error {
+  color: var(--bq-red) !important;
+  border: 1px solid #ecd2ce !important;
+  background: var(--bq-red-soft) !important;
+  font-size: 12px !important;
+}
+
+/* Analysis mode + image source ------------------------------------------ */
+
+.bean-quality-page.bean-quality-step-2 .analysis-mode-options,
+.bean-quality-page.bean-quality-step-2 .image-source-buttons {
+  gap: 11px !important;
+  margin-top: 14px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .analysis-mode-option,
+.bean-quality-page.bean-quality-step-2 .image-source-button {
+  min-height: 75px !important;
+  padding: 14px !important;
+  border: 1px solid #e4d8cc !important;
+  border-radius: 14px !important;
+  color: var(--bq-ink-soft) !important;
+  background: var(--bq-surface) !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .analysis-mode-option:hover:not(:disabled),
+.bean-quality-page.bean-quality-step-2 .image-source-button:hover:not(:disabled) {
+  border-color: #cfb79f !important;
+  background: #fbf4eb !important;
+  transform: translateY(-1px) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .analysis-mode-option.active,
+.bean-quality-page.bean-quality-step-2 .image-source-button.active {
+  color: #fff8ee !important;
+  border-color: var(--bq-coffee-800) !important;
+  background: var(--bq-coffee-800) !important;
+  box-shadow: 0 7px 16px rgba(65, 36, 24, 0.13) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .analysis-mode-icon,
+.bean-quality-page.bean-quality-step-2 .source-icon {
+  width: 42px !important;
+  height: 42px !important;
+  border: 1px solid #eadfd4 !important;
+  border-radius: 12px !important;
+  color: var(--bq-coffee-800) !important;
+  background: #f7efe6 !important;
+  font-size: 17px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .active .analysis-mode-icon,
+.bean-quality-page.bean-quality-step-2 .image-source-button.active .source-icon {
+  color: #ffe1b7 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .analysis-mode-option strong,
+.bean-quality-page.bean-quality-step-2 .image-source-button strong {
+  color: inherit !important;
+  font-size: 13.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .analysis-mode-option small,
+.bean-quality-page.bean-quality-step-2 .image-source-button small {
+  color: inherit !important;
+  font-size: 11.5px !important;
+  opacity: 0.72 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .analysis-mode-badge {
+  padding: 5px 8px !important;
+  color: var(--bq-coffee-700) !important;
+  background: #f3e8db !important;
+  font-size: 9.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .analysis-mode-option.active .analysis-mode-badge {
+  color: #ffe5c4 !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Multi-view ------------------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-2 .multi-view-card.complete {
+  border-color: #cfe0d2 !important;
+  background: #fbfdf9 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .multi-view-progress-grid {
+  gap: 10px !important;
+  margin-top: 15px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .multi-view-progress-item {
+  padding: 12px !important;
+  border: 1px solid #e5dad0 !important;
+  border-radius: 13px !important;
+  background: #fffdfa !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .multi-view-progress-item.completed {
+  border-color: #d1e2d3 !important;
+  background: var(--bq-green-soft) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .multi-view-progress-item.active,
+.bean-quality-page.bean-quality-step-2 .multi-view-progress-item.uploaded {
+  border-color: #dfc4a6 !important;
+  background: #fbf2e7 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .multi-view-number {
+  color: #fff8ef !important;
+  background: var(--bq-coffee-800) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .multi-view-progress-item strong {
+  color: var(--bq-ink) !important;
+  font-size: 12.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .multi-view-progress-item small {
+  color: var(--bq-muted) !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .multi-view-instruction,
+.bean-quality-page.bean-quality-step-2 .multi-view-complete-box,
+.bean-quality-page.bean-quality-step-2 .final-multi-view-note {
+  border: 1px solid #ead7bd !important;
+  background: var(--bq-amber-soft) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .multi-view-complete-box,
+.bean-quality-page.bean-quality-step-2 .final-multi-view-note {
+  border-color: #d4e2d6 !important;
+  background: var(--bq-green-soft) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .multi-view-instruction strong,
+.bean-quality-page.bean-quality-step-2 .multi-view-complete-box strong,
+.bean-quality-page.bean-quality-step-2 .final-multi-view-note strong {
+  color: var(--bq-ink) !important;
+  font-size: 12.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .multi-view-instruction p,
+.bean-quality-page.bean-quality-step-2 .multi-view-complete-box span,
+.bean-quality-page.bean-quality-step-2 .final-multi-view-note span {
+  color: var(--bq-muted) !important;
+  font-size: 11.5px !important;
+  line-height: 1.55 !important;
+}
+
+/* Capture + AI result area ---------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-2 .physical-run-heading {
+  margin: 25px 0 12px !important;
+  padding-top: 21px !important;
+  border-top: 1px solid var(--bq-border) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-run-heading p {
+  max-width: 720px !important;
+  margin: 6px 0 0 !important;
+  color: var(--bq-muted) !important;
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-top-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr) !important;
+  gap: 14px !important;
+  margin-top: 0 !important;
+  align-items: stretch !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-top-grid > .physical-section-card {
+  margin-top: 0 !important;
+  min-width: 0 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-top-grid > .physical-section-card:last-child {
+  background: #fbf7f1 !important;
+}
+
+/* Phone camera ----------------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-2 .phone-device-box {
+  border: 1px solid #e5d8cb !important;
+  border-radius: 15px !important;
+  background: #fbf5ed !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .phone-device-icon {
+  color: var(--bq-coffee-800) !important;
+  background: #f0e2d3 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .phone-device-details span,
+.bean-quality-page.bean-quality-step-2 .capture-meta-row span {
+  color: var(--bq-muted) !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .phone-device-details strong,
+.bean-quality-page.bean-quality-step-2 .capture-meta-row strong {
+  color: var(--bq-ink) !important;
+  font-size: 12.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .phone-device-details small {
+  color: var(--bq-muted) !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .phone-device-check {
+  color: var(--bq-green-deep) !important;
+  border-color: #d1e0d3 !important;
+  background: var(--bq-green-soft) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .phone-capture-success {
+  border: 1px solid #d2e3d4 !important;
+  background: var(--bq-green-soft) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .capture-success-heading span,
+.bean-quality-page.bean-quality-step-2 .capture-success-heading strong {
+  color: var(--bq-green-deep) !important;
+}
+
+/* Image uploader --------------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-2 .physical-upload-box {
+  min-height: 230px !important;
+  padding: 26px !important;
+  border: 1.5px dashed #cbb39a !important;
+  border-radius: 17px !important;
+  background: #fbf6ef !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-upload-box:hover,
+.bean-quality-page.bean-quality-step-2 .physical-upload-box.drag-active {
+  border-color: var(--bq-caramel-deep) !important;
+  background: #f8eee2 !important;
+  transform: translateY(-1px) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-upload-icon {
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 16px !important;
+  color: #fff8ef !important;
+  background: var(--bq-coffee-800) !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-upload-box h3 {
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 20px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-upload-box p {
+  color: var(--bq-muted) !important;
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .choose-image-button {
+  color: var(--bq-coffee-800) !important;
+  border: 1px solid #d9c6b2 !important;
+  background: #fffdfa !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-preview {
+  border: 1px solid var(--bq-border) !important;
+  background: #fffdfa !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .preview-title {
+  color: var(--bq-ink) !important;
+  font-size: 12.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .preview-file-type {
+  color: var(--bq-caramel-deep) !important;
+  border: 1px solid #e4d8cc !important;
+  background: #f8f1e8 !important;
+  font-size: 10px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .preview-image-frame,
+.bean-quality-page.bean-quality-step-2 .result-image-frame {
+  border: 1px solid var(--bq-border) !important;
+  background: #f5efe8 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .multi-upload-item {
+  border-color: #e5d9ce !important;
+  background: #fffdfa !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .multi-upload-label strong {
+  color: var(--bq-ink) !important;
+  font-size: 12px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .multi-upload-label span {
+  color: var(--bq-caramel-deep) !important;
+  font-size: 10px !important;
+}
+
+/* Waiting / processing --------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-2 .physical-waiting-state,
+.bean-quality-page.bean-quality-step-2 .physical-loading-state {
+  min-height: 330px !important;
+  padding: 24px !important;
+  border: 1px dashed #ddcfbf !important;
+  border-radius: 16px !important;
+  background: #fcf8f3 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-ai-icon {
+  width: 68px !important;
+  height: 68px !important;
+  color: #fff7ec !important;
+  border-radius: 20px !important;
+  background: var(--bq-coffee-800) !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-waiting-state h3,
+.bean-quality-page.bean-quality-step-2 .physical-loading-state h3 {
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 20px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-waiting-state p,
+.bean-quality-page.bean-quality-step-2 .physical-loading-state p {
+  color: var(--bq-muted) !important;
+  font-size: 13px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-scanner {
+  border: 1px solid #d9c8b8 !important;
+  background: #f4ebe2 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-scan-line {
+  background: linear-gradient(90deg, transparent, var(--bq-caramel-deep), transparent) !important;
+  box-shadow: 0 0 12px rgba(169, 109, 53, 0.35) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-spinner {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  border-top-color: #fff !important;
+}
+
+/* Detection summary ------------------------------------------------------ */
+
+.bean-quality-page.bean-quality-step-2 .final-result-summary-heading {
+  padding-bottom: 13px !important;
+  border-bottom: 1px solid var(--bq-border) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .summary-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .summary-card,
+.bean-quality-page.bean-quality-step-2 .quality-rate-card,
+.bean-quality-page.bean-quality-step-2 .defect-count-card {
+  border: 1px solid #e4d8cd !important;
+  background: #fffdfa !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .summary-card span,
+.bean-quality-page.bean-quality-step-2 .rate-header span {
+  color: var(--bq-muted) !important;
+  font-size: 11.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .summary-card strong {
+  color: var(--bq-coffee-800) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 31px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .summary-card.good-card {
+  border-color: #d5e3d6 !important;
+  background: #f7fbf7 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .summary-card.good-card strong {
+  color: var(--bq-green-deep) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .summary-card.defect-card {
+  border-color: #ead6d2 !important;
+  background: #fff9f7 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .summary-card.defect-card strong {
+  color: var(--bq-red) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .rate-header strong {
+  color: var(--bq-ink) !important;
+  font-size: 13px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .rate-track {
+  background: #eee6dd !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .defect-count-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 9px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .defect-count-card strong {
+  color: var(--bq-ink) !important;
+  font-size: 13px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .defect-count-card span {
+  color: var(--bq-muted) !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .defect-count-card b {
+  color: var(--bq-coffee-800) !important;
+  font-size: 20px !important;
+}
+
+/* Annotated result ------------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-2 .single-image-result-section {
+  margin-top: 22px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .single-image-result-section > .physical-section-card {
+  margin-top: 0 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .prediction-chip,
+.bean-quality-page.bean-quality-step-2 .legend-item {
+  color: var(--bq-coffee-700) !important;
+  border: 1px solid #e0d2c4 !important;
+  background: #f8f1e9 !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .legend-title {
+  color: var(--bq-muted) !important;
+  font-size: 10.5px !important;
+}
+
+/* Individual multi-view results ---------------------------------------- */
+
+.bean-quality-page.bean-quality-step-2 .individual-view-results-section {
+  margin-top: 18px !important;
+  background: var(--bq-surface-soft) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .individual-view-results-grid {
+  gap: 11px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .individual-view-result-card {
+  border: 1px solid #e3d7ca !important;
+  background: #fffdfa !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .individual-view-result-header > div > span,
+.bean-quality-page.bean-quality-step-2 .individual-view-image-label,
+.bean-quality-page.bean-quality-step-2 .individual-view-category-item span,
+.bean-quality-page.bean-quality-step-2 .individual-view-metrics span {
+  color: var(--bq-muted) !important;
+  font-size: 10px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .individual-view-result-header h4 {
+  color: var(--bq-ink) !important;
+  font-size: 13.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .individual-view-status {
+  color: var(--bq-coffee-800) !important;
+  border: 1px solid #e1d0bd !important;
+  background: #f8eee4 !important;
+  font-size: 9.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .individual-view-image-missing,
+.bean-quality-page.bean-quality-step-2 .individual-view-category-item,
+.bean-quality-page.bean-quality-step-2 .individual-view-metrics > div {
+  color: var(--bq-muted) !important;
+  border: 1px solid #eee4da !important;
+  background: #faf6f1 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .individual-view-category-item strong,
+.bean-quality-page.bean-quality-step-2 .individual-view-metrics strong {
+  color: var(--bq-ink) !important;
+}
+
+/* Physical quality decision --------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-2 .physical-quality-card {
+  margin-top: 18px !important;
+  border-color: rgba(84, 48, 31, 0.28) !important;
+  background:
+    radial-gradient(circle at 95% 0%, rgba(213, 154, 95, 0.14), transparent 34%),
+    linear-gradient(135deg, var(--bq-coffee-900), var(--bq-coffee-950)) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-quality-heading > div > span {
+  color: #d8a66e !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-quality-heading h3 {
+  color: #fff8ef !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-quality-heading p {
+  color: rgba(255, 244, 230, 0.64) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-quality-grid {
+  gap: 10px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-score-main,
+.bean-quality-page.bean-quality-step-2 .physical-score-detail {
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-score-label,
+.bean-quality-page.bean-quality-step-2 .physical-score-detail span {
+  color: rgba(255, 244, 230, 0.55) !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-score-value strong {
+  color: #fff8ef !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 36px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-score-value span {
+  color: #cdb69e !important;
+  font-size: 12px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-score-detail strong {
+  color: #f2c992 !important;
+  font-size: 15px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-quality-status {
+  color: #f7d5a8 !important;
+  border: 1px solid rgba(247, 213, 168, 0.18) !important;
+  background: rgba(247, 213, 168, 0.08) !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-quality-excellent .physical-quality-status,
+.bean-quality-page.bean-quality-step-2 .physical-quality-good .physical-quality-status {
+  color: #c7e2ca !important;
+  border-color: rgba(170, 210, 176, 0.2) !important;
+  background: rgba(115, 159, 122, 0.13) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-quality-review .physical-quality-status {
+  color: #f0d29c !important;
+  border-color: rgba(226, 183, 110, 0.21) !important;
+  background: rgba(189, 134, 51, 0.13) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-quality-poor .physical-quality-status {
+  color: #efb5ae !important;
+  border-color: rgba(220, 132, 121, 0.2) !important;
+  background: rgba(169, 77, 66, 0.14) !important;
+}
+
+/* Navigation actions ----------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-2 .physical-actions {
+  margin-top: 22px !important;
+  padding-top: 18px !important;
+  border-top: 1px solid var(--bq-border) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-back-button,
+.bean-quality-page.bean-quality-step-2 .physical-continue-button {
+  min-height: 47px !important;
+  padding: 12px 18px !important;
+  border-radius: 13px !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-back-button {
+  color: var(--bq-coffee-800) !important;
+  border: 1px solid #d8c6b4 !important;
+  background: #fffdfa !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-back-button:hover {
+  background: #f8efe5 !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-continue-button {
+  min-width: 260px !important;
+  color: #fffaf2 !important;
+  border: 1px solid var(--bq-coffee-800) !important;
+  background: var(--bq-coffee-800) !important;
+  box-shadow: 0 8px 20px rgba(65, 36, 24, 0.14) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-continue-button:hover:not(:disabled) {
+  background: var(--bq-coffee-700) !important;
+  transform: translateY(-1px) !important;
+}
+
+.bean-quality-page.bean-quality-step-2 .physical-continue-button:disabled {
+  color: #aaa096 !important;
+  border-color: #e1d8cf !important;
+  background: #eeeae5 !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+/* Responsive ------------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .bean-quality-page.bean-quality-step-2 .physical-guide-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .bean-quality-page.bean-quality-step-2 .physical-top-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bean-quality-page.bean-quality-step-2 .physical-quality-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .bean-quality-page.bean-quality-step-2 .individual-view-results-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .bean-quality-page.bean-quality-step-2 .physical-main-card {
+    padding: 20px !important;
+  }
+
+  .bean-quality-page.bean-quality-step-2 .physical-heading,
+  .bean-quality-page.bean-quality-step-2 .physical-quick-guide-heading,
+  .bean-quality-page.bean-quality-step-2 .physical-run-heading,
+  .bean-quality-page.bean-quality-step-2 .analysis-mode-heading,
+  .bean-quality-page.bean-quality-step-2 .image-source-heading,
+  .bean-quality-page.bean-quality-step-2 .multi-view-heading,
+  .bean-quality-page.bean-quality-step-2 .weight-card-header,
+  .bean-quality-page.bean-quality-step-2 .phone-camera-header,
+  .bean-quality-page.bean-quality-step-2 .physical-quality-heading,
+  .bean-quality-page.bean-quality-step-2 .result-image-header {
+    flex-direction: column !important;
+  }
+
+  .bean-quality-page.bean-quality-step-2 .physical-heading h2 {
+    font-size: 29px !important;
+  }
+
+  .bean-quality-page.bean-quality-step-2 .physical-guide-grid,
+  .bean-quality-page.bean-quality-step-2 .analysis-mode-options,
+  .bean-quality-page.bean-quality-step-2 .image-source-buttons,
+  .bean-quality-page.bean-quality-step-2 .summary-grid,
+  .bean-quality-page.bean-quality-step-2 .quality-rate-grid,
+  .bean-quality-page.bean-quality-step-2 .defect-count-grid,
+  .bean-quality-page.bean-quality-step-2 .physical-quality-grid,
+  .bean-quality-page.bean-quality-step-2 .multi-view-progress-grid,
+  .bean-quality-page.bean-quality-step-2 .multi-upload-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bean-quality-page.bean-quality-step-2 .physical-actions {
+    flex-direction: column-reverse !important;
+  }
+
+  .bean-quality-page.bean-quality-step-2 .physical-back-button,
+  .bean-quality-page.bean-quality-step-2 .physical-continue-button {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+/* ========================================================================== 
+   STEP 03 — Final Quality Report
+   Unified report hierarchy for the complete imported report component tree.
+   Functional behavior is intentionally untouched.
+   ========================================================================== */
+
+.bean-quality-page.bean-quality-step-3 .analysis-shell {
+  padding-top: 0 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .final-report,
+.bean-quality-page.bean-quality-step-3 .final-report * {
+  box-sizing: border-box !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .final-report {
+  margin-top: 14px !important;
+  color: var(--bq-ink) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .final-report-card {
+  width: 100% !important;
+  padding: 24px !important;
+  overflow: hidden !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 22px !important;
+  background: var(--bq-surface) !important;
+  box-shadow: var(--bq-shadow-soft) !important;
+}
+
+/* Report header ---------------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-3 .final-report-header {
+  position: relative !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 24px !important;
+  min-height: 172px !important;
+  padding: 26px 28px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(83, 48, 31, 0.25) !important;
+  border-radius: 20px !important;
+  background:
+    radial-gradient(circle at 94% 14%, rgba(213, 154, 95, 0.18), transparent 30%),
+    radial-gradient(circle at 78% 140%, rgba(146, 92, 54, 0.24), transparent 38%),
+    linear-gradient(120deg, var(--bq-coffee-900), var(--bq-coffee-950)) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .final-report-header::after {
+  content: "03" !important;
+  position: absolute !important;
+  right: 34px !important;
+  bottom: -28px !important;
+  color: rgba(255, 255, 255, 0.035) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 132px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  pointer-events: none !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .final-step-label {
+  display: block !important;
+  margin-bottom: 9px !important;
+  color: #ddb07b !important;
+  font-size: 10.5px !important;
+  font-weight: 850 !important;
+  letter-spacing: 1.35px !important;
+  text-transform: uppercase !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .final-report-header h2 {
+  margin: 0 !important;
+  color: #fff8ef !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: clamp(30px, 3vw, 42px) !important;
+  font-weight: 500 !important;
+  line-height: 1.08 !important;
+  letter-spacing: -1px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .final-report-header p {
+  max-width: 760px !important;
+  margin: 12px 0 0 !important;
+  color: rgba(255, 246, 234, 0.68) !important;
+  font-size: 14px !important;
+  line-height: 1.65 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-status {
+  position: relative !important;
+  z-index: 1 !important;
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  min-height: 34px !important;
+  padding: 0 12px !important;
+  color: #cce1cf !important;
+  border: 1px solid rgba(176, 211, 181, 0.18) !important;
+  border-radius: 999px !important;
+  background: rgba(100, 145, 108, 0.13) !important;
+  font-size: 10px !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.35px !important;
+}
+
+/* How to read ------------------------------------------------------------ */
+
+.bean-quality-page.bean-quality-step-3 .report-read-guide {
+  margin-top: 14px !important;
+  padding: 18px !important;
+  border: 1px solid #e7d8c8 !important;
+  border-radius: 17px !important;
+  background: #fbf5ed !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-read-guide-heading {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  margin-bottom: 14px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-read-guide-heading > div > span,
+.bean-quality-page.bean-quality-step-3 .report-group-heading > div:nth-child(2) > span {
+  display: block !important;
+  margin-bottom: 4px !important;
+  color: var(--bq-caramel-deep) !important;
+  font-size: 9.5px !important;
+  font-weight: 900 !important;
+  letter-spacing: 1.2px !important;
+  text-transform: uppercase !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-read-guide-heading strong {
+  color: var(--bq-ink) !important;
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-read-guide-badge {
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  min-height: 31px !important;
+  padding: 0 11px !important;
+  color: var(--bq-green-deep) !important;
+  border: 1px solid #d5e4d8 !important;
+  border-radius: 999px !important;
+  background: var(--bq-green-soft) !important;
+  font-size: 9.5px !important;
+  font-weight: 850 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-read-guide-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 9px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-read-guide-item {
+  display: flex !important;
+  gap: 10px !important;
+  min-height: 76px !important;
+  padding: 12px !important;
+  border: 1px solid #eadfd3 !important;
+  border-radius: 13px !important;
+  background: rgba(255, 253, 249, 0.82) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-read-guide-item > span {
+  flex: 0 0 auto !important;
+  width: 28px !important;
+  height: 28px !important;
+  display: grid !important;
+  place-items: center !important;
+  color: #fff8ef !important;
+  border-radius: 8px !important;
+  background: var(--bq-coffee-800) !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-read-guide-item strong {
+  display: block !important;
+  color: var(--bq-ink) !important;
+  font-size: 12.5px !important;
+  line-height: 1.35 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-read-guide-item small {
+  display: block !important;
+  margin-top: 4px !important;
+  color: var(--bq-muted) !important;
+  font-size: 10.5px !important;
+  line-height: 1.45 !important;
+}
+
+/* Report metadata -------------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-3 .batch-information {
+  display: grid !important;
+  grid-template-columns: 1.2fr 1.15fr 0.8fr 0.8fr !important;
+  gap: 9px !important;
+  margin-top: 14px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .batch-information > div {
+  min-width: 0 !important;
+  min-height: 74px !important;
+  padding: 13px 14px !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 13px !important;
+  background: #fffdf9 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .batch-information span {
+  display: block !important;
+  margin-bottom: 6px !important;
+  color: var(--bq-muted) !important;
+  font-size: 9px !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.75px !important;
+  text-transform: uppercase !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .batch-information strong {
+  display: block !important;
+  overflow: hidden !important;
+  color: var(--bq-ink) !important;
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  line-height: 1.45 !important;
+  text-overflow: ellipsis !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .assessment-value.good,
+.bean-quality-page.bean-quality-step-3 .assessment-value.excellent,
+.bean-quality-page.bean-quality-step-3 .assessment-value.acceptable,
+.bean-quality-page.bean-quality-step-3 .assessment-value.stable {
+  color: var(--bq-green-deep) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .assessment-value.bad,
+.bean-quality-page.bean-quality-step-3 .assessment-value.poor,
+.bean-quality-page.bean-quality-step-3 .assessment-value.reject,
+.bean-quality-page.bean-quality-step-3 .assessment-value.high-risk {
+  color: var(--bq-red) !important;
+}
+
+/* Section grouping ------------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-3 .report-group-heading {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 13px !important;
+  margin: 30px 2px 12px !important;
+  padding-top: 2px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-group-number {
+  flex: 0 0 auto !important;
+  width: 38px !important;
+  height: 38px !important;
+  display: grid !important;
+  place-items: center !important;
+  color: var(--bq-coffee-800) !important;
+  border: 1px solid #e1cfbc !important;
+  border-radius: 11px !important;
+  background: #f5e9dc !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-group-heading h3 {
+  margin: 1px 0 0 !important;
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 22px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.35px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-group-heading p {
+  margin: 5px 0 0 !important;
+  color: var(--bq-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-group-heading-processing {
+  margin-top: 34px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-section-block {
+  margin: 0 0 14px !important;
+  padding: 0 !important;
+}
+
+/* QualityScore — executive decision ------------------------------------- */
+
+.bean-quality-page.bean-quality-step-3 .quality-score-section {
+  width: 100% !important;
+  color: var(--bq-ink) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .quality-result-card {
+  overflow: hidden !important;
+  padding: 22px !important;
+  border: 1px solid rgba(81, 47, 30, 0.26) !important;
+  border-radius: 19px !important;
+  background:
+    radial-gradient(circle at 94% 0%, rgba(212, 152, 91, 0.16), transparent 32%),
+    linear-gradient(130deg, var(--bq-coffee-900), var(--bq-coffee-950)) !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .quality-result-top {
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  align-items: flex-start !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .result-eyebrow {
+  color: #dbaa72 !important;
+  font-size: 9.5px !important;
+  font-weight: 900 !important;
+  letter-spacing: 1.15px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .quality-result-top h3 {
+  margin: 5px 0 0 !important;
+  color: #fff8ef !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 22px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .quality-result-top p {
+  max-width: 640px !important;
+  margin: 7px 0 0 !important;
+  color: rgba(255, 246, 234, 0.62) !important;
+  font-size: 12px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .assessment-complete-badge {
+  color: #c9e0cc !important;
+  border: 1px solid rgba(179, 215, 184, 0.18) !important;
+  background: rgba(103, 149, 111, 0.13) !important;
+  font-size: 9.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .main-result-grid {
+  display: grid !important;
+  grid-template-columns: 0.82fr 1.18fr !important;
+  gap: 12px !important;
+  margin-top: 17px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .grade-display,
+.bean-quality-page.bean-quality-step-3 .score-summary {
+  min-height: 176px !important;
+  padding: 18px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 15px !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .grade-caption,
+.bean-quality-page.bean-quality-step-3 .score-summary-label {
+  color: rgba(255, 244, 229, 0.55) !important;
+  font-size: 9.5px !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.8px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .grade-letter {
+  color: #f2bd7c !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 68px !important;
+  font-weight: 500 !important;
+  line-height: 0.95 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .main-status {
+  font-size: 10.5px !important;
+  font-weight: 850 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .score-value-row strong {
+  color: #fffaf3 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 48px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .score-value-row span {
+  color: #cbb6a0 !important;
+  font-size: 13px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .overall-score-track,
+.bean-quality-page.bean-quality-step-3 .score-track {
+  overflow: hidden !important;
+  height: 7px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .overall-score-fill,
+.bean-quality-page.bean-quality-step-3 .score-fill {
+  background: linear-gradient(90deg, #a86a37, #e1b176) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .score-summary > p {
+  color: rgba(255, 244, 230, 0.55) !important;
+  font-size: 11px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .assessment-heading {
+  margin: 16px 2px 9px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .assessment-heading span {
+  color: var(--bq-caramel-deep) !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  letter-spacing: 1px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .assessment-heading h3 {
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 18px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .assessment-heading > p {
+  color: var(--bq-muted) !important;
+  font-size: 11px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .sub-score-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .sub-score-card {
+  padding: 16px !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 15px !important;
+  background: #fffdf9 !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .score-icon {
+  color: var(--bq-coffee-800) !important;
+  border: 1px solid #ead8c4 !important;
+  background: #f7eadc !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .score-title span {
+  color: var(--bq-muted) !important;
+  font-size: 8.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .score-title h4,
+.bean-quality-page.bean-quality-step-3 .sub-score-number strong {
+  color: var(--bq-ink) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .sub-score-number strong {
+  font-size: 22px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .sub-score-number span,
+.bean-quality-page.bean-quality-step-3 .score-scale,
+.bean-quality-page.bean-quality-step-3 .sub-score-card > p {
+  color: var(--bq-muted) !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .sub-score-card .score-track {
+  background: #eadfd4 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .score-method-note {
+  margin-top: 10px !important;
+  color: var(--bq-muted) !important;
+  border: 1px solid #eadfd4 !important;
+  background: #faf6f1 !important;
+  font-size: 10.5px !important;
+}
+
+/* BeanWeightAssessment --------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-3 .bean-weight-card {
+  padding: 18px !important;
+  color: var(--bq-ink) !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 17px !important;
+  background: #fffdf9 !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .bean-weight-label {
+  color: var(--bq-caramel-deep) !important;
+  font-size: 9px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .bean-weight-header h3 {
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 19px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .bean-weight-header p {
+  color: var(--bq-muted) !important;
+  font-size: 11.5px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .weight-calibration-badge {
+  font-size: 9px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .weight-main-panel {
+  margin-top: 13px !important;
+  border: 1px solid #e5d7c9 !important;
+  background: #f8efe5 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .weight-main-value > span,
+.bean-quality-page.bean-quality-step-3 .weight-icon-area > span {
+  color: var(--bq-muted) !important;
+  font-size: 9px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .weight-main-value strong {
+  color: var(--bq-coffee-900) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 36px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .weight-main-value small,
+.bean-quality-page.bean-quality-step-3 .weight-main-value p {
+  color: var(--bq-muted) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .weight-scale-icon {
+  color: #fff8ef !important;
+  background: var(--bq-coffee-800) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .weight-information-grid {
+  gap: 9px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .weight-info-card,
+.bean-quality-page.bean-quality-step-3 .weight-trace {
+  border: 1px solid var(--bq-border) !important;
+  background: #fffdf9 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .weight-info-card span,
+.bean-quality-page.bean-quality-step-3 .weight-trace span {
+  color: var(--bq-muted) !important;
+  font-size: 8.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .weight-info-card strong,
+.bean-quality-page.bean-quality-step-3 .weight-trace strong {
+  color: var(--bq-ink) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .weight-info-card small {
+  color: var(--bq-muted) !important;
+  font-size: 10px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .weight-trace-symbol {
+  color: var(--bq-caramel-deep) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .weight-trace-result {
+  border-color: #d4e2d6 !important;
+  background: var(--bq-green-soft) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .weight-note,
+.bean-quality-page.bean-quality-step-3 .weight-no-data {
+  color: var(--bq-muted) !important;
+  border: 1px solid #e7ddd2 !important;
+  background: #faf6f1 !important;
+  font-size: 10.5px !important;
+}
+
+/* Sensor + Physical assessment cards ------------------------------------ */
+
+.bean-quality-page.bean-quality-step-3 .assessment-summary-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  margin: 12px 0 0 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .sensor-assessment-card,
+.bean-quality-page.bean-quality-step-3 .physical-assessment-card {
+  min-width: 0 !important;
+  padding: 18px !important;
+  color: var(--bq-ink) !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 17px !important;
+  background: #fffdf9 !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .sensor-header,
+.bean-quality-page.bean-quality-step-3 .physical-header {
+  border-bottom-color: #ece2d8 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .sensor-header-label,
+.bean-quality-page.bean-quality-step-3 .physical-header-label,
+.bean-quality-page.bean-quality-step-3 .sensor-readings-heading span,
+.bean-quality-page.bean-quality-step-3 .physical-category-heading span {
+  color: var(--bq-caramel-deep) !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.9px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .sensor-header h3,
+.bean-quality-page.bean-quality-step-3 .physical-header h3,
+.bean-quality-page.bean-quality-step-3 .sensor-readings-heading h4,
+.bean-quality-page.bean-quality-step-3 .physical-category-heading h4 {
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .status-caption,
+.bean-quality-page.bean-quality-step-3 .physical-status-caption,
+.bean-quality-page.bean-quality-step-3 .sensor-range-description,
+.bean-quality-page.bean-quality-step-3 .category-description,
+.bean-quality-page.bean-quality-step-3 .sensor-note,
+.bean-quality-page.bean-quality-step-3 .physical-note {
+  color: var(--bq-muted) !important;
+  font-size: 10.5px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .status-main-row strong,
+.bean-quality-page.bean-quality-step-3 .physical-status-main strong,
+.bean-quality-page.bean-quality-step-3 .status-score strong,
+.bean-quality-page.bean-quality-step-3 .physical-score-box strong {
+  color: var(--bq-ink) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .sensor-voting-summary,
+.bean-quality-page.bean-quality-step-3 .distribution-summary,
+.bean-quality-page.bean-quality-step-3 .sensor-range-legend,
+.bean-quality-page.bean-quality-step-3 .sensor-note,
+.bean-quality-page.bean-quality-step-3 .physical-note {
+  border: 1px solid #e8ddd2 !important;
+  background: #faf6f1 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .voting-summary-heading,
+.bean-quality-page.bean-quality-step-3 .distribution-summary-heading,
+.bean-quality-page.bean-quality-step-3 .legend-heading {
+  color: var(--bq-ink) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .voting-summary-card,
+.bean-quality-page.bean-quality-step-3 .sensor-item,
+.bean-quality-page.bean-quality-step-3 .physical-overview,
+.bean-quality-page.bean-quality-step-3 .physical-category-card {
+  border-color: #e8ddd2 !important;
+  background: #fffdf9 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .sensor-item-name,
+.bean-quality-page.bean-quality-step-3 .sensor-response strong,
+.bean-quality-page.bean-quality-step-3 .category-title,
+.bean-quality-page.bean-quality-step-3 .category-count,
+.bean-quality-page.bean-quality-step-3 .physical-overview strong {
+  color: var(--bq-ink) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .sensor-response span,
+.bean-quality-page.bean-quality-step-3 .sensor-card-footer,
+.bean-quality-page.bean-quality-step-3 .category-percentage-row,
+.bean-quality-page.bean-quality-step-3 .distribution-legend {
+  color: var(--bq-muted) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .sensor-item-icon,
+.bean-quality-page.bean-quality-step-3 .physical-status-icon {
+  color: var(--bq-coffee-800) !important;
+  border-color: #ead8c4 !important;
+  background: #f7eadc !important;
+}
+
+/* QualityFindings / XAI -------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-3 .quality-findings {
+  width: 100% !important;
+  overflow: hidden !important;
+  color: var(--bq-ink) !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 18px !important;
+  background: #fffdf9 !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .xai-main-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  padding: 20px !important;
+  border-bottom: 1px solid #e8ddd2 !important;
+  background: #fbf5ed !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .xai-main-label {
+  color: var(--bq-caramel-deep) !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .xai-main-header h3 {
+  margin: 5px 0 0 !important;
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 20px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .xai-main-header p {
+  color: var(--bq-muted) !important;
+  font-size: 11.5px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .xai-flow-badge {
+  color: var(--bq-ink) !important;
+  border: 1px solid #e2d3c4 !important;
+  background: #fffdf9 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .xai-logo,
+.bean-quality-page.bean-quality-step-3 .section-number {
+  color: #fff8ef !important;
+  background: var(--bq-coffee-800) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .xai-flow-badge strong,
+.bean-quality-page.bean-quality-step-3 .section-identity h4,
+.bean-quality-page.bean-quality-step-3 .final-status-heading,
+.bean-quality-page.bean-quality-step-3 .logic-heading {
+  color: var(--bq-ink) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .xai-flow-badge span,
+.bean-quality-page.bean-quality-step-3 .section-identity span {
+  color: var(--bq-muted) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .explanation-section {
+  margin: 0 !important;
+  padding: 20px !important;
+  border: 0 !important;
+  border-top: 1px solid #eee4da !important;
+  border-radius: 0 !important;
+  background: #fffdf9 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .explanation-section-header {
+  margin-bottom: 14px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .flow-card,
+.bean-quality-page.bean-quality-step-3 .grade-result-card,
+.bean-quality-page.bean-quality-step-3 .contribution-row,
+.bean-quality-page.bean-quality-step-3 .reason-box,
+.bean-quality-page.bean-quality-step-3 .final-status-explanation,
+.bean-quality-page.bean-quality-step-3 .primary-sensor-evidence,
+.bean-quality-page.bean-quality-step-3 .threshold-comparison,
+.bean-quality-page.bean-quality-step-3 .sensor-vote-rule,
+.bean-quality-page.bean-quality-step-3 .temperature-supporting-box,
+.bean-quality-page.bean-quality-step-3 .decision-logic-box,
+.bean-quality-page.bean-quality-step-3 .sensor-score-formula,
+.bean-quality-page.bean-quality-step-3 .evidence-trace,
+.bean-quality-page.bean-quality-step-3 .detection-card,
+.bean-quality-page.bean-quality-step-3 .physical-impact-grid > div,
+.bean-quality-page.bean-quality-step-3 .physical-score-trace,
+.bean-quality-page.bean-quality-step-3 .physical-status-ranges,
+.bean-quality-page.bean-quality-step-3 .xai-scope-note {
+  color: var(--bq-ink) !important;
+  border-color: #e8ddd2 !important;
+  background: #faf6f1 !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .flow-card-highlight,
+.bean-quality-page.bean-quality-step-3 .grade-result-card,
+.bean-quality-page.bean-quality-step-3 .trace-result {
+  border-color: #dec5a9 !important;
+  background: #f5e7d7 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .flow-card strong,
+.bean-quality-page.bean-quality-step-3 .grade-result-card strong,
+.bean-quality-page.bean-quality-step-3 .reason-box strong,
+.bean-quality-page.bean-quality-step-3 .decision-logic-box strong,
+.bean-quality-page.bean-quality-step-3 .detection-card strong,
+.bean-quality-page.bean-quality-step-3 .evidence-trace strong,
+.bean-quality-page.bean-quality-step-3 .physical-score-trace strong {
+  color: var(--bq-ink) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .flow-card span,
+.bean-quality-page.bean-quality-step-3 .flow-card p,
+.bean-quality-page.bean-quality-step-3 .reason-box p,
+.bean-quality-page.bean-quality-step-3 .decision-logic-box p,
+.bean-quality-page.bean-quality-step-3 .detection-card span,
+.bean-quality-page.bean-quality-step-3 .detection-card p,
+.bean-quality-page.bean-quality-step-3 .evidence-trace,
+.bean-quality-page.bean-quality-step-3 .xai-scope-note p {
+  color: var(--bq-muted) !important;
+  font-size: 10.5px !important;
+  line-height: 1.5 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .flow-arrow,
+.bean-quality-page.bean-quality-step-3 .trace-arrow {
+  color: var(--bq-caramel-deep) !important;
+}
+
+/* Recommendations -------------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-3 .recommendation-section {
+  padding: 18px !important;
+  color: var(--bq-ink) !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 17px !important;
+  background: #fffdf9 !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .recommendation-heading {
+  padding-bottom: 13px !important;
+  border-bottom: 1px solid #eee4da !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .recommendation-heading span {
+  color: var(--bq-caramel-deep) !important;
+  font-size: 9px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .recommendation-heading h3 {
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 20px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .recommendation-heading p {
+  color: var(--bq-muted) !important;
+  font-size: 11.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .recommendation-ai-badge,
+.bean-quality-page.bean-quality-step-3 .recommendation-number {
+  color: #fff8ef !important;
+  background: var(--bq-coffee-800) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .recommendation-item {
+  border-color: #e7dcd1 !important;
+  background: #faf6f1 !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .recommendation-top strong,
+.bean-quality-page.bean-quality-step-3 .recommended-action strong {
+  color: var(--bq-ink) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .recommendation-content p,
+.bean-quality-page.bean-quality-step-3 .recommended-action span {
+  color: var(--bq-muted) !important;
+  font-size: 11px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .recommended-action {
+  border-color: #e3d4c5 !important;
+  background: #fffdf9 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .priority-badge {
+  font-size: 8.5px !important;
+}
+
+/* Processing Intelligence outer system --------------------------------- */
+
+.bean-quality-page.bean-quality-step-3 .processing-intelligence {
+  width: 100% !important;
+  margin-top: 0 !important;
+  padding: 0 !important;
+  color: var(--bq-ink) !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 20px !important;
+  background: #faf6f1 !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  padding: 22px !important;
+  color: #fff8ef !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background:
+    radial-gradient(circle at 95% 5%, rgba(214, 154, 95, 0.17), transparent 30%),
+    linear-gradient(128deg, var(--bq-coffee-900), var(--bq-coffee-950)) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-label,
+.bean-quality-page.bean-quality-step-3 .pi-module-counter {
+  color: #dfb37e !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-header h2 {
+  margin: 5px 0 0 !important;
+  color: #fff8ef !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 24px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-header p {
+  max-width: 800px !important;
+  color: rgba(255, 246, 234, 0.64) !important;
+  font-size: 11.5px !important;
+  line-height: 1.6 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-badge {
+  color: #d2e4d4 !important;
+  border-color: rgba(188, 218, 192, 0.18) !important;
+  background: rgba(101, 148, 109, 0.14) !important;
+  font-size: 8.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-badge.secondary {
+  color: #edd3b6 !important;
+  border-color: rgba(235, 198, 158, 0.16) !important;
+  background: rgba(204, 147, 87, 0.1) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-flow {
+  margin: 0 !important;
+  padding: 14px 20px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #e7ddd3 !important;
+  border-radius: 0 !important;
+  background: #f6ede3 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-flow-step span {
+  color: #fff8ef !important;
+  background: var(--bq-coffee-800) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-flow-step strong {
+  color: var(--bq-ink) !important;
+  font-size: 10.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-flow-line {
+  background: #d7c5b2 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-module-section {
+  margin: 0 !important;
+  padding: 18px !important;
+  border: 0 !important;
+  border-top: 1px solid #eadfd4 !important;
+  border-radius: 0 !important;
+  background: #fffdf9 !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0 !important;
+  margin: 0 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-grid > .pi-module-section + .pi-module-section {
+  border-left: 0 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-module-heading {
+  gap: 10px !important;
+  margin-bottom: 11px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-module-number {
+  width: 34px !important;
+  height: 34px !important;
+  color: #fff8ef !important;
+  border: 0 !important;
+  background: var(--bq-coffee-800) !important;
+  font-size: 9px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-module-heading span {
+  color: var(--bq-caramel-deep) !important;
+  font-size: 8.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-module-heading h3 {
+  margin-top: 2px !important;
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
+}
+
+/* Keep each processing module visually subordinate to the outer report. */
+.bean-quality-page.bean-quality-step-3 :is(
+  .roasting-shell,
+  .pre-roast-shell,
+  .roast-risk-shell,
+  .batch-usage-shell,
+  .yield-shell,
+  .storage-shell,
+  .preventive-process-shell
+) {
+  border-color: #e7dcd1 !important;
+  border-radius: 15px !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-3 :is(
+  .roasting-title,
+  .pre-roast-title,
+  .roast-risk-title,
+  .batch-usage-title,
+  .yield-title,
+  .storage-title,
+  .preventive-process-title
+) {
+  font-size: 20px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 :is(
+  .roasting-summary,
+  .pre-roast-summary,
+  .roast-risk-summary,
+  .batch-usage-summary,
+  .yield-summary,
+  .storage-summary,
+  .preventive-process-summary
+) {
+  font-size: 11.5px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 :is(
+  .roasting-metric,
+  .pre-roast-metric,
+  .roast-risk-metric,
+  .batch-usage-metric,
+  .yield-metric,
+  .storage-metric,
+  .preventive-process-metric
+) {
+  min-height: 68px !important;
+}
+
+
+.bean-quality-page.bean-quality-step-3 .preventive-guidance-shell {
+  border-color: #e7dcd1 !important;
+  border-radius: 15px !important;
+  box-shadow: none !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .preventive-guidance-header {
+  border-radius: 15px 15px 0 0 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .preventive-guidance-heading h3 {
+  font-size: 20px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .preventive-guidance-heading p {
+  font-size: 11.5px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-warning,
+.bean-quality-page.bean-quality-step-3 .pi-methodology {
+  margin: 14px 18px 18px !important;
+  color: var(--bq-muted) !important;
+  border: 1px solid #e5d9ce !important;
+  background: #faf6f1 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-warning strong,
+.bean-quality-page.bean-quality-step-3 .pi-methodology strong {
+  color: var(--bq-ink) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pi-warning p,
+.bean-quality-page.bean-quality-step-3 .pi-methodology p {
+  color: var(--bq-muted) !important;
+  font-size: 10.5px !important;
+  line-height: 1.5 !important;
+}
+
+/* Methodology + actions -------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-3 .methodology-card {
+  margin-top: 18px !important;
+  padding: 16px 18px !important;
+  color: var(--bq-ink) !important;
+  border: 1px solid #e5d9ce !important;
+  border-radius: 14px !important;
+  background: #f8efe5 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .methodology-card span {
+  color: var(--bq-caramel-deep) !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  letter-spacing: 1px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .methodology-card p {
+  color: var(--bq-muted) !important;
+  font-size: 11px !important;
+  line-height: 1.6 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .pdf-exclude {
+  width: 100% !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-actions,
+.bean-quality-page.bean-quality-step-3 .saved-report-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  margin-top: 18px !important;
+  padding-top: 16px !important;
+  border-top: 1px solid var(--bq-border) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-right-actions {
+  display: flex !important;
+  gap: 9px !important;
+  flex-wrap: wrap !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-secondary-button,
+.bean-quality-page.bean-quality-step-3 .report-primary-button,
+.bean-quality-page.bean-quality-step-3 .saved-report-action {
+  min-height: 44px !important;
+  padding: 11px 15px !important;
+  border-radius: 12px !important;
+  font-size: 11.5px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-secondary-button,
+.bean-quality-page.bean-quality-step-3 .saved-report-action.secondary {
+  color: var(--bq-coffee-800) !important;
+  border: 1px solid #d9c7b5 !important;
+  background: #fffdf9 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-primary-button,
+.bean-quality-page.bean-quality-step-3 .saved-report-action.primary {
+  color: #fffaf2 !important;
+  border: 1px solid var(--bq-coffee-800) !important;
+  background: var(--bq-coffee-800) !important;
+  box-shadow: 0 8px 20px rgba(65, 36, 24, 0.14) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-primary-button:hover,
+.bean-quality-page.bean-quality-step-3 .saved-report-action.primary:hover {
+  background: var(--bq-coffee-700) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Loading / error -------------------------------------------------------- */
+
+.bean-quality-page.bean-quality-step-3 .final-report-loading-card,
+.bean-quality-page.bean-quality-step-3 .final-report-error-card {
+  padding: 34px !important;
+  text-align: center !important;
+  border: 1px solid var(--bq-border) !important;
+  border-radius: 20px !important;
+  background: #fffdf9 !important;
+  box-shadow: var(--bq-shadow-soft) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .final-report-loading-card h2,
+.bean-quality-page.bean-quality-step-3 .final-report-error-card h2 {
+  color: var(--bq-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 24px !important;
+  font-weight: 500 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .final-report-loading-card p,
+.bean-quality-page.bean-quality-step-3 .final-report-error-card p {
+  color: var(--bq-muted) !important;
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-loader {
+  border-color: #eadfd4 !important;
+  border-top-color: var(--bq-caramel-deep) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .report-error-icon {
+  color: #fff8ef !important;
+  background: var(--bq-red) !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .error-back-button,
+.bean-quality-page.bean-quality-step-3 .retry-report-button {
+  min-height: 42px !important;
+  padding: 10px 15px !important;
+  border-radius: 11px !important;
+  font-size: 11.5px !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .error-back-button {
+  color: var(--bq-coffee-800) !important;
+  border: 1px solid #d9c7b5 !important;
+  background: #fffdf9 !important;
+}
+
+.bean-quality-page.bean-quality-step-3 .retry-report-button {
+  color: #fff8ef !important;
+  background: var(--bq-coffee-800) !important;
+}
+
+/* Step 03 responsive ----------------------------------------------------- */
+
+@media (max-width: 1120px) {
+  .bean-quality-page.bean-quality-step-3 .report-read-guide-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .bean-quality-page.bean-quality-step-3 .batch-information {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .bean-quality-page.bean-quality-step-3 .assessment-summary-grid,
+  .bean-quality-page.bean-quality-step-3 .pi-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bean-quality-page.bean-quality-step-3 .pi-grid > .pi-module-section + .pi-module-section {
+    border-left: 0 !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .bean-quality-page.bean-quality-step-3 .final-report-card {
+    padding: 16px !important;
+  }
+
+  .bean-quality-page.bean-quality-step-3 .final-report-header,
+  .bean-quality-page.bean-quality-step-3 .report-read-guide-heading,
+  .bean-quality-page.bean-quality-step-3 .quality-result-top,
+  .bean-quality-page.bean-quality-step-3 .bean-weight-header,
+  .bean-quality-page.bean-quality-step-3 .xai-main-header,
+  .bean-quality-page.bean-quality-step-3 .pi-header,
+  .bean-quality-page.bean-quality-step-3 .report-actions,
+  .bean-quality-page.bean-quality-step-3 .saved-report-actions {
+    flex-direction: column !important;
+  }
+
+  .bean-quality-page.bean-quality-step-3 .final-report-header {
+    min-height: 0 !important;
+    padding: 22px !important;
+  }
+
+  .bean-quality-page.bean-quality-step-3 .final-report-header h2 {
+    font-size: 29px !important;
+  }
+
+  .bean-quality-page.bean-quality-step-3 .report-read-guide-grid,
+  .bean-quality-page.bean-quality-step-3 .batch-information,
+  .bean-quality-page.bean-quality-step-3 .main-result-grid,
+  .bean-quality-page.bean-quality-step-3 .sub-score-grid,
+  .bean-quality-page.bean-quality-step-3 .weight-information-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bean-quality-page.bean-quality-step-3 .report-right-actions {
+    width: 100% !important;
+    flex-direction: column !important;
+  }
+
+  .bean-quality-page.bean-quality-step-3 .report-secondary-button,
+  .bean-quality-page.bean-quality-step-3 .report-primary-button,
+  .bean-quality-page.bean-quality-step-3 .saved-report-action {
+    width: 100% !important;
+  }
+
+  .bean-quality-page.bean-quality-step-3 .pi-flow {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .bean-quality-page.bean-quality-step-3 .pi-flow-line {
+    display: none !important;
+  }
+}

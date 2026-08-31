@@ -6,6 +6,10 @@ from .processing_intelligence.service import (
     processing_intelligence_service,
 )
 
+from .processing_intelligence.defect_profile import (
+    build_defect_profile,
+)
+
 from .schema import (
     GenerateQualityReportRequest,
     PhysicalDefectCounts,
@@ -16,6 +20,8 @@ from .schema import (
     SensorResultInput,
     SensorScoreBreakdown,
 )
+
+from .. import sensor_quality_config as sensor_config
 
 
 # =========================================================
@@ -28,47 +34,92 @@ class QualityReportService:
     # SENSOR THRESHOLDS
     # =====================================================
     #
-    # These values were derived from the current
-    # experimental good / bad coffee bean dataset.
+    # Research-defined decision thresholds derived from the
+    # latest experimental GOOD / BAD coffee bean dataset.
     #
-    # MQ-2
-    # Good response range: 22 - 44
-    # Bad response range: 102 - 277
+    # Every response is:
     #
-    # Decision midpoint:
-    # (44 + 102) / 2 = 73
+    #     delta = sample - baseline
     #
-    # MQ-135
-    # Good response range: 9 - 15
-    # Bad response range: 30 - 103
+    # Five sensors participate in the quality vote:
     #
-    # Decision midpoint:
-    # (15 + 30) / 2 = 22.5
+    #   MQ-2
+    #     GOOD observed: -11 to +18
+    #     BAD observed : +241 to +343
+    #     midpoint     : (18 + 241) / 2 = 129.5
     #
+    #   MQ-3
+    #     GOOD observed: -1 to +2
+    #     BAD observed : +75 to +118
+    #     midpoint     : (2 + 75) / 2 = 38.5
+    #
+    #   MQ-135
+    #     GOOD observed: -8 to +1
+    #     BAD observed : +18 to +58
+    #     midpoint     : (1 + 18) / 2 = 9.5
+    #
+    #   Moisture
+    #     GOOD observed: -11 to +11
+    #     BAD observed : -368 to -21
+    #     midpoint between -21 and -11 = -16
+    #
+    #   Humidity
+    #     GOOD observed: -7.1% to +4.2%
+    #     BAD observed : +17.2% to +26.9%
+    #     midpoint     : (4.2 + 17.2) / 2 = 10.7
+    #
+    # Temperature is retained as supporting environmental
+    # information only because the observed GOOD and BAD
+    # temperature ranges overlap.
+    #
+    # IMPORTANT:
+    # These are research-defined experimental boundaries,
+    # not official SCA grading thresholds.
     # =====================================================
 
-    MQ2_GOOD_MAX = 44.0
-    MQ2_BAD_THRESHOLD = 73.0
-    MQ2_BAD_MAX = 277.0
+# =====================================================
+# SENSOR QUALITY CONFIG
+# =====================================================
 
-    MQ135_GOOD_MAX = 15.0
-    MQ135_BAD_THRESHOLD = 22.5
-    MQ135_BAD_MAX = 103.0
+    MQ2_BAD_THRESHOLD = (
+        sensor_config.MQ2_BAD_THRESHOLD
+    )
 
+    MQ3_BAD_THRESHOLD = (
+        sensor_config.MQ3_BAD_THRESHOLD
+    )
 
-    # =====================================================
-    # SUPPORTING SENSOR REFERENCE VALUES
-    # =====================================================
-    #
-    # These do NOT directly decide GOOD / BAD.
-    #
-    # They are supporting indicators only.
-    #
-    # =====================================================
+    MQ135_BAD_THRESHOLD = (
+        sensor_config.MQ135_BAD_THRESHOLD
+    )
 
-    MQ3_GOOD_MAX = 1.0
+    MOISTURE_BAD_THRESHOLD = (
+        sensor_config.MOISTURE_BAD_THRESHOLD
+    )
 
-    HUMIDITY_GOOD_MAX = 15.4
+    HUMIDITY_BAD_THRESHOLD = (
+        sensor_config.HUMIDITY_BAD_THRESHOLD
+    )
+
+    TOTAL_VOTING_SENSORS = (
+        sensor_config.TOTAL_VOTING_SENSORS
+    )
+
+    SENSOR_VOTE_WEIGHT = (
+        sensor_config.SENSOR_VOTE_WEIGHT
+    )
+
+    GOOD_MAX_BAD_VOTES = (
+        sensor_config.GOOD_MAX_BAD_VOTES
+    )
+
+    REVIEW_BAD_VOTES = (
+        sensor_config.REVIEW_BAD_VOTES
+    )
+
+    BAD_MIN_BAD_VOTES = (
+        sensor_config.BAD_MIN_BAD_VOTES
+    )
 
 
     # =====================================================
@@ -252,217 +303,94 @@ class QualityReportService:
 
 
     # =====================================================
-    # MQ-2 SCORE
+    # SENSOR BAD-VOTE HELPER
     # =====================================================
     #
-    # <= 44
-    #     100 points
+    # Returns:
+    #   True  -> sensor gives one BAD vote
+    #   False -> sensor does not give a BAD vote
+    #   None  -> response unavailable / invalid
     #
-    # 44 - 73
-    #     100 -> 70
-    #
-    # 73 - 277
-    #     70 -> 0
-    #
+    # Temperature is intentionally not included here.
     # =====================================================
 
-    def _calculate_mq2_score(
+    def _is_bad_sensor_response(
         self,
+        sensor_name: str,
         response: Optional[float],
-    ) -> Optional[float]:
+    ) -> Optional[bool]:
 
         if response is None:
             return None
 
-
-        # -------------------------------------------------
-        # GOOD REFERENCE ZONE
-        # -------------------------------------------------
-
-        if (
+        value = self._safe_float(
             response
-            <=
-            self.MQ2_GOOD_MAX
-        ):
+        )
 
-            return 100.0
+        if value is None:
+            return None
 
-
-        # -------------------------------------------------
-        # REVIEW / TRANSITION ZONE
-        # -------------------------------------------------
-
-        if (
-            response
-            <
-            self.MQ2_BAD_THRESHOLD
-        ):
-
-            score = (
-                100.0
-                -
-                (
-                    30.0
-                    *
-                    (
-                        response
-                        -
-                        self.MQ2_GOOD_MAX
-                    )
-                    /
-                    (
-                        self.MQ2_BAD_THRESHOLD
-                        -
-                        self.MQ2_GOOD_MAX
-                    )
-                )
-            )
-
-
-            return round(
-                self._clamp(
-                    score,
-                ),
-                2,
-            )
-
-
-        # -------------------------------------------------
-        # BAD ZONE
-        # -------------------------------------------------
-
-        score = (
-            70.0
-            *
-            (
-                self.MQ2_BAD_MAX
-                -
-                response
-            )
-            /
-            (
-                self.MQ2_BAD_MAX
-                -
+        if sensor_name == "mq2":
+            return (
+                value
+                >=
                 self.MQ2_BAD_THRESHOLD
             )
-        )
 
-
-        return round(
-            self._clamp(
-                score,
-            ),
-            2,
-        )
-
-
-    # =====================================================
-    # MQ-135 SCORE
-    # =====================================================
-    #
-    # <= 15
-    #     100 points
-    #
-    # 15 - 22.5
-    #     100 -> 70
-    #
-    # 22.5 - 103
-    #     70 -> 0
-    #
-    # =====================================================
-
-    def _calculate_mq135_score(
-        self,
-        response: Optional[float],
-    ) -> Optional[float]:
-
-        if response is None:
-            return None
-
-
-        # -------------------------------------------------
-        # GOOD ZONE
-        # -------------------------------------------------
-
-        if (
-            response
-            <=
-            self.MQ135_GOOD_MAX
-        ):
-
-            return 100.0
-
-
-        # -------------------------------------------------
-        # REVIEW / TRANSITION ZONE
-        # -------------------------------------------------
-
-        if (
-            response
-            <
-            self.MQ135_BAD_THRESHOLD
-        ):
-
-            score = (
-                100.0
-                -
-                (
-                    30.0
-                    *
-                    (
-                        response
-                        -
-                        self.MQ135_GOOD_MAX
-                    )
-                    /
-                    (
-                        self.MQ135_BAD_THRESHOLD
-                        -
-                        self.MQ135_GOOD_MAX
-                    )
-                )
+        if sensor_name == "mq3":
+            return (
+                value
+                >=
+                self.MQ3_BAD_THRESHOLD
             )
 
-
-            return round(
-                self._clamp(
-                    score,
-                ),
-                2,
-            )
-
-
-        # -------------------------------------------------
-        # BAD ZONE
-        # -------------------------------------------------
-
-        score = (
-            70.0
-            *
-            (
-                self.MQ135_BAD_MAX
-                -
-                response
-            )
-            /
-            (
-                self.MQ135_BAD_MAX
-                -
+        if sensor_name == "mq135":
+            return (
+                value
+                >=
                 self.MQ135_BAD_THRESHOLD
             )
-        )
 
+        if sensor_name == "moisture":
+            return (
+                value
+                <=
+                self.MOISTURE_BAD_THRESHOLD
+            )
 
-        return round(
-            self._clamp(
-                score,
-            ),
-            2,
-        )
+        if sensor_name == "humidity":
+            return (
+                value
+                >=
+                self.HUMIDITY_BAD_THRESHOLD
+            )
+
+        return None
 
 
     # =====================================================
     # SENSOR ASSESSMENT
+    # =====================================================
+    #
+    # Five equal-weight sensor votes are used:
+    #
+    #   MQ-2       >= 129.5  -> BAD vote
+    #   MQ-3       >= 38.5   -> BAD vote
+    #   MQ-135     >= 9.5    -> BAD vote
+    #   Moisture   <= -16.0  -> BAD vote
+    #   Humidity   >= 10.7   -> BAD vote
+    #
+    # Sensor score:
+    #
+    #   100 - (bad_count * 20)
+    #
+    # Status:
+    #
+    #   0-1 BAD votes -> GOOD
+    #   2 BAD votes   -> REVIEW
+    #   3-5 BAD votes -> BAD
+    #
+    # Temperature remains supporting information only.
     # =====================================================
 
     def _calculate_sensor_assessment(
@@ -480,6 +408,8 @@ class QualityReportService:
                 mq2_response=None,
                 mq135_response=None,
 
+                # Compatibility fields retained for the
+                # existing response schema / frontend.
                 mq2_score=0.0,
                 mq135_score=0.0,
 
@@ -494,11 +424,16 @@ class QualityReportService:
                 mq135_threshold=(
                     self.MQ135_BAD_THRESHOLD
                 ),
+
+                mq3_response=None,
+                humidity_response=None,
+                moisture_response=None,
+                temperature_response=None,
             )
 
 
         # -------------------------------------------------
-        # GET PRIMARY RESPONSES
+        # GET ALL SENSOR RESPONSES
         # -------------------------------------------------
 
         mq2_response = (
@@ -508,6 +443,12 @@ class QualityReportService:
             )
         )
 
+        mq3_response = (
+            self._get_sensor_response(
+                sensor_result,
+                "mq3",
+            )
+        )
 
         mq135_response = (
             self._get_sensor_response(
@@ -516,27 +457,6 @@ class QualityReportService:
             )
         )
 
-
-        # -------------------------------------------------
-        # SUPPORTING RESPONSES
-        # -------------------------------------------------
-
-        mq3_response = (
-            self._get_sensor_response(
-                sensor_result,
-                "mq3",
-            )
-        )
-
-
-        humidity_response = (
-            self._get_sensor_response(
-                sensor_result,
-                "humidity",
-            )
-        )
-
-
         moisture_response = (
             self._get_sensor_response(
                 sensor_result,
@@ -544,6 +464,12 @@ class QualityReportService:
             )
         )
 
+        humidity_response = (
+            self._get_sensor_response(
+                sensor_result,
+                "humidity",
+            )
+        )
 
         temperature_response = (
             self._get_sensor_response(
@@ -554,116 +480,170 @@ class QualityReportService:
 
 
         # -------------------------------------------------
-        # PRIMARY SENSOR SCORES
+        # FIVE SENSOR BAD VOTES
         # -------------------------------------------------
 
-        mq2_score = (
-            self._calculate_mq2_score(
-                mq2_response
+        mq2_bad = (
+            self._is_bad_sensor_response(
+                "mq2",
+                mq2_response,
+            )
+        )
+
+        mq3_bad = (
+            self._is_bad_sensor_response(
+                "mq3",
+                mq3_response,
+            )
+        )
+
+        mq135_bad = (
+            self._is_bad_sensor_response(
+                "mq135",
+                mq135_response,
+            )
+        )
+
+        moisture_bad = (
+            self._is_bad_sensor_response(
+                "moisture",
+                moisture_response,
+            )
+        )
+
+        humidity_bad = (
+            self._is_bad_sensor_response(
+                "humidity",
+                humidity_response,
             )
         )
 
 
-        mq135_score = (
-            self._calculate_mq135_score(
-                mq135_response
-            )
-        )
-
-
-        # -------------------------------------------------
-        # SENSOR SCORE
-        # -------------------------------------------------
-
-        available_scores = [
-            score
-            for score in [
-                mq2_score,
-                mq135_score,
-            ]
-            if score is not None
+        votes = [
+            mq2_bad,
+            mq3_bad,
+            mq135_bad,
+            moisture_bad,
+            humidity_bad,
         ]
 
 
-        if available_scores:
+        # -------------------------------------------------
+        # MISSING / INVALID VOTING SENSOR
+        # -------------------------------------------------
+        #
+        # A quality classification should not be forced when
+        # one of the five voting sensor responses is missing.
+        # -------------------------------------------------
+
+        if any(
+            vote is None
+            for vote in votes
+        ):
+
+            sensor_score = 0.0
+
+            sensor_status = (
+                "REVIEW"
+            )
+
+        else:
+
+            # ---------------------------------------------
+            # BAD VOTE COUNT
+            # ---------------------------------------------
+
+            bad_count = sum(
+                1
+                for vote in votes
+                if vote
+            )
+
+
+            # ---------------------------------------------
+            # SENSOR SCORE
+            #
+            # 0 BAD -> 100
+            # 1 BAD -> 80
+            # 2 BAD -> 60
+            # 3 BAD -> 40
+            # 4 BAD -> 20
+            # 5 BAD -> 0
+            # ---------------------------------------------
+
+            sensor_score = (
+                100.0
+                -
+                (
+                    bad_count
+                    *
+                    self.SENSOR_VOTE_WEIGHT
+                )
+            )
 
             sensor_score = round(
-                sum(
-                    available_scores
-                )
-                /
-                len(
-                    available_scores
+                self._clamp(
+                    sensor_score
                 ),
                 2,
             )
 
-        else:
 
-            sensor_score = 0.0
+            # ---------------------------------------------
+            # SENSOR STATUS
+            # ---------------------------------------------
 
+            if (
+                bad_count
+                >=
+                self.BAD_MIN_BAD_VOTES
+            ):
+                sensor_status = "BAD"
+
+            elif (
+                bad_count
+                ==
+                self.REVIEW_BAD_VOTES
+            ):
+                sensor_status = "REVIEW"
+
+            else:
+                sensor_status = "GOOD"
 
         # -------------------------------------------------
-        # SENSOR STATUS
+        # EXISTING PER-SENSOR SCORE FIELDS
+        # -------------------------------------------------
+        #
+        # The current schema contains mq2_score and
+        # mq135_score. They are retained for compatibility.
+        # In the new voting method:
+        #
+        #   100 = no BAD vote from that sensor
+        #   0   = BAD vote from that sensor
+        #
+        # They are NOT used to calculate the final sensor
+        # score; the five equal votes above are used.
         # -------------------------------------------------
 
-        # If one primary sensor is missing,
-        # result requires review.
+        mq2_score = (
+            0.0
+            if mq2_bad is True
+            else
+            100.0
+            if mq2_bad is False
+            else
+            0.0
+        )
 
-        if (
-            mq2_response is None
-            or
-            mq135_response is None
-        ):
-
-            sensor_status = (
-                "REVIEW"
-            )
-
-
-        # Both below bad threshold
-        # = GOOD
-
-        elif (
-            mq2_response
-            <
-            self.MQ2_BAD_THRESHOLD
-            and
-            mq135_response
-            <
-            self.MQ135_BAD_THRESHOLD
-        ):
-
-            sensor_status = (
-                "GOOD"
-            )
-
-
-        # Both above bad threshold
-        # = BAD
-
-        elif (
-            mq2_response
-            >=
-            self.MQ2_BAD_THRESHOLD
-            and
-            mq135_response
-            >=
-            self.MQ135_BAD_THRESHOLD
-        ):
-
-            sensor_status = (
-                "BAD"
-            )
-
-
-        # Only one threshold exceeded
-
-        else:
-
-            sensor_status = (
-                "REVIEW"
-            )
+        mq135_score = (
+            0.0
+            if mq135_bad is True
+            else
+            100.0
+            if mq135_bad is False
+            else
+            0.0
+        )
 
 
         return SensorScoreBreakdown(
@@ -678,16 +658,10 @@ class QualityReportService:
 
             mq2_score=(
                 mq2_score
-                if mq2_score
-                is not None
-                else 0.0
             ),
 
             mq135_score=(
                 mq135_score
-                if mq135_score
-                is not None
-                else 0.0
             ),
 
             sensor_score=(
@@ -1312,44 +1286,6 @@ class QualityReportService:
         physical_status: str,
     ) -> str:
 
-        # -------------------------------------------------
-        # INCOMPLETE ANALYSIS
-        # -------------------------------------------------
-
-        if (
-            sensor_status == "SKIPPED"
-            or
-            physical_status == "NO_DATA"
-        ):
-            return "Needs Review"
-
-
-        # -------------------------------------------------
-        # QUALITY CONTROL SAFEGUARD
-        #
-        # Even if the 50/50 numerical score is high,
-        # a clearly BAD sensor result or POOR physical
-        # result must not be automatically accepted.
-        # -------------------------------------------------
-
-        if (
-            sensor_status == "BAD"
-            or
-            physical_status == "POOR"
-        ):
-            return "Needs Review"
-
-
-        # -------------------------------------------------
-        # UNCERTAIN COMPONENT
-        # -------------------------------------------------
-
-        if (
-            sensor_status == "REVIEW"
-            or
-            physical_status == "REVIEW"
-        ):
-            return "Needs Review"
 
 
         # -------------------------------------------------
@@ -1411,83 +1347,171 @@ class QualityReportService:
                 )
             )
 
-
             return findings
+
+
+        # -------------------------------------------------
+        # RE-CREATE THE FIVE VOTES FOR EXPLAINABILITY
+        # -------------------------------------------------
+
+        mq2_bad = (
+            self._is_bad_sensor_response(
+                "mq2",
+                sensor_assessment.mq2_response,
+            )
+        )
+
+        mq3_bad = (
+            self._is_bad_sensor_response(
+                "mq3",
+                sensor_assessment.mq3_response,
+            )
+        )
+
+        mq135_bad = (
+            self._is_bad_sensor_response(
+                "mq135",
+                sensor_assessment.mq135_response,
+            )
+        )
+
+        moisture_bad = (
+            self._is_bad_sensor_response(
+                "moisture",
+                sensor_assessment.moisture_response,
+            )
+        )
+
+        humidity_bad = (
+            self._is_bad_sensor_response(
+                "humidity",
+                sensor_assessment.humidity_response,
+            )
+        )
+
+
+        votes = [
+            mq2_bad,
+            mq3_bad,
+            mq135_bad,
+            moisture_bad,
+            humidity_bad,
+        ]
+
+        available_vote_count = sum(
+            1
+            for vote in votes
+            if vote is not None
+        )
+
+        bad_count = sum(
+            1
+            for vote in votes
+            if vote is True
+        )
 
 
         # -------------------------------------------------
         # MQ-2
         # -------------------------------------------------
 
-        if (
-            sensor_assessment.mq2_response
-            is None
-        ):
+        if mq2_bad is None:
 
             findings.append(
                 QualityFinding(
                     category="sensor",
-
-                    title=(
-                        "MQ-2 Response Unavailable"
-                    ),
-
+                    title="MQ-2 Response Unavailable",
                     description=(
-                        "A valid MQ-2 response "
-                        "could not be calculated."
+                        "A valid MQ-2 response could not "
+                        "be calculated for the five-sensor vote."
                     ),
-
                     status="warning",
                 )
             )
 
-
-        elif (
-            sensor_assessment.mq2_response
-            >=
-            self.MQ2_BAD_THRESHOLD
-        ):
+        elif mq2_bad:
 
             findings.append(
                 QualityFinding(
                     category="sensor",
-
-                    title=(
-                        "High MQ-2 Response"
-                    ),
-
+                    title="MQ-2 BAD Vote",
                     description=(
                         f"MQ-2 response was "
                         f"{sensor_assessment.mq2_response:.2f}, "
-                        f"which exceeded the "
-                        f"experimental decision "
-                        f"threshold of "
+                        f"meeting or exceeding the "
+                        f"experimental BAD threshold of "
                         f"{self.MQ2_BAD_THRESHOLD:.1f}."
                     ),
-
                     status="danger",
                 )
             )
-
 
         else:
 
             findings.append(
                 QualityFinding(
                     category="sensor",
-
-                    title=(
-                        "MQ-2 Response Acceptable"
-                    ),
-
+                    title="MQ-2 GOOD Vote",
                     description=(
                         f"MQ-2 response was "
-                        f"{sensor_assessment.mq2_response:.2f} "
-                        f"and remained below the "
-                        f"experimental bad-bean "
-                        f"threshold."
+                        f"{sensor_assessment.mq2_response:.2f}, "
+                        f"below the experimental BAD "
+                        f"threshold of "
+                        f"{self.MQ2_BAD_THRESHOLD:.1f}."
                     ),
+                    status="normal",
+                )
+            )
 
+
+        # -------------------------------------------------
+        # MQ-3
+        # -------------------------------------------------
+
+        if mq3_bad is None:
+
+            findings.append(
+                QualityFinding(
+                    category="sensor",
+                    title="MQ-3 Response Unavailable",
+                    description=(
+                        "A valid MQ-3 response could not "
+                        "be calculated for the five-sensor vote."
+                    ),
+                    status="warning",
+                )
+            )
+
+        elif mq3_bad:
+
+            findings.append(
+                QualityFinding(
+                    category="sensor",
+                    title="MQ-3 BAD Vote",
+                    description=(
+                        f"MQ-3 response was "
+                        f"{sensor_assessment.mq3_response:.2f}, "
+                        f"meeting or exceeding the "
+                        f"experimental BAD threshold of "
+                        f"{self.MQ3_BAD_THRESHOLD:.1f}."
+                    ),
+                    status="danger",
+                )
+            )
+
+        else:
+
+            findings.append(
+                QualityFinding(
+                    category="sensor",
+                    title="MQ-3 GOOD Vote",
+                    description=(
+                        f"MQ-3 response was "
+                        f"{sensor_assessment.mq3_response:.2f}, "
+                        f"below the experimental BAD "
+                        f"threshold of "
+                        f"{self.MQ3_BAD_THRESHOLD:.1f}."
+                    ),
                     status="normal",
                 )
             )
@@ -1497,145 +1521,183 @@ class QualityReportService:
         # MQ-135
         # -------------------------------------------------
 
-        if (
-            sensor_assessment.mq135_response
-            is None
-        ):
+        if mq135_bad is None:
 
             findings.append(
                 QualityFinding(
                     category="sensor",
-
-                    title=(
-                        "MQ-135 Response Unavailable"
-                    ),
-
+                    title="MQ-135 Response Unavailable",
                     description=(
-                        "A valid MQ-135 response "
-                        "could not be calculated."
+                        "A valid MQ-135 response could not "
+                        "be calculated for the five-sensor vote."
                     ),
-
                     status="warning",
                 )
             )
 
-
-        elif (
-            sensor_assessment.mq135_response
-            >=
-            self.MQ135_BAD_THRESHOLD
-        ):
+        elif mq135_bad:
 
             findings.append(
                 QualityFinding(
                     category="sensor",
-
-                    title=(
-                        "High MQ-135 Response"
-                    ),
-
+                    title="MQ-135 BAD Vote",
                     description=(
                         f"MQ-135 response was "
                         f"{sensor_assessment.mq135_response:.2f}, "
-                        f"which exceeded the "
-                        f"experimental decision "
-                        f"threshold of "
+                        f"meeting or exceeding the "
+                        f"experimental BAD threshold of "
                         f"{self.MQ135_BAD_THRESHOLD:.1f}."
                     ),
-
                     status="danger",
                 )
             )
-
 
         else:
 
             findings.append(
                 QualityFinding(
                     category="sensor",
-
-                    title=(
-                        "MQ-135 Response Acceptable"
-                    ),
-
+                    title="MQ-135 GOOD Vote",
                     description=(
                         f"MQ-135 response was "
-                        f"{sensor_assessment.mq135_response:.2f} "
-                        f"and remained below the "
-                        f"experimental bad-bean "
-                        f"threshold."
+                        f"{sensor_assessment.mq135_response:.2f}, "
+                        f"below the experimental BAD "
+                        f"threshold of "
+                        f"{self.MQ135_BAD_THRESHOLD:.1f}."
                     ),
-
                     status="normal",
                 )
             )
 
 
         # -------------------------------------------------
-        # MQ-3 SUPPORTING INDICATOR
+        # MOISTURE
         # -------------------------------------------------
 
-        if (
-            sensor_assessment.mq3_response
-            is not None
-            and
-            sensor_assessment.mq3_response
-            >
-            self.MQ3_GOOD_MAX
-        ):
+        if moisture_bad is None:
 
             findings.append(
                 QualityFinding(
                     category="sensor",
-
-                    title=(
-                        "Elevated MQ-3 Response"
-                    ),
-
+                    title="Moisture Response Unavailable",
                     description=(
-                        f"MQ-3 response was "
-                        f"{sensor_assessment.mq3_response:.2f}. "
-                        f"This is treated as a "
-                        f"supporting indicator "
-                        f"and does not independently "
-                        f"determine bean quality."
+                        "A valid moisture response could not "
+                        "be calculated for the five-sensor vote."
                     ),
-
                     status="warning",
+                )
+            )
+
+        elif moisture_bad:
+
+            findings.append(
+                QualityFinding(
+                    category="sensor",
+                    title="Moisture BAD Vote",
+                    description=(
+                        f"Moisture response was "
+                        f"{sensor_assessment.moisture_response:.2f}, "
+                        f"meeting the experimental BAD "
+                        f"condition of <= "
+                        f"{self.MOISTURE_BAD_THRESHOLD:.1f}."
+                    ),
+                    status="danger",
+                )
+            )
+
+        else:
+
+            findings.append(
+                QualityFinding(
+                    category="sensor",
+                    title="Moisture GOOD Vote",
+                    description=(
+                        f"Moisture response was "
+                        f"{sensor_assessment.moisture_response:.2f}, "
+                        f"above the experimental BAD "
+                        f"boundary of "
+                        f"{self.MOISTURE_BAD_THRESHOLD:.1f}."
+                    ),
+                    status="normal",
                 )
             )
 
 
         # -------------------------------------------------
-        # HUMIDITY SUPPORTING INDICATOR
+        # HUMIDITY
+        # -------------------------------------------------
+
+        if humidity_bad is None:
+
+            findings.append(
+                QualityFinding(
+                    category="sensor",
+                    title="Humidity Response Unavailable",
+                    description=(
+                        "A valid humidity response could not "
+                        "be calculated for the five-sensor vote."
+                    ),
+                    status="warning",
+                )
+            )
+
+        elif humidity_bad:
+
+            findings.append(
+                QualityFinding(
+                    category="sensor",
+                    title="Humidity BAD Vote",
+                    description=(
+                        f"Humidity response was "
+                        f"{sensor_assessment.humidity_response:.2f}%, "
+                        f"meeting or exceeding the "
+                        f"experimental BAD threshold of "
+                        f"{self.HUMIDITY_BAD_THRESHOLD:.1f}%."
+                    ),
+                    status="danger",
+                )
+            )
+
+        else:
+
+            findings.append(
+                QualityFinding(
+                    category="sensor",
+                    title="Humidity GOOD Vote",
+                    description=(
+                        f"Humidity response was "
+                        f"{sensor_assessment.humidity_response:.2f}%, "
+                        f"below the experimental BAD "
+                        f"threshold of "
+                        f"{self.HUMIDITY_BAD_THRESHOLD:.1f}%."
+                    ),
+                    status="normal",
+                )
+            )
+
+
+        # -------------------------------------------------
+        # TEMPERATURE - SUPPORTING ONLY
         # -------------------------------------------------
 
         if (
-            sensor_assessment.humidity_response
+            sensor_assessment.temperature_response
             is not None
-            and
-            sensor_assessment.humidity_response
-            >
-            self.HUMIDITY_GOOD_MAX
         ):
 
             findings.append(
                 QualityFinding(
                     category="sensor",
-
-                    title=(
-                        "Elevated Humidity Response"
-                    ),
-
+                    title="Temperature Supporting Reading",
                     description=(
-                        f"Humidity increased by "
-                        f"{sensor_assessment.humidity_response:.2f}%. "
-                        f"This measurement is "
-                        f"used as supporting "
-                        f"quality information."
+                        f"Temperature response was "
+                        f"{sensor_assessment.temperature_response:.2f} °C. "
+                        f"Temperature is recorded as supporting "
+                        f"environmental information and does not "
+                        f"contribute a GOOD or BAD vote because "
+                        f"the experimental GOOD and BAD ranges overlapped."
                     ),
-
-                    status="warning",
+                    status="info",
                 )
             )
 
@@ -1643,6 +1705,31 @@ class QualityReportService:
         # -------------------------------------------------
         # OVERALL SENSOR FINDING
         # -------------------------------------------------
+
+        if available_vote_count < self.TOTAL_VOTING_SENSORS:
+
+            findings.append(
+                QualityFinding(
+                    category="sensor",
+
+                    title=(
+                        "Sensor Result Requires Review"
+                    ),
+
+                    description=(
+                        f"Only {available_vote_count} of "
+                        f"{self.TOTAL_VOTING_SENSORS} voting sensor "
+                        f"responses were available. A complete "
+                        f"five-sensor quality decision could not "
+                        f"be produced."
+                    ),
+
+                    status="warning",
+                )
+            )
+
+            return findings
+
 
         if (
             sensor_assessment.status
@@ -1659,13 +1746,12 @@ class QualityReportService:
                     ),
 
                     description=(
-                        f"The combined sensor "
+                        f"{bad_count} of "
+                        f"{self.TOTAL_VOTING_SENSORS} sensors "
+                        f"produced BAD votes. The sensor "
                         f"quality score is "
-                        f"{sensor_assessment.sensor_score:.2f}/100. "
-                        f"The primary gas sensor "
-                        f"responses are consistent "
-                        f"with the experimental "
-                        f"good-bean profile."
+                        f"{sensor_assessment.sensor_score:.2f}/100, "
+                        f"so the sample is classified as GOOD."
                     ),
 
                     status="normal",
@@ -1688,12 +1774,12 @@ class QualityReportService:
                     ),
 
                     description=(
-                        f"The combined sensor "
+                        f"{bad_count} of "
+                        f"{self.TOTAL_VOTING_SENSORS} sensors "
+                        f"produced BAD votes. The sensor "
                         f"quality score is "
-                        f"{sensor_assessment.sensor_score:.2f}/100. "
-                        f"Both primary sensor "
-                        f"responses exceeded their "
-                        f"experimental thresholds."
+                        f"{sensor_assessment.sensor_score:.2f}/100, "
+                        f"so the sample is classified as BAD."
                     ),
 
                     status="danger",
@@ -1712,12 +1798,12 @@ class QualityReportService:
                     ),
 
                     description=(
-                        f"The sensor quality score "
-                        f"is "
-                        f"{sensor_assessment.sensor_score:.2f}/100. "
-                        f"The sensor responses did "
-                        f"not produce a clear "
-                        f"good or bad decision."
+                        f"{bad_count} of "
+                        f"{self.TOTAL_VOTING_SENSORS} sensors "
+                        f"produced BAD votes. Two BAD votes "
+                        f"produce a REVIEW result. The sensor "
+                        f"quality score is "
+                        f"{sensor_assessment.sensor_score:.2f}/100."
                     ),
 
                     status="warning",
@@ -2011,9 +2097,9 @@ class QualityReportService:
                     ),
 
                     description=(
-                        "Both primary gas sensor "
-                        "responses exceeded the "
-                        "experimental bad-bean "
+                        "Three or more of the five "
+                        "voting sensors produced BAD "
+                        "votes using the experimental "
                         "decision thresholds."
                     ),
 
@@ -2048,9 +2134,10 @@ class QualityReportService:
                     ),
 
                     description=(
-                        "The primary sensor "
-                        "responses produced an "
-                        "uncertain quality result."
+                        "Exactly two of the five "
+                        "voting sensors produced BAD "
+                        "votes, so the sensor result "
+                        "requires review."
                     ),
 
                     action=(
@@ -2518,6 +2605,112 @@ class QualityReportService:
         }
 
 
+        # -------------------------------------------------
+        # DEFECT-DRIVEN PROCESSING INTELLIGENCE INPUT
+        # -------------------------------------------------
+        #
+        # Reuse the same research-defined sensor thresholds
+        # already used by the five-vote sensor assessment.
+        #
+        # Temperature remains supporting information only
+        # because the experimental GOOD and BAD ranges overlap.
+        # No unvalidated temperature threshold is added here.
+        #
+        # -------------------------------------------------
+
+        sensor_defects = {
+
+            "mq2_abnormal": (
+                self._is_bad_sensor_response(
+                    "mq2",
+                    sensor_assessment.mq2_response,
+                )
+                is True
+            ),
+
+            "mq3_abnormal": (
+                self._is_bad_sensor_response(
+                    "mq3",
+                    sensor_assessment.mq3_response,
+                )
+                is True
+            ),
+
+            "mq135_abnormal": (
+                self._is_bad_sensor_response(
+                    "mq135",
+                    sensor_assessment.mq135_response,
+                )
+                is True
+            ),
+
+            "moisture_defect": (
+                self._is_bad_sensor_response(
+                    "moisture",
+                    sensor_assessment.moisture_response,
+                )
+                is True
+            ),
+
+            "temperature_abnormal": False,
+
+            "humidity_abnormal": (
+                self._is_bad_sensor_response(
+                    "humidity",
+                    sensor_assessment.humidity_response,
+                )
+                is True
+            ),
+        }
+
+
+        # -------------------------------------------------
+        # NORMALIZED DEFECT PROFILE
+        # -------------------------------------------------
+        #
+        # Modules 1, 2, 3, 4, 6 and 7:
+        #
+        #   broken = broken + black_and_broken
+        #   black  = black + black_and_broken
+        #
+        # Module 5 - Usable Yield:
+        #
+        #   good
+        #   broken
+        #   black
+        #   black_and_broken
+        #
+        # remain separate.
+        #
+        # -------------------------------------------------
+
+        defect_profile = build_defect_profile(
+            sensor_defects=sensor_defects,
+            counts=processing_counts,
+        )
+
+
+        # Temporary development log.
+        # This lets us confirm the new normalized input before
+        # replacing the old processing-intelligence service.
+
+        print(
+            "PROCESSING INTELLIGENCE DEFECT PROFILE:",
+            defect_profile.model_dump(),
+        )
+
+
+        # -------------------------------------------------
+        # EXISTING PROCESSING INTELLIGENCE
+        # -------------------------------------------------
+        #
+        # Keep the old service call unchanged for this step.
+        # The next migration step will update service.py to
+        # consume defect_profile and generate the seven new
+        # defect-driven modules.
+        #
+        # -------------------------------------------------
+
         processing_intelligence = (
             processing_intelligence_service.generate(
 
@@ -2556,6 +2749,10 @@ class QualityReportService:
                     .physical_result
                     .weight_calibrated
                 ),
+
+                defect_profile=(
+                     defect_profile
+                 ),
             )
         )
 
@@ -2635,12 +2832,24 @@ class QualityReportService:
                 "uses an equal 50/50 fusion of the "
                 "sensor-based quality score and the "
                 "physical AI quality score. The sensor "
-                "decision thresholds were derived from "
-                "the experimental good and defective "
-                "coffee bean samples collected for this "
-                "research. The physical AI score uses "
-                "weighted defect severity, where black "
-                "and black-and-broken beans receive the "
+                "assessment uses five equal-weight "
+                "experimental votes from MQ-2, MQ-3, "
+                "MQ-135, moisture, and humidity. Each "
+                "BAD vote reduces the sensor score by "
+                "20 points. Zero or one BAD vote is "
+                "classified as GOOD, two BAD votes as "
+                "REVIEW, and three or more BAD votes "
+                "as BAD. Temperature is retained only "
+                "as supporting environmental data "
+                "because the observed GOOD and BAD "
+                "temperature ranges overlapped. The "
+                "sensor decision thresholds were "
+                "derived from the experimental good "
+                "and defective coffee bean samples "
+                "collected for this research. The "
+                "physical AI score uses weighted defect "
+                "severity, where black and "
+                "black-and-broken beans receive the "
                 "highest penalty, broken beans receive "
                 "a lower penalty, and uncertain "
                 "classifications receive a moderate "

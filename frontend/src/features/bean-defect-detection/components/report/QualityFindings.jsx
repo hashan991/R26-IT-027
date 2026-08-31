@@ -1,3 +1,12 @@
+import {
+  SENSOR_THRESHOLDS,
+  TOTAL_VOTING_SENSORS,
+  SENSOR_VOTE_WEIGHT,
+  GOOD_MAX_BAD_VOTES,
+  REVIEW_BAD_VOTES,
+  BAD_MIN_BAD_VOTES,
+} from "/src/features/bean-defect-detection/config/sensorQualityConfig";
+
 function QualityFindings({
   finalScore = 0,
   grade = "-",
@@ -91,53 +100,234 @@ function QualityFindings({
     physicalScore * Number(physicalWeight || 0);
 
   // =========================================================
-  // SENSOR VALUES
+  // FIVE-SENSOR VOTING VALUES
+  // =========================================================
+  //
+  // Response = Sample - Baseline
+  //
+  // BAD vote thresholds:
+  //
+  // MQ-2      >= 129.5
+  // MQ-3      >= 38.5
+  // MQ-135    >= 9.5
+  // Moisture  <= -16.0
+  // Humidity  >= 10.7
+  //
+  // Temperature is supporting information only.
   // =========================================================
 
   const mq2Response = sensorAssessment.mq2_response;
 
+  const mq3Response = sensorAssessment.mq3_response;
+
   const mq135Response = sensorAssessment.mq135_response;
 
-  const mq2Threshold = sensorAssessment.mq2_threshold;
+  const moistureResponse = sensorAssessment.moisture_response;
 
-  const mq135Threshold = sensorAssessment.mq135_threshold;
+  const humidityResponse = sensorAssessment.humidity_response;
+
+  const temperatureResponse = sensorAssessment.temperature_response;
+
+  const mq2Threshold = Number(
+    sensorAssessment.mq2_threshold ?? SENSOR_THRESHOLDS.mq2.badThreshold,
+  );
+
+  const mq3Threshold = Number(
+    sensorAssessment.mq3_threshold ?? SENSOR_THRESHOLDS.mq3.badThreshold,
+  );
+
+  const mq135Threshold = Number(
+    sensorAssessment.mq135_threshold ?? SENSOR_THRESHOLDS.mq135.badThreshold,
+  );
+
+  const moistureThreshold = Number(
+    sensorAssessment.moisture_threshold ??
+      SENSOR_THRESHOLDS.moisture.badThreshold,
+  );
+
+  const humidityThreshold = Number(
+    sensorAssessment.humidity_threshold ??
+      SENSOR_THRESHOLDS.humidity.badThreshold,
+  );
 
   // =========================================================
-  // SENSOR INDIVIDUAL STATE
+  // SENSOR INDIVIDUAL VOTE STATE
   // =========================================================
 
-  const getThresholdState = (response, threshold) => {
+  const getSensorVoteState = ({
+    response,
+    threshold,
+    direction = "high",
+    backendBad,
+  }) => {
     if (
       response === null ||
       response === undefined ||
+      response === "" ||
       threshold === null ||
       threshold === undefined
     ) {
       return {
+        bad: null,
         label: "NO DATA",
         className: "neutral",
         symbol: "?",
+        ruleSymbol: direction === "low" ? "≤" : "≥",
       };
     }
 
-    if (Number(response) >= Number(threshold)) {
+    const responseNumber = Number(response);
+
+    const thresholdNumber = Number(threshold);
+
+    if (!Number.isFinite(responseNumber) || !Number.isFinite(thresholdNumber)) {
       return {
-        label: "THRESHOLD EXCEEDED",
+        bad: null,
+        label: "NO DATA",
+        className: "neutral",
+        symbol: "?",
+        ruleSymbol: direction === "low" ? "≤" : "≥",
+      };
+    }
+
+    const calculatedBad =
+      direction === "low"
+        ? responseNumber <= thresholdNumber
+        : responseNumber >= thresholdNumber;
+
+    const bad = typeof backendBad === "boolean" ? backendBad : calculatedBad;
+
+    if (bad) {
+      return {
+        bad: true,
+        label: "BAD VOTE",
         className: "danger",
-        symbol: "≥",
+        symbol: direction === "low" ? "≤" : "≥",
+        ruleSymbol: direction === "low" ? "≤" : "≥",
       };
     }
 
     return {
-      label: "BELOW THRESHOLD",
+      bad: false,
+      label: "GOOD VOTE",
       className: "good",
-      symbol: "<",
+      symbol: direction === "low" ? ">" : "<",
+      ruleSymbol: direction === "low" ? "≤" : "≥",
     };
   };
 
-  const mq2State = getThresholdState(mq2Response, mq2Threshold);
+  const mq2State = getSensorVoteState({
+    response: mq2Response,
+    threshold: mq2Threshold,
+    direction: "high",
+    backendBad: sensorAssessment.mq2_bad,
+  });
 
-  const mq135State = getThresholdState(mq135Response, mq135Threshold);
+  const mq3State = getSensorVoteState({
+    response: mq3Response,
+    threshold: mq3Threshold,
+    direction: "high",
+    backendBad: sensorAssessment.mq3_bad,
+  });
+
+  const mq135State = getSensorVoteState({
+    response: mq135Response,
+    threshold: mq135Threshold,
+    direction: "high",
+    backendBad: sensorAssessment.mq135_bad,
+  });
+
+  const moistureState = getSensorVoteState({
+    response: moistureResponse,
+    threshold: moistureThreshold,
+    direction: "low",
+    backendBad: sensorAssessment.moisture_bad,
+  });
+
+  const humidityState = getSensorVoteState({
+    response: humidityResponse,
+    threshold: humidityThreshold,
+    direction: "high",
+    backendBad: sensorAssessment.humidity_bad,
+  });
+
+  const votingSensors = [
+    {
+      name: "MQ-2",
+      type: "VOTING SENSOR",
+      response: mq2Response,
+      threshold: mq2Threshold,
+      state: mq2State,
+      direction: "high",
+    },
+
+    {
+      name: "MQ-3",
+      type: "VOTING SENSOR",
+      response: mq3Response,
+      threshold: mq3Threshold,
+      state: mq3State,
+      direction: "high",
+    },
+
+    {
+      name: "MQ-135",
+      type: "VOTING SENSOR",
+      response: mq135Response,
+      threshold: mq135Threshold,
+      state: mq135State,
+      direction: "high",
+    },
+
+    {
+      name: "Moisture",
+      type: "VOTING SENSOR",
+      response: moistureResponse,
+      threshold: moistureThreshold,
+      state: moistureState,
+      direction: "low",
+    },
+
+    {
+      name: "Humidity",
+      type: "VOTING SENSOR",
+      response: humidityResponse,
+      threshold: humidityThreshold,
+      state: humidityState,
+      direction: "high",
+    },
+  ];
+
+  const calculatedValidVoteCount = votingSensors.filter(
+    (sensor) => sensor.state.bad !== null,
+  ).length;
+
+  const calculatedBadCount = votingSensors.filter(
+    (sensor) => sensor.state.bad === true,
+  ).length;
+
+  const backendBadCount = Number(sensorAssessment.bad_count);
+
+  const backendValidVoteCount = Number(sensorAssessment.valid_vote_count);
+
+  const backendTotalVotingSensors = Number(
+    sensorAssessment.total_voting_sensors,
+  );
+
+  const badCount = Number.isFinite(backendBadCount)
+    ? backendBadCount
+    : calculatedBadCount;
+
+  const validVoteCount = Number.isFinite(backendValidVoteCount)
+    ? backendValidVoteCount
+    : calculatedValidVoteCount;
+
+  const totalVotingSensors =
+    Number.isFinite(backendTotalVotingSensors) && backendTotalVotingSensors > 0
+      ? backendTotalVotingSensors
+      : TOTAL_VOTING_SENSORS;
+
+  const goodVoteCount = Math.max(0, validVoteCount - badCount);
 
   // =========================================================
   // SENSOR DECISION EXPLANATION
@@ -151,42 +341,34 @@ function QualityFindings({
       );
     }
 
-    if (
-      mq2Response === null ||
-      mq2Response === undefined ||
-      mq135Response === null ||
-      mq135Response === undefined
-    ) {
+    if (validVoteCount < totalVotingSensors) {
       return (
-        "One or more primary sensor responses are unavailable. " +
-        "The sample therefore requires review."
+        `Only ${validVoteCount} of ${totalVotingSensors} voting sensor responses were valid. ` +
+        "A complete five-sensor decision could not be generated, so the sample requires REVIEW."
       );
     }
 
-    const mq2Exceeded = Number(mq2Response) >= Number(mq2Threshold);
-
-    const mq135Exceeded = Number(mq135Response) >= Number(mq135Threshold);
-
-    if (!mq2Exceeded && !mq135Exceeded) {
+    if (badCount >= BAD_MIN_BAD_VOTES) {
       return (
-        "Both primary gas sensor responses remained below " +
-        "their experimental decision thresholds. " +
-        "Therefore, the sensor assessment returned GOOD."
+        `${badCount} of ${totalVotingSensors} sensors produced BAD votes. ` +
+        "Because three or more BAD votes form the BAD decision zone, " +
+        "the sensor assessment returned BAD."
       );
     }
 
-    if (mq2Exceeded && mq135Exceeded) {
+    if (badCount === REVIEW_BAD_VOTES) {
       return (
-        "Both primary gas sensor responses reached or exceeded " +
-        "their experimental decision thresholds. " +
-        "Therefore, the sensor assessment returned BAD."
+        `Exactly ${badCount} of ${totalVotingSensors} sensors produced BAD votes. ` +
+        "According to the research-defined voting rule, two BAD votes indicate mixed evidence, " +
+        "so the sensor assessment returned REVIEW."
       );
     }
 
     return (
-      "Only one primary gas sensor response exceeded its " +
-      "experimental decision threshold while the other remained below it. " +
-      "Because the evidence is mixed, the sensor assessment returned REVIEW."
+      `${badCount} of ${totalVotingSensors} sensors produced BAD votes and ` +
+      `${goodVoteCount} produced GOOD votes. ` +
+      "Because zero or one BAD vote is within the GOOD decision zone, " +
+      "the sensor assessment returned GOOD."
     );
   };
 
@@ -643,91 +825,77 @@ function QualityFindings({
           </div>
         </div>
 
-        {/* PRIMARY SENSOR EVIDENCE */}
+        {/* FIVE-SENSOR VOTING EVIDENCE */}
 
         <div className="primary-sensor-evidence">
-          {/* MQ2 */}
+          {votingSensors.map((sensor) => (
+            <div
+              className={`
+                sensor-evidence-card
+                sensor-evidence-${sensor.state.className}
+              `}
+              key={sensor.name}
+            >
+              <div className="sensor-evidence-header">
+                <div>
+                  <span>{sensor.type}</span>
 
-          <div
-            className={`
-              sensor-evidence-card
-              sensor-evidence-${mq2State.className}
-            `}
-          >
-            <div className="sensor-evidence-header">
-              <div>
-                <span>PRIMARY SENSOR</span>
+                  <h5>{sensor.name}</h5>
+                </div>
 
-                <h5>MQ-2</h5>
+                <span
+                  className={`
+                    threshold-badge
+                    threshold-${sensor.state.className}
+                  `}
+                >
+                  {sensor.state.label}
+                </span>
               </div>
 
-              <span
-                className={`
-                  threshold-badge
-                  threshold-${mq2State.className}
-                `}
-              >
-                {mq2State.label}
-              </span>
+              <div className="threshold-comparison">
+                <div>
+                  <span>Response Δ</span>
+
+                  <strong>{formatValue(sensor.response)}</strong>
+                </div>
+
+                <div className="comparison-symbol">{sensor.state.symbol}</div>
+
+                <div>
+                  <span>BAD Threshold</span>
+
+                  <strong>{formatValue(sensor.threshold)}</strong>
+                </div>
+              </div>
+
+              <div className="sensor-vote-rule">
+                <span>BAD vote rule</span>
+
+                <strong>
+                  Δ {sensor.state.ruleSymbol} {formatValue(sensor.threshold)}
+                </strong>
+              </div>
             </div>
+          ))}
+        </div>
 
-            <div className="threshold-comparison">
-              <div>
-                <span>Response</span>
+        {/* TEMPERATURE SUPPORTING INFORMATION */}
 
-                <strong>{formatValue(mq2Response)}</strong>
-              </div>
+        <div className="temperature-supporting-box">
+          <div>
+            <span>SUPPORTING ENVIRONMENTAL READING</span>
 
-              <div className="comparison-symbol">{mq2State.symbol}</div>
-
-              <div>
-                <span>Decision Threshold</span>
-
-                <strong>{formatValue(mq2Threshold)}</strong>
-              </div>
-            </div>
+            <strong>Temperature Δ</strong>
           </div>
 
-          {/* MQ135 */}
+          <div>
+            <strong>{formatValue(temperatureResponse)}</strong>
 
-          <div
-            className={`
-              sensor-evidence-card
-              sensor-evidence-${mq135State.className}
-            `}
-          >
-            <div className="sensor-evidence-header">
-              <div>
-                <span>PRIMARY SENSOR</span>
-
-                <h5>MQ-135</h5>
-              </div>
-
-              <span
-                className={`
-                  threshold-badge
-                  threshold-${mq135State.className}
-                `}
-              >
-                {mq135State.label}
-              </span>
-            </div>
-
-            <div className="threshold-comparison">
-              <div>
-                <span>Response</span>
-
-                <strong>{formatValue(mq135Response)}</strong>
-              </div>
-
-              <div className="comparison-symbol">{mq135State.symbol}</div>
-
-              <div>
-                <span>Decision Threshold</span>
-
-                <strong>{formatValue(mq135Threshold)}</strong>
-              </div>
-            </div>
+            <small>
+              Not used as a quality vote because the experimental GOOD and BAD
+              temperature ranges overlapped.
+            </small>
           </div>
         </div>
 
@@ -737,33 +905,64 @@ function QualityFindings({
           <div className="logic-heading">
             <span>DECISION LOGIC</span>
 
-            <strong>Primary Sensor Interpretation</strong>
+            <strong>Five-Sensor Voting Interpretation</strong>
+          </div>
+
+          <div className="sensor-vote-summary">
+            <div>
+              <span>VALID VOTES</span>
+
+              <strong>
+                {validVoteCount}/{totalVotingSensors}
+              </strong>
+            </div>
+
+            <div>
+              <span>GOOD VOTES</span>
+
+              <strong>{goodVoteCount}</strong>
+            </div>
+
+            <div>
+              <span>BAD VOTES</span>
+
+              <strong>{badCount}</strong>
+            </div>
+
+            <div>
+              <span>SENSOR SCORE</span>
+
+              <strong>{formatValue(sensorScore)}/100</strong>
+            </div>
           </div>
 
           <div className="logic-rules">
             <div>
               <span className="logic-dot good-dot" />
-
-              <p>Both below threshold</p>
-
+              0–{GOOD_MAX_BAD_VOTES} BAD votes
               <strong>GOOD</strong>
             </div>
 
             <div>
               <span className="logic-dot warning-dot" />
-
-              <p>Only one threshold exceeded</p>
-
+              Exactly {REVIEW_BAD_VOTES} BAD votes
               <strong>REVIEW</strong>
             </div>
 
             <div>
               <span className="logic-dot danger-dot" />
-
-              <p>Both thresholds exceeded</p>
-
+              {BAD_MIN_BAD_VOTES}–{TOTAL_VOTING_SENSORS} BAD votes
               <strong>BAD</strong>
             </div>
+          </div>
+
+          <div className="sensor-score-formula">
+            <span>SCORE FORMULA</span>
+
+            <strong>
+              {" "}
+              Sensor Score = 100 - (BAD Votes × {SENSOR_VOTE_WEIGHT})
+            </strong>
           </div>
         </div>
 
@@ -1025,2206 +1224,1198 @@ function QualityFindings({
       ===================================================== */}
 
       <style>{`
+        /*
+          QualityFindings / Explainable Quality Analysis
+          Light coffee-theme redesign.
+          IMPORTANT: All assessment logic, thresholds, scoring, voting,
+          grade calculation and finding generation remain unchanged.
+        */
 
         .quality-findings,
         .quality-findings * {
           box-sizing: border-box;
         }
 
-
         .quality-findings {
           width: 100%;
+          color: #342117;
         }
-
 
         /* =================================================
            MAIN HEADER
         ================================================= */
 
-        .xai-main-header {
+        .quality-findings .xai-main-header {
           display: flex;
-
           align-items: flex-start;
-
           justify-content: space-between;
-
           gap: 24px;
-
-          margin-bottom: 18px;
+          margin-bottom: 20px;
         }
 
-
-        .xai-main-label {
+        .quality-findings .xai-main-label {
           display: block;
-
-          margin-bottom: 6px;
-
-          color: #dca05e;
-
-          font-size: 9px;
-
-          font-weight: 950;
-
-          letter-spacing: 1.7px;
+          margin-bottom: 7px;
+          color: #9d6030;
+          font-size: 11px;
+          font-weight: 850;
+          letter-spacing: 1.35px;
+          text-transform: uppercase;
         }
 
-
-        .xai-main-header h3 {
+        .quality-findings .xai-main-header h3 {
           margin: 0;
-
-          color: #fff1dc;
-
-          font-size: 23px;
+          color: #2d1a12;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 28px;
+          line-height: 1.2;
         }
 
-
-        .xai-main-header p {
-          max-width: 680px;
-
-          margin:
-            7px 0 0;
-
-          color:
-            rgba(
-              255,
-              238,
-              212,
-              0.4
-            );
-
-          font-size: 10px;
-
-          line-height: 1.55;
+        .quality-findings .xai-main-header p {
+          max-width: 760px;
+          margin: 9px 0 0;
+          color: #786a61;
+          font-size: 13px;
+          line-height: 1.65;
         }
 
-
-        .xai-flow-badge {
+        .quality-findings .xai-flow-badge {
           display: flex;
-
           align-items: center;
-
-          gap: 10px;
-
-          flex-shrink: 0;
-
-          padding:
-            10px 13px;
-
-          border-radius: 14px;
-
-          background:
-            rgba(
-              217,
-              145,
-              72,
-              0.07
-            );
-
-          border:
-            1px solid
-            rgba(
-              229,
-              165,
-              98,
-              0.11
-            );
-        }
-
-
-        .xai-logo {
-          width: 38px;
-          height: 38px;
-
-          display: grid;
-
-          place-items: center;
-
-          border-radius: 10px;
-
-          color: #2b170b;
-
-          background:
-            linear-gradient(
-              135deg,
-              #ffe0a3,
-              #d08946
-            );
-
-          font-size: 8px;
-
-          font-weight: 950;
-        }
-
-
-        .xai-flow-badge strong {
-          display: block;
-
-          color: #f0d9bb;
-
-          font-size: 9px;
-        }
-
-
-        .xai-flow-badge span {
-          display: block;
-
-          margin-top: 3px;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.28
-            );
-
-          font-size: 7px;
-        }
-
-
-        /* =================================================
-           SECTION
-        ================================================= */
-
-        .explanation-section {
-          margin-top: 15px;
-
-          padding: 21px;
-
-          border-radius: 20px;
-
-          background:
-            linear-gradient(
-              145deg,
-              rgba(
-                255,
-                255,
-                255,
-                0.035
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.012
-              )
-            ),
-            rgba(
-              0,
-              0,
-              0,
-              0.09
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.075
-            );
-        }
-
-
-        .explanation-section-header {
-          display: flex;
-
-          align-items: center;
-
-          justify-content:
-            space-between;
-
-          gap: 15px;
-
-          padding-bottom: 15px;
-
-          border-bottom:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.04
-            );
-        }
-
-
-        .section-identity {
-          display: flex;
-
-          align-items: center;
-
           gap: 11px;
+          flex-shrink: 0;
+          padding: 11px 14px;
+          border: 1px solid #e4d5c3;
+          border-radius: 14px;
+          background: #fff9f2;
         }
 
-
-        .section-number {
+        .quality-findings .xai-logo {
           width: 42px;
           height: 42px;
-
           display: grid;
-
           place-items: center;
-
-          flex-shrink: 0;
-
-          border-radius: 12px;
-
-          color: #28160b;
-
-          background:
-            linear-gradient(
-              145deg,
-              #ffdda5,
-              #ce8242
-            );
-
-          font-size: 9px;
-
-          font-weight: 950;
-        }
-
-
-        .section-identity span {
-          display: block;
-
-          color: #dca05e;
-
-          font-size: 7px;
-
+          border-radius: 11px;
+          color: #fff8ef;
+          background: #4b2818;
+          font-size: 10px;
           font-weight: 900;
-
-          letter-spacing: 1.1px;
         }
 
-
-        .section-identity h4 {
-          margin:
-            4px 0 0;
-
-          color: #f4dfc1;
-
-          font-size: 14px;
+        .quality-findings .xai-flow-badge strong {
+          display: block;
+          color: #3c271c;
+          font-size: 12px;
         }
 
+        .quality-findings .xai-flow-badge span {
+          display: block;
+          margin-top: 3px;
+          color: #85746a;
+          font-size: 10px;
+        }
+
+        /* =================================================
+           EXPLANATION SECTIONS
+        ================================================= */
+
+        .quality-findings .explanation-section {
+          margin-top: 18px;
+          padding: 24px;
+          border: 1px solid #e4d7ca;
+          border-radius: 18px;
+          background: #fffdfa;
+          box-shadow: 0 8px 24px rgba(65, 38, 24, 0.045);
+        }
+
+        .quality-findings .explanation-section-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding-bottom: 17px;
+          border-bottom: 1px solid #eadfd5;
+        }
+
+        .quality-findings .section-identity {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .quality-findings .section-number {
+          width: 44px;
+          height: 44px;
+          display: grid;
+          place-items: center;
+          flex-shrink: 0;
+          border-radius: 12px;
+          color: #fff8ef;
+          background: #4b2818;
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        .quality-findings .section-identity span {
+          display: block;
+          color: #9e6030;
+          font-size: 10px;
+          font-weight: 850;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+        }
+
+        .quality-findings .section-identity h4 {
+          margin: 5px 0 0;
+          color: #332016;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 19px;
+          line-height: 1.3;
+        }
 
         /* =================================================
            RESULT PILLS
         ================================================= */
 
-        .result-pill {
+        .quality-findings .result-pill {
           display: inline-flex;
-
           align-items: center;
-
           gap: 7px;
-
-          padding:
-            7px 11px;
-
           flex-shrink: 0;
-
+          padding: 7px 11px;
+          border: 1px solid #ddd1c5;
           border-radius: 999px;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.6
-            );
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.035
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.065
-            );
-
-          font-size: 8px;
-
-          font-weight: 950;
-
-          text-transform:
-            uppercase;
+          color: #65574e;
+          background: #f8f4ef;
+          font-size: 10px;
+          font-weight: 850;
+          text-transform: uppercase;
         }
 
-
-        .result-pill > span {
-          width: 6px;
-          height: 6px;
-
+        .quality-findings .result-pill > span {
+          width: 7px;
+          height: 7px;
           border-radius: 50%;
-
-          background:
-            currentColor;
+          background: currentColor;
         }
 
-
-        .result-good,
-        .result-excellent {
-          color: #a6e6af;
-
-          background:
-            rgba(
-              59,
-              156,
-              75,
-              0.09
-            );
-
-          border-color:
-            rgba(
-              96,
-              198,
-              108,
-              0.15
-            );
+        .quality-findings .result-good,
+        .quality-findings .result-excellent {
+          color: #357348;
+          background: #edf7ef;
+          border-color: #c9e1cd;
         }
 
-
-        .result-review,
-        .result-needs-review {
-          color: #ffd18d;
-
-          background:
-            rgba(
-              202,
-              135,
-              47,
-              0.1
-            );
-
-          border-color:
-            rgba(
-              229,
-              162,
-              72,
-              0.16
-            );
+        .quality-findings .result-review,
+        .quality-findings .result-needs-review {
+          color: #895916;
+          background: #fff6e8;
+          border-color: #ead3a8;
         }
 
-
-        .result-bad,
-        .result-poor {
-          color: #ffab97;
-
-          background:
-            rgba(
-              181,
-              58,
-              43,
-              0.1
-            );
-
-          border-color:
-            rgba(
-              222,
-              85,
-              65,
-              0.16
-            );
+        .quality-findings .result-bad,
+        .quality-findings .result-poor {
+          color: #a74736;
+          background: #fdf0ed;
+          border-color: #e8c2ba;
         }
-
 
         /* =================================================
            FINAL DECISION FLOW
         ================================================= */
 
-        .final-decision-flow {
-          margin-top: 16px;
-
+        .quality-findings .final-decision-flow {
+          margin-top: 18px;
           display: grid;
-
           grid-template-columns:
-            minmax(130px, 1fr)
+            minmax(145px, 1fr)
             auto
-            minmax(130px, 1fr)
+            minmax(145px, 1fr)
             auto
-            minmax(130px, 1fr)
+            minmax(145px, 1fr)
             auto
-            minmax(110px, 0.7fr);
-
+            minmax(120px, 0.75fr);
           align-items: stretch;
-
-          gap: 8px;
+          gap: 9px;
         }
 
-
-        .flow-card,
-        .grade-result-card {
-          padding: 14px;
-
+        .quality-findings .flow-card,
+        .quality-findings .grade-result-card {
+          min-height: 112px;
+          padding: 16px;
+          border: 1px solid #e4d8cd;
           border-radius: 14px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.025
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.06
-            );
+          background: #fffaf5;
         }
 
-
-        .flow-card > span,
-        .grade-result-card > span {
+        .quality-findings .flow-card > span,
+        .quality-findings .grade-result-card > span {
           display: block;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.3
-            );
-
-          font-size: 7px;
-
-          font-weight: 900;
-
-          letter-spacing:
-            0.8px;
+          color: #837268;
+          font-size: 10px;
+          font-weight: 850;
+          letter-spacing: 0.75px;
+          text-transform: uppercase;
         }
 
-
-        .flow-card > strong {
+        .quality-findings .flow-card > strong {
           display: inline-block;
-
-          margin-top: 5px;
-
-          color: #ffe0aa;
-
-          font-size: 23px;
-        }
-
-
-        .flow-card > small {
-          margin-left: 3px;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.25
-            );
-
-          font-size: 7px;
-        }
-
-
-        .flow-card p {
-          margin:
-            5px 0 0;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.25
-            );
-
-          font-size: 7px;
-        }
-
-
-        .flow-card-highlight {
-          background:
-            rgba(
-              208,
-              133,
-              62,
-              0.07
-            );
-
-          border-color:
-            rgba(
-              223,
-              157,
-              89,
-              0.12
-            );
-        }
-
-
-        .grade-result-card {
-          display: flex;
-
-          flex-direction: column;
-
-          justify-content: center;
-
-          text-align: center;
-
-          background:
-            linear-gradient(
-              145deg,
-              rgba(
-                215,
-                140,
-                67,
-                0.11
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.015
-              )
-            );
-        }
-
-
-        .grade-result-card strong {
-          display: block;
-
-          margin-top: 5px;
-
-          color: #ffe0a6;
-
-          font-size: 31px;
-
+          margin-top: 7px;
+          color: #372117;
+          font-size: 28px;
+          font-weight: 900;
           line-height: 1;
         }
 
-
-        .flow-arrow,
-        .trace-arrow {
-          display: grid;
-
-          place-items: center;
-
-          color:
-            rgba(
-              230,
-              166,
-              99,
-              0.58
-            );
-
-          font-size: 16px;
-
-          font-weight: 900;
-        }
-
-
-        /* =================================================
-           CONTRIBUTION ROW
-        ================================================= */
-
-        .contribution-row {
-          margin-top: 9px;
-
-          display: grid;
-
-          grid-template-columns:
-            repeat(
-              3,
-              1fr
-            );
-
-          gap: 8px;
-        }
-
-
-        .contribution-row > div {
-          padding:
-            9px 11px;
-
-          border-radius: 10px;
-
-          background:
-            rgba(
-              0,
-              0,
-              0,
-              0.08
-            );
-        }
-
-
-        .contribution-row span {
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.27
-            );
-
-          font-size: 7px;
-        }
-
-
-        .contribution-row strong {
-          display: block;
-
-          margin-top: 3px;
-
-          color: #e8d2b4;
-
+        .quality-findings .flow-card > small {
+          margin-left: 3px;
+          color: #87756a;
           font-size: 10px;
         }
 
-
-        /* =================================================
-           REASON BOX
-        ================================================= */
-
-        .reason-box {
-          margin-top: 13px;
-
-          display: flex;
-
-          align-items: flex-start;
-
-          gap: 10px;
-
-          padding: 13px;
-
-          border-radius: 13px;
-
-          background:
-            linear-gradient(
-              135deg,
-              rgba(
-                213,
-                140,
-                67,
-                0.065
-              ),
-              rgba(
-                255,
-                255,
-                255,
-                0.015
-              )
-            );
-
-          border:
-            1px solid
-            rgba(
-              225,
-              158,
-              91,
-              0.09
-            );
-        }
-
-
-        .reason-icon {
-          width: 30px;
-          height: 30px;
-
-          flex-shrink: 0;
-
-          display: grid;
-
-          place-items: center;
-
-          border-radius: 9px;
-
-          color: #2a160b;
-
-          background:
-            linear-gradient(
-              135deg,
-              #ffe0a3,
-              #d08946
-            );
-
-          font-size: 13px;
-
-          font-weight: 950;
-        }
-
-
-        .reason-box span {
-          display: block;
-
-          color: #dca05e;
-
-          font-size: 6px;
-
-          font-weight: 900;
-
-          letter-spacing: 1px;
-        }
-
-
-        .reason-box strong {
-          display: block;
-
-          margin-top: 3px;
-
-          color: #f3dec0;
-
+        .quality-findings .flow-card p {
+          margin: 7px 0 0;
+          color: #78695f;
           font-size: 11px;
         }
 
-
-        .reason-box p {
-          margin:
-            5px 0 0;
-
-          color:
-            rgba(
-              255,
-              238,
-              212,
-              0.34
-            );
-
-          font-size: 8px;
-
-          line-height: 1.55;
+        .quality-findings .flow-card-highlight {
+          background: #fbf1e5;
+          border-color: #dfc6aa;
         }
 
-
-        /* =================================================
-           FINAL STATUS EXPLANATION
-        ================================================= */
-
-        .final-status-explanation {
-          margin-top: 11px;
-
-          padding: 13px;
-
-          border-radius: 13px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.022
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.055
-            );
-        }
-
-
-        .final-status-heading {
+        .quality-findings .grade-result-card {
           display: flex;
-
-          align-items: center;
-
-          justify-content:
-            space-between;
-
-          gap: 15px;
+          flex-direction: column;
+          justify-content: center;
+          text-align: center;
+          background: #f4e5d3;
+          border-color: #d8baa0;
         }
 
-
-        .final-status-heading
-        > div:first-child
-        > span {
+        .quality-findings .grade-result-card strong {
           display: block;
+          margin-top: 7px;
+          color: #482718;
+          font-size: 34px;
+          line-height: 1;
+        }
 
-          color: #dca05e;
-
-          font-size: 7px;
-
+        .quality-findings .flow-arrow,
+        .quality-findings .trace-arrow {
+          display: grid;
+          place-items: center;
+          color: #a36638;
+          font-size: 19px;
           font-weight: 900;
         }
 
+        /* =================================================
+           CONTRIBUTIONS
+        ================================================= */
 
-        .final-status-heading
-        > div:first-child
-        > strong {
-          display: block;
-
-          margin-top: 3px;
-
-          color: #f1dabb;
-
-          font-size: 14px;
+        .quality-findings .contribution-row {
+          margin-top: 10px;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 9px;
         }
 
+        .quality-findings .contribution-row > div {
+          padding: 11px 13px;
+          border: 1px solid #eadfd5;
+          border-radius: 11px;
+          background: #faf6f1;
+        }
 
-        .component-statuses {
+        .quality-findings .contribution-row span {
+          color: #7e6e64;
+          font-size: 10px;
+        }
+
+        .quality-findings .contribution-row strong {
+          display: block;
+          margin-top: 4px;
+          color: #38241a;
+          font-size: 13px;
+        }
+
+        /* =================================================
+           REASON / FINAL STATUS
+        ================================================= */
+
+        .quality-findings .reason-box {
+          margin-top: 14px;
           display: flex;
+          align-items: flex-start;
+          gap: 11px;
+          padding: 15px;
+          border: 1px solid #e7d6c4;
+          border-radius: 13px;
+          background: #fff8f0;
+        }
 
+        .quality-findings .reason-icon {
+          width: 32px;
+          height: 32px;
+          flex-shrink: 0;
+          display: grid;
+          place-items: center;
+          border-radius: 9px;
+          color: #fff8ef;
+          background: #4b2818;
+          font-size: 14px;
+          font-weight: 900;
+        }
+
+        .quality-findings .reason-box span {
+          display: block;
+          color: #9a5d2f;
+          font-size: 9px;
+          font-weight: 850;
+          letter-spacing: 0.9px;
+          text-transform: uppercase;
+        }
+
+        .quality-findings .reason-box strong {
+          display: block;
+          margin-top: 4px;
+          color: #3b261b;
+          font-size: 13px;
+        }
+
+        .quality-findings .reason-box p {
+          margin: 6px 0 0;
+          color: #75675e;
+          font-size: 12px;
+          line-height: 1.6;
+        }
+
+        .quality-findings .final-status-explanation {
+          margin-top: 12px;
+          padding: 15px;
+          border: 1px solid #e7ddd3;
+          border-radius: 13px;
+          background: #faf6f2;
+        }
+
+        .quality-findings .final-status-heading {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 15px;
+        }
+
+        .quality-findings
+          .final-status-heading
+          > div:first-child
+          > span {
+          display: block;
+          color: #9a5d2f;
+          font-size: 9px;
+          font-weight: 850;
+          letter-spacing: 0.8px;
+          text-transform: uppercase;
+        }
+
+        .quality-findings
+          .final-status-heading
+          > div:first-child
+          > strong {
+          display: block;
+          margin-top: 4px;
+          color: #3b261b;
+          font-size: 16px;
+        }
+
+        .quality-findings .component-statuses {
+          display: flex;
           flex-wrap: wrap;
-
           gap: 8px;
         }
 
-
-        .component-statuses > span {
-          padding:
-            5px 8px;
-
+        .quality-findings .component-statuses > span {
+          padding: 6px 9px;
+          border: 1px solid #e3d7cb;
           border-radius: 8px;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.36
-            );
-
-          background:
-            rgba(
-              0,
-              0,
-              0,
-              0.1
-            );
-
-          font-size: 7px;
+          color: #74655b;
+          background: #fffdfa;
+          font-size: 10px;
         }
 
-
-        .component-statuses strong {
-          color: #edd5b6;
+        .quality-findings .component-statuses strong {
+          color: #3d291f;
         }
 
-
-        .final-status-explanation p {
-          margin:
-            9px 0 0;
-
-          color:
-            rgba(
-              255,
-              238,
-              212,
-              0.34
-            );
-
-          font-size: 8px;
-
-          line-height: 1.55;
+        .quality-findings .final-status-explanation p {
+          margin: 10px 0 0;
+          color: #75675e;
+          font-size: 12px;
+          line-height: 1.6;
         }
-
 
         /* =================================================
            SENSOR EVIDENCE
         ================================================= */
 
-        .primary-sensor-evidence {
-          margin-top: 16px;
-
+        .quality-findings .primary-sensor-evidence {
+          margin-top: 17px;
           display: grid;
-
-          grid-template-columns:
-            repeat(
-              2,
-              minmax(
-                0,
-                1fr
-              )
-            );
-
-          gap: 10px;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 11px;
         }
 
-
-        .sensor-evidence-card {
-          padding: 15px;
-
+        .quality-findings .sensor-evidence-card {
+          padding: 16px;
+          border: 1px solid #e2d7cc;
           border-radius: 14px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.025
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.06
-            );
+          background: #fffaf6;
         }
 
-
-        .sensor-evidence-good {
-          background:
-            rgba(
-              54,
-              150,
-              70,
-              0.055
-            );
-
-          border-color:
-            rgba(
-              91,
-              194,
-              105,
-              0.13
-            );
+        .quality-findings .sensor-evidence-good {
+          background: #f0f8f1;
+          border-color: #c9e2cd;
         }
 
-
-        .sensor-evidence-danger {
-          background:
-            rgba(
-              178,
-              56,
-              42,
-              0.06
-            );
-
-          border-color:
-            rgba(
-              220,
-              83,
-              63,
-              0.14
-            );
+        .quality-findings .sensor-evidence-danger {
+          background: #fff1ed;
+          border-color: #e9c5bc;
         }
 
+        .quality-findings .sensor-evidence-neutral {
+          background: #f7f4f1;
+          border-color: #ddd3ca;
+        }
 
-        .sensor-evidence-header {
+        .quality-findings .sensor-evidence-header {
           display: flex;
-
           align-items: center;
-
-          justify-content:
-            space-between;
-
-          gap: 8px;
+          justify-content: space-between;
+          gap: 9px;
         }
 
-
-        .sensor-evidence-header
-        > div
-        > span {
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.27
-            );
-
-          font-size: 6px;
-
-          font-weight: 900;
+        .quality-findings .sensor-evidence-header > div > span {
+          color: #86766b;
+          font-size: 9px;
+          font-weight: 850;
+          text-transform: uppercase;
         }
 
-
-        .sensor-evidence-header h5 {
-          margin:
-            3px 0 0;
-
-          color: #efd8b9;
-
-          font-size: 13px;
+        .quality-findings .sensor-evidence-header h5 {
+          margin: 4px 0 0;
+          color: #38241a;
+          font-size: 15px;
         }
 
-
-        .threshold-badge {
-          padding:
-            5px 7px;
-
+        .quality-findings .threshold-badge {
+          padding: 6px 8px;
           border-radius: 999px;
-
-          font-size: 6px;
-
-          font-weight: 900;
+          font-size: 9px;
+          font-weight: 850;
         }
 
-
-        .threshold-good {
-          color: #a3e4ac;
-
-          background:
-            rgba(
-              61,
-              158,
-              76,
-              0.1
-            );
+        .quality-findings .threshold-good {
+          color: #347247;
+          background: #dcefe0;
         }
 
-
-        .threshold-danger {
-          color: #ffab97;
-
-          background:
-            rgba(
-              183,
-              57,
-              43,
-              0.12
-            );
+        .quality-findings .threshold-danger {
+          color: #a44636;
+          background: #f5d9d3;
         }
 
-
-        .threshold-neutral {
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.4
-            );
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.035
-            );
+        .quality-findings .threshold-neutral {
+          color: #74665c;
+          background: #e9e3dd;
         }
 
-
-        .threshold-comparison {
-          margin-top: 14px;
-
+        .quality-findings .threshold-comparison {
+          margin-top: 15px;
           display: grid;
-
-          grid-template-columns:
-            1fr auto 1fr;
-
+          grid-template-columns: 1fr auto 1fr;
           align-items: center;
-
           gap: 10px;
         }
 
-
-        .threshold-comparison
-        > div:not(
-          .comparison-symbol
-        ) {
-          padding: 10px;
-
-          border-radius: 10px;
-
-          background:
-            rgba(
-              0,
-              0,
-              0,
-              0.09
-            );
-        }
-
-
-        .threshold-comparison span {
-          display: block;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.27
-            );
-
-          font-size: 7px;
-        }
-
-
-        .threshold-comparison strong {
-          display: block;
-
-          margin-top: 4px;
-
-          color: #ffe0aa;
-
-          font-size: 18px;
-        }
-
-
-        .comparison-symbol {
-          color: #dca05e;
-
-          font-size: 17px;
-
-          font-weight: 950;
-        }
-
-
-        /* =================================================
-           LOGIC
-        ================================================= */
-
-        .decision-logic-box {
-          margin-top: 11px;
-
-          padding: 13px;
-
-          border-radius: 13px;
-
-          background:
-            rgba(
-              0,
-              0,
-              0,
-              0.08
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.05
-            );
-        }
-
-
-        .logic-heading span {
-          display: block;
-
-          color: #dca05e;
-
-          font-size: 6px;
-
-          font-weight: 900;
-        }
-
-
-        .logic-heading strong {
-          display: block;
-
-          margin-top: 3px;
-
-          color: #ead4b6;
-
-          font-size: 10px;
-        }
-
-
-        .logic-rules {
-          margin-top: 10px;
-
-          display: grid;
-
-          grid-template-columns:
-            repeat(
-              3,
-              1fr
-            );
-
-          gap: 8px;
-        }
-
-
-        .logic-rules > div {
-          display: grid;
-
-          grid-template-columns:
-            auto 1fr auto;
-
-          align-items: center;
-
-          gap: 6px;
-
-          padding:
-            8px 9px;
-
-          border-radius: 9px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.02
-            );
-        }
-
-
-        .logic-dot {
-          width: 7px;
-          height: 7px;
-
-          border-radius: 50%;
-        }
-
-
-        .good-dot {
-          background: #79cc86;
-        }
-
-
-        .warning-dot {
-          background: #dea04f;
-        }
-
-
-        .danger-dot {
-          background: #da6653;
-        }
-
-
-        .logic-rules p {
-          margin: 0;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.3
-            );
-
-          font-size: 7px;
-        }
-
-
-        .logic-rules strong {
-          color: #ead3b4;
-
-          font-size: 7px;
-        }
-
-
-        /* =================================================
-           EVIDENCE TRACE
-        ================================================= */
-
-        .evidence-trace {
-          margin-top: 18px;
-        }
-
-
-        .evidence-trace > span {
-          color: #dca05e;
-
-          font-size: 7px;
-
-          font-weight: 900;
-
-          letter-spacing: 1.1px;
-        }
-
-
-        .evidence-trace h5 {
-          margin:
-            3px 0 0;
-
-          color: #ead4b6;
-
-          font-size: 11px;
-        }
-
-
-        .xai-finding-list {
-          margin-top: 9px;
-
-          display: grid;
-
-          gap: 8px;
-        }
-
-
-        .xai-finding-item {
-          display: grid;
-
-          grid-template-columns:
-            auto auto 1fr;
-
-          align-items: flex-start;
-
-          gap: 9px;
-
+        .quality-findings
+          .threshold-comparison
+          > div:not(.comparison-symbol) {
           padding: 11px;
-
-          border-radius: 12px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.022
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.05
-            );
+          border: 1px solid #eadfd5;
+          border-radius: 10px;
+          background: rgba(255, 255, 255, 0.72);
         }
 
-
-        .finding-number {
-          width: 23px;
-          height: 23px;
-
-          display: grid;
-
-          place-items: center;
-
-          border-radius: 7px;
-
-          color:
-            rgba(
-              255,
-              232,
-              200,
-              0.46
-            );
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.035
-            );
-
-          font-size: 7px;
-
-          font-weight: 900;
-        }
-
-
-        .finding-status-icon {
-          width: 24px;
-          height: 24px;
-
-          display: grid;
-
-          place-items: center;
-
-          border-radius: 50%;
-
-          font-size: 9px;
-
-          font-weight: 950;
-        }
-
-
-        .finding-normal
-        .finding-status-icon {
-          color: #a6e5ae;
-
-          background:
-            rgba(
-              65,
-              164,
-              79,
-              0.12
-            );
-        }
-
-
-        .finding-warning
-        .finding-status-icon {
-          color: #ffd18c;
-
-          background:
-            rgba(
-              208,
-              138,
-              48,
-              0.12
-            );
-        }
-
-
-        .finding-danger
-        .finding-status-icon {
-          color: #ffaaa0;
-
-          background:
-            rgba(
-              190,
-              61,
-              49,
-              0.13
-            );
-        }
-
-
-        .finding-info
-        .finding-status-icon {
-          color: #adccec;
-
-          background:
-            rgba(
-              78,
-              131,
-              183,
-              0.12
-            );
-        }
-
-
-        .finding-content > span {
+        .quality-findings .threshold-comparison span {
           display: block;
-
-          color:
-            rgba(
-              220,
-              159,
-              93,
-              0.6
-            );
-
-          font-size: 6px;
-
-          font-weight: 900;
-        }
-
-
-        .finding-content > strong {
-          display: block;
-
-          margin-top: 2px;
-
-          color: #f1dbbd;
-
+          color: #806f65;
           font-size: 10px;
         }
 
+        .quality-findings .threshold-comparison strong {
+          display: block;
+          margin-top: 5px;
+          color: #352218;
+          font-size: 20px;
+        }
 
-        .finding-content p {
-          margin:
-            4px 0 0;
+        .quality-findings .comparison-symbol {
+          color: #9a5f31;
+          font-size: 18px;
+          font-weight: 900;
+        }
 
-          color:
-            rgba(
-              255,
-              238,
-              212,
-              0.34
-            );
+        .quality-findings .sensor-vote-rule {
+          margin-top: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 9px 10px;
+          border: 1px solid #e7ddd3;
+          border-radius: 9px;
+          background: #faf6f1;
+        }
 
-          font-size: 8px;
+        .quality-findings .sensor-vote-rule span {
+          color: #7d6d63;
+          font-size: 9px;
+          font-weight: 750;
+        }
 
+        .quality-findings .sensor-vote-rule strong {
+          color: #4a3023;
+          font-size: 10px;
+        }
+
+        .quality-findings .temperature-supporting-box {
+          margin-top: 11px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 14px;
+          border: 1px solid #dfd6cd;
+          border-radius: 12px;
+          background: #f8f5f2;
+        }
+
+        .quality-findings
+          .temperature-supporting-box
+          > div:first-child
+          > span {
+          display: block;
+          color: #9a5d2f;
+          font-size: 9px;
+          font-weight: 850;
+          letter-spacing: 0.75px;
+          text-transform: uppercase;
+        }
+
+        .quality-findings
+          .temperature-supporting-box
+          > div:first-child
+          > strong {
+          display: block;
+          margin-top: 4px;
+          color: #3d291f;
+          font-size: 12px;
+        }
+
+        .quality-findings
+          .temperature-supporting-box
+          > div:last-child {
+          text-align: right;
+        }
+
+        .quality-findings
+          .temperature-supporting-box
+          > div:last-child
+          > strong {
+          display: block;
+          color: #3b261b;
+          font-size: 19px;
+        }
+
+        .quality-findings .temperature-supporting-box small {
+          display: block;
+          max-width: 500px;
+          margin-top: 4px;
+          color: #7a6b61;
+          font-size: 10px;
           line-height: 1.5;
         }
 
-
-        .xai-no-findings {
-          margin-top: 9px;
-
-          padding: 10px;
-
-          border-radius: 10px;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.35
-            );
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.02
-            );
-
-          font-size: 8px;
-        }
-
-
         /* =================================================
-           PHYSICAL DETECTIONS
+           SENSOR DECISION LOGIC
         ================================================= */
 
-        .physical-detection-grid {
-          margin-top: 16px;
+        .quality-findings .decision-logic-box {
+          margin-top: 12px;
+          padding: 15px;
+          border: 1px solid #e5d9ce;
+          border-radius: 13px;
+          background: #faf6f1;
+        }
 
+        .quality-findings .logic-heading span {
+          display: block;
+          color: #9a5d2f;
+          font-size: 9px;
+          font-weight: 850;
+          letter-spacing: 0.75px;
+          text-transform: uppercase;
+        }
+
+        .quality-findings .logic-heading strong {
+          display: block;
+          margin-top: 4px;
+          color: #3c281e;
+          font-size: 12px;
+        }
+
+        .quality-findings .sensor-vote-summary {
+          margin-top: 11px;
           display: grid;
-
-          grid-template-columns:
-            repeat(
-              5,
-              minmax(
-                0,
-                1fr
-              )
-            );
-
-          gap: 8px;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 9px;
         }
 
-
-        .detection-card {
-          padding: 12px;
-
-          border-radius: 12px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.025
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.05
-            );
+        .quality-findings .sensor-vote-summary > div {
+          padding: 11px;
+          border: 1px solid #e7ddd3;
+          border-radius: 10px;
+          background: #fffdfa;
         }
 
-
-        .detection-card > span {
+        .quality-findings .sensor-vote-summary span {
           display: block;
-
-          font-size: 6px;
-
-          font-weight: 900;
-
-          letter-spacing: 0.8px;
+          color: #7d6d63;
+          font-size: 9px;
+          font-weight: 800;
+          text-transform: uppercase;
         }
 
-
-        .detection-card > strong {
+        .quality-findings .sensor-vote-summary strong {
           display: block;
-
           margin-top: 5px;
-
-          color: #ffe0aa;
-
-          font-size: 23px;
+          color: #38241a;
+          font-size: 15px;
         }
 
+        .quality-findings .logic-rules {
+          margin-top: 11px;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 9px;
+        }
 
-        .detection-card > small {
+        .quality-findings .logic-rules > div {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center;
+          gap: 7px;
+          padding: 10px;
+          border: 1px solid #e7ddd3;
+          border-radius: 9px;
+          color: #75665c;
+          background: #fffdfa;
+          font-size: 10px;
+        }
+
+        .quality-findings .logic-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+        }
+
+        .quality-findings .good-dot {
+          background: #62b873;
+        }
+
+        .quality-findings .warning-dot {
+          background: #d69a46;
+        }
+
+        .quality-findings .danger-dot {
+          background: #cc6552;
+        }
+
+        .quality-findings .logic-rules strong {
+          color: #3f2b20;
+          font-size: 10px;
+        }
+
+        .quality-findings .sensor-score-formula {
+          margin-top: 9px;
+          padding: 10px 11px;
+          border: 1px solid #e3cfba;
+          border-radius: 9px;
+          background: #fbf0e4;
+        }
+
+        .quality-findings .sensor-score-formula span {
           display: block;
+          color: #9b5f31;
+          font-size: 9px;
+          font-weight: 850;
+          text-transform: uppercase;
+        }
 
+        .quality-findings .sensor-score-formula strong {
+          display: block;
+          margin-top: 4px;
+          color: #4a3022;
+          font-size: 11px;
+        }
+
+        /* =================================================
+           EVIDENCE TRACE / FINDINGS
+        ================================================= */
+
+        .quality-findings .evidence-trace {
+          margin-top: 20px;
+        }
+
+        .quality-findings .evidence-trace > span {
+          color: #9a5d2f;
+          font-size: 9px;
+          font-weight: 850;
+          letter-spacing: 0.9px;
+          text-transform: uppercase;
+        }
+
+        .quality-findings .evidence-trace h5 {
+          margin: 4px 0 0;
+          color: #3b271c;
+          font-size: 14px;
+        }
+
+        .quality-findings .xai-finding-list {
+          margin-top: 10px;
+          display: grid;
+          gap: 9px;
+        }
+
+        .quality-findings .xai-finding-item {
+          display: grid;
+          grid-template-columns: auto auto 1fr;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 13px;
+          border: 1px solid #e6ddd4;
+          border-radius: 12px;
+          background: #fffaf6;
+        }
+
+        .quality-findings .finding-number {
+          width: 25px;
+          height: 25px;
+          display: grid;
+          place-items: center;
+          border-radius: 7px;
+          color: #65564c;
+          background: #eee5dc;
+          font-size: 9px;
+          font-weight: 850;
+        }
+
+        .quality-findings .finding-status-icon {
+          width: 26px;
+          height: 26px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          font-size: 10px;
+          font-weight: 900;
+        }
+
+        .quality-findings .finding-normal .finding-status-icon {
+          color: #347247;
+          background: #dcefe0;
+        }
+
+        .quality-findings .finding-warning .finding-status-icon {
+          color: #8b5b16;
+          background: #f7e6c7;
+        }
+
+        .quality-findings .finding-danger .finding-status-icon {
+          color: #a44636;
+          background: #f5d9d3;
+        }
+
+        .quality-findings .finding-info .finding-status-icon {
+          color: #486f95;
+          background: #dce9f4;
+        }
+
+        .quality-findings .finding-content > span {
+          display: block;
+          color: #9a5d2f;
+          font-size: 9px;
+          font-weight: 850;
+          text-transform: uppercase;
+        }
+
+        .quality-findings .finding-content > strong {
+          display: block;
           margin-top: 3px;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.25
-            );
-
-          font-size: 6px;
+          color: #3b271c;
+          font-size: 12px;
         }
 
-
-        .detection-good {
-          background:
-            rgba(
-              53,
-              148,
-              69,
-              0.055
-            );
-
-          border-color:
-            rgba(
-              91,
-              190,
-              104,
-              0.13
-            );
+        .quality-findings .finding-content p {
+          margin: 5px 0 0;
+          color: #75675e;
+          font-size: 11px;
+          line-height: 1.55;
         }
 
-
-        .detection-good > span {
-          color: #8cd297;
+        .quality-findings .xai-no-findings {
+          margin-top: 10px;
+          padding: 11px;
+          border: 1px solid #e7ddd4;
+          border-radius: 10px;
+          color: #76685e;
+          background: #faf7f3;
+          font-size: 11px;
         }
 
+        /* =================================================
+           PHYSICAL DETECTION EVIDENCE
+        ================================================= */
 
-        .detection-warning {
-          background:
-            rgba(
-              188,
-              120,
-              39,
-              0.055
-            );
-
-          border-color:
-            rgba(
-              218,
-              153,
-              67,
-              0.13
-            );
+        .quality-findings .physical-detection-grid {
+          margin-top: 17px;
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 9px;
         }
 
-
-        .detection-warning > span {
-          color: #e2aa5e;
+        .quality-findings .detection-card {
+          min-height: 105px;
+          padding: 14px;
+          border: 1px solid #e5d9ce;
+          border-radius: 12px;
+          background: #fffaf6;
         }
 
-
-        .detection-danger {
-          background:
-            rgba(
-              171,
-              51,
-              40,
-              0.06
-            );
-
-          border-color:
-            rgba(
-              217,
-              80,
-              60,
-              0.14
-            );
+        .quality-findings .detection-card > span {
+          display: block;
+          color: #806f65;
+          font-size: 9px;
+          font-weight: 850;
+          letter-spacing: 0.7px;
+          text-transform: uppercase;
         }
 
-
-        .detection-danger > span {
-          color: #e77e6a;
+        .quality-findings .detection-card > strong {
+          display: block;
+          margin-top: 7px;
+          color: #342117;
+          font-size: 26px;
+          line-height: 1;
         }
 
-
-        .detection-neutral > span {
-          color:
-            rgba(
-              255,
-              225,
-              187,
-              0.42
-            );
+        .quality-findings .detection-card > small {
+          display: block;
+          margin-top: 5px;
+          color: #7d6d63;
+          font-size: 9px;
         }
 
+        .quality-findings .detection-good {
+          background: #f0f8f1;
+          border-color: #c9e2cd;
+        }
+
+        .quality-findings .detection-good > span {
+          color: #39764a;
+        }
+
+        .quality-findings .detection-warning {
+          background: #fff7e9;
+          border-color: #ead5aa;
+        }
+
+        .quality-findings .detection-warning > span {
+          color: #91601c;
+        }
+
+        .quality-findings .detection-danger {
+          background: #fff0ec;
+          border-color: #e9c4bb;
+        }
+
+        .quality-findings .detection-danger > span {
+          color: #a64838;
+        }
+
+        .quality-findings .detection-neutral {
+          background: #f5f2ef;
+          border-color: #ddd4cb;
+        }
+
+        .quality-findings .detection-neutral > span {
+          color: #75675d;
+        }
 
         /* =================================================
            PHYSICAL IMPACT
         ================================================= */
 
-        .physical-impact-grid {
-          margin-top: 9px;
-
+        .quality-findings .physical-impact-grid {
+          margin-top: 10px;
           display: grid;
-
-          grid-template-columns:
-            repeat(
-              4,
-              1fr
-            );
-
-          gap: 8px;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 9px;
         }
 
-
-        .physical-impact-grid > div {
-          padding:
-            9px 10px;
-
+        .quality-findings .physical-impact-grid > div {
+          padding: 11px 12px;
+          border: 1px solid #e7ddd4;
           border-radius: 10px;
-
-          background:
-            rgba(
-              0,
-              0,
-              0,
-              0.08
-            );
+          background: #faf6f1;
         }
 
-
-        .physical-impact-grid span {
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.28
-            );
-
-          font-size: 7px;
+        .quality-findings .physical-impact-grid span {
+          color: #7c6c62;
+          font-size: 10px;
         }
 
-
-        .physical-impact-grid strong {
+        .quality-findings .physical-impact-grid strong {
           display: block;
+          margin-top: 4px;
+          color: #3a261c;
+          font-size: 14px;
+        }
 
+        .quality-findings .physical-impact-grid small {
+          display: block;
           margin-top: 3px;
-
-          color: #ead3b4;
-
-          font-size: 11px;
+          color: #8a7a70;
+          font-size: 9px;
         }
-
-
-        .physical-impact-grid small {
-          display: block;
-
-          margin-top: 2px;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.2
-            );
-
-          font-size: 6px;
-        }
-
 
         /* =================================================
            PHYSICAL SCORE TRACE
         ================================================= */
 
-        .physical-score-trace {
-          margin-top: 11px;
-
+        .quality-findings .physical-score-trace {
+          margin-top: 12px;
           display: grid;
-
-          grid-template-columns:
-            1fr auto 1fr auto 1fr auto 1fr;
-
-          gap: 7px;
-
+          grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+          gap: 8px;
           align-items: stretch;
         }
 
-
-        .physical-score-trace
-        > div:not(
-          .trace-arrow
-        ) {
-          padding: 11px;
-
+        .quality-findings
+          .physical-score-trace
+          > div:not(.trace-arrow) {
+          min-height: 92px;
+          padding: 12px;
+          border: 1px solid #e5dad0;
           border-radius: 11px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.022
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.05
-            );
+          background: #fffaf6;
         }
 
-
-        .physical-score-trace span {
+        .quality-findings .physical-score-trace span {
           display: block;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.28
-            );
-
-          font-size: 6px;
-
-          font-weight: 900;
+          color: #7d6d63;
+          font-size: 9px;
+          font-weight: 800;
+          text-transform: uppercase;
         }
 
-
-        .physical-score-trace strong {
+        .quality-findings .physical-score-trace strong {
           display: inline-block;
-
-          margin-top: 4px;
-
-          color: #efd5b5;
-
-          font-size: 15px;
+          margin-top: 6px;
+          color: #3b271c;
+          font-size: 18px;
         }
 
-
-        .physical-score-trace small {
+        .quality-findings .physical-score-trace small {
           margin-left: 2px;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.23
-            );
-
-          font-size: 6px;
+          color: #85756a;
+          font-size: 9px;
         }
 
-
-        .trace-result {
-          background:
-            rgba(
-              210,
-              136,
-              63,
-              0.06
-            ) !important;
+        .quality-findings .trace-result {
+          background: #fbefe2 !important;
+          border-color: #dfc7ad !important;
         }
-
 
         /* =================================================
-           PHYSICAL RANGE
+           PHYSICAL STATUS RANGES
         ================================================= */
 
-        .physical-status-ranges {
-          margin-top: 9px;
-
+        .quality-findings .physical-status-ranges {
+          margin-top: 10px;
           display: grid;
-
-          grid-template-columns:
-            repeat(
-              4,
-              1fr
-            );
-
-          gap: 7px;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 8px;
         }
 
-
-        .physical-status-ranges
-        > div {
-          padding:
-            8px 9px;
-
+        .quality-findings .physical-status-ranges > div {
+          padding: 10px;
+          border: 1px solid #e4dad1;
           border-radius: 9px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.018
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.04
-            );
+          background: #faf7f3;
         }
 
-
-        .physical-status-ranges
-        strong {
+        .quality-findings .physical-status-ranges strong {
           display: block;
-
-          color:
-            rgba(
-              255,
-              234,
-              204,
-              0.42
-            );
-
-          font-size: 7px;
+          color: #6f6158;
+          font-size: 10px;
         }
 
-
-        .physical-status-ranges
-        span {
+        .quality-findings .physical-status-ranges span {
           display: block;
-
-          margin-top: 2px;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.22
-            );
-
-          font-size: 6px;
+          margin-top: 3px;
+          color: #88786d;
+          font-size: 9px;
         }
 
-
-        .physical-status-ranges
-        .active-range {
-          background:
-            rgba(
-              214,
-              141,
-              68,
-              0.09
-            );
-
-          border-color:
-            rgba(
-              228,
-              162,
-              92,
-              0.15
-            );
+        .quality-findings .physical-status-ranges .active-range {
+          background: #f6e7d6;
+          border-color: #d8b898;
         }
 
-
-        .physical-status-ranges
-        .active-range strong {
-          color: #ffd18d;
+        .quality-findings
+          .physical-status-ranges
+          .active-range
+          strong {
+          color: #754322;
         }
-
 
         /* =================================================
            XAI SCOPE
         ================================================= */
 
-        .xai-scope-note {
-          margin-top: 14px;
-
+        .quality-findings .xai-scope-note {
+          margin-top: 15px;
           display: flex;
-
           align-items: flex-start;
-
-          gap: 9px;
-
-          padding: 12px;
-
+          gap: 10px;
+          padding: 14px;
+          border: 1px solid #e6ddd4;
           border-radius: 12px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.018
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              220,
-              170,
-              0.05
-            );
+          background: #faf7f3;
         }
 
-
-        .scope-icon {
-          width: 21px;
-          height: 21px;
-
+        .quality-findings .scope-icon {
+          width: 23px;
+          height: 23px;
           flex-shrink: 0;
-
           display: grid;
-
           place-items: center;
-
+          border: 1px solid #d6b48d;
           border-radius: 50%;
-
-          color: #dca05e;
-
-          border:
-            1px solid
-            rgba(
-              220,
-              160,
-              94,
-              0.2
-            );
-
-          font-size: 7px;
-
+          color: #995d30;
+          font-size: 9px;
           font-weight: 900;
         }
 
-
-        .xai-scope-note strong {
-          color: #ead3b4;
-
-          font-size: 9px;
+        .quality-findings .xai-scope-note strong {
+          color: #3b281e;
+          font-size: 11px;
         }
 
-
-        .xai-scope-note p {
-          margin:
-            3px 0 0;
-
-          color:
-            rgba(
-              255,
-              235,
-              207,
-              0.27
-            );
-
-          font-size: 7px;
-
-          line-height: 1.5;
+        .quality-findings .xai-scope-note p {
+          margin: 4px 0 0;
+          color: #75675e;
+          font-size: 10px;
+          line-height: 1.55;
         }
-
 
         /* =================================================
            RESPONSIVE
         ================================================= */
 
-        @media (
-          max-width: 1050px
-        ) {
-
-          .final-decision-flow {
-            grid-template-columns:
-              repeat(
-                2,
-                1fr
-              );
+        @media (max-width: 1100px) {
+          .quality-findings .final-decision-flow {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
-
-          .flow-arrow {
+          .quality-findings .flow-arrow {
             display: none;
           }
 
-
-          .physical-detection-grid {
-            grid-template-columns:
-              repeat(
-                3,
-                1fr
-              );
+          .quality-findings .primary-sensor-evidence {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
-
-          .physical-score-trace {
-            grid-template-columns:
-              repeat(
-                2,
-                1fr
-              );
+          .quality-findings .physical-detection-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
 
+          .quality-findings .physical-score-trace {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
 
-          .trace-arrow {
+          .quality-findings .trace-arrow {
             display: none;
           }
-
         }
 
-
-        @media (
-          max-width: 800px
-        ) {
-
-          .xai-main-header {
-            flex-direction: column;
-          }
-
-
-          .explanation-section-header {
+        @media (max-width: 820px) {
+          .quality-findings .xai-main-header,
+          .quality-findings .explanation-section-header,
+          .quality-findings .final-status-heading,
+          .quality-findings .temperature-supporting-box {
             align-items: flex-start;
-
             flex-direction: column;
           }
 
-
-          .primary-sensor-evidence {
-            grid-template-columns:
-              1fr;
+          .quality-findings
+            .temperature-supporting-box
+            > div:last-child {
+            text-align: left;
           }
 
-
-          .logic-rules {
-            grid-template-columns:
-              1fr;
+          .quality-findings .primary-sensor-evidence,
+          .quality-findings .sensor-vote-summary {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
-
-          .physical-impact-grid {
-            grid-template-columns:
-              repeat(
-                2,
-                1fr
-              );
+          .quality-findings .logic-rules {
+            grid-template-columns: 1fr;
           }
 
-
-          .final-status-heading {
-            align-items: flex-start;
-
-            flex-direction: column;
+          .quality-findings .physical-impact-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
-
         }
 
-
-        @media (
-          max-width: 600px
-        ) {
-
-          .explanation-section {
-            padding: 16px;
+        @media (max-width: 620px) {
+          .quality-findings .explanation-section {
+            padding: 17px;
           }
 
-
-          .final-decision-flow,
-          .contribution-row,
-          .physical-detection-grid,
-          .physical-impact-grid,
-          .physical-score-trace,
-          .physical-status-ranges {
-            grid-template-columns:
-              1fr;
+          .quality-findings .xai-main-header h3 {
+            font-size: 24px;
           }
 
-
-          .threshold-comparison {
-            grid-template-columns:
-              1fr;
+          .quality-findings .final-decision-flow,
+          .quality-findings .contribution-row,
+          .quality-findings .primary-sensor-evidence,
+          .quality-findings .sensor-vote-summary,
+          .quality-findings .physical-detection-grid,
+          .quality-findings .physical-impact-grid,
+          .quality-findings .physical-score-trace,
+          .quality-findings .physical-status-ranges {
+            grid-template-columns: 1fr;
           }
 
+          .quality-findings .threshold-comparison {
+            grid-template-columns: 1fr;
+          }
 
-          .comparison-symbol {
+          .quality-findings .comparison-symbol {
             display: none;
           }
-
         }
-
       `}</style>
     </div>
   );

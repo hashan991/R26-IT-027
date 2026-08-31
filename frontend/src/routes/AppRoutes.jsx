@@ -5,7 +5,7 @@ import HomePage from "../pages/HomePage";
 import LoginPage from "../auth/pages/LoginPage";
 import RegisterPage from "../auth/pages/RegisterPage";
 
-import BeanUploadPage from "../features/bean-defect-detection/pages/BeanUploadPage";
+
 import BeanQualityPage from "../features/bean-defect-detection/pages/BeanQualityPage";
 
 import SalesPredictionPage from "../features/sales-prediction/pages/SalesPredictionPage";
@@ -20,6 +20,9 @@ import RoleRoute from "../shared/components/RoleRoute";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import DashboardHomePage from "../pages/DashboardHomePage";
+
+import ReportHistoryPage from "../features/bean-defect-detection/pages/ReportHistoryPage";
+import SavedQualityReportPage from "../features/bean-defect-detection/pages/SavedQualityReportPage";
 
 // =====================================================
 // POWDER QUALITY MODULE
@@ -112,19 +115,28 @@ function AppRoutes() {
         ===================================================== */}
 
         <Route
-          path="/bean"
+          path="/beans"
           element={
             <RoleRoute allowedRoles={["ADMIN", "BEAN_QUALITY_INSPECTOR"]}>
-              <BeanUploadPage />
+              <BeanQualityPage />
             </RoleRoute>
           }
         />
 
         <Route
-          path="/beans"
+          path="/beans/reports"
           element={
             <RoleRoute allowedRoles={["ADMIN", "BEAN_QUALITY_INSPECTOR"]}>
-              <BeanQualityPage />
+              <ReportHistoryPage />
+            </RoleRoute>
+          }
+        />
+
+        <Route
+          path="/beans/reports/:reportId"
+          element={
+            <RoleRoute allowedRoles={["ADMIN", "BEAN_QUALITY_INSPECTOR"]}>
+              <SavedQualityReportPage />
             </RoleRoute>
           }
         />
@@ -154,9 +166,8 @@ function AppRoutes() {
             </RoleRoute>
           }
         />
-      </Route>
 
-      {/* =====================================================
+        {/* =====================================================
           POWDER QUALITY MODULE
       ===================================================== */}
 
@@ -195,20 +206,21 @@ function AppRoutes() {
 
       </Route>
 
-      {/* =====================================================
+        {/* =====================================================
           POWDER QUALITY REPORT
       ===================================================== */}
 
-      <Route
-        path="/powder/report/:batchId"
-        element={
-          <RoleRoute allowedRoles={["ADMIN", "POWDER_QUALITY_INSPECTOR"]}>
-            <RefreshProvider>
-              <CoffeeInspectionReport />
-            </RefreshProvider>
-          </RoleRoute>
-        }
-      />
+        <Route
+          path="/powder/report/:batchId"
+          element={
+            <RoleRoute allowedRoles={["ADMIN", "POWDER_QUALITY_INSPECTOR"]}>
+              <RefreshProvider>
+                <CoffeeInspectionReport />
+              </RefreshProvider>
+            </RoleRoute>
+          }
+        />
+      </Route>
 
       {/* =====================================================
           404

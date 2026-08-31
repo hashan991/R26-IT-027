@@ -53,10 +53,7 @@ function DetectionResultImage({ imageUrl }) {
             Black + Broken
           </div>
 
-          <div className="legend-item">
-            <span className="legend-dot unknown-dot"></span>
-            Unknown
-          </div>
+          
         </div>
       </div>
 
