@@ -3840,18 +3840,30 @@ const handleLeakDeviceTest = async () => {
 
       const newestResult = latestRealtimeResultRef.current;
 
-      if (newestResult) {
-      setRealtimeResult(newestResult);
-      setRealtimeError("");
+      console.log("NEWEST RESULT", newestResult);
 
-      if (newestResult.inspection_image) {
-        setFinalInspectionImage(
-          `${buildImageUrl(
-            newestResult.inspection_image
-          )}?cycle=${Date.now()}`
-        );
+      if (newestResult) {
+
+        const capturedFrames =
+        newestResult.inspection_cycle?.frames_captured ?? 0;
+
+
+        const requiredFrames =
+        newestResult.inspection_cycle?.required_frames ?? 3;
+
+
+        if (capturedFrames >= requiredFrames) {
+
+            setRealtimeResult(newestResult);
+
+            setRealtimeError("");
+
+        }
+
+      
+
       }
-    }
+    
 
       setRealtimeElapsed(0);
       setRealtimeCycle((previous) => previous + 1);
@@ -4099,7 +4111,7 @@ const workflowStepClass = (step) => {
             <div className="brand">
               <div className="brand-logo">📦</div>
               <div className="brand-text">
-                <div className="brand-title">Coffee Seal Vision AI</div>
+                <div className="brand-title">Coffee Seal Vision</div>
                 <div className="brand-subtitle">Industrial packet seal quality inspection</div>
               </div>
             </div>
@@ -4107,7 +4119,7 @@ const workflowStepClass = (step) => {
             <div className="nav-pills">
               <div className="nav-pill nav-pill-live">
                 <span className="live-dot" />
-                AI Ready
+                 Ready
               </div>
               <div className="nav-pill">YOLO Detection</div>
               <div className="nav-pill">Seal QC</div>
@@ -4128,7 +4140,7 @@ const workflowStepClass = (step) => {
             <div className="session-right">
               <div className="session-stage">
                 <span className={`session-stage-dot ${visionStageDone ? "done" : ""}`} />
-                <span className="session-stage-text">AI Vision</span>
+                <span className="session-stage-text"> Vision</span>
               </div>
 
               <div className="session-stage">
@@ -4221,7 +4233,7 @@ const workflowStepClass = (step) => {
                 </div>
 
                 <div className="workflow-step-title">
-                  AI Seal Inspection
+                  Seal Inspection
                 </div>
 
                 <div className="workflow-step-status">
@@ -4435,7 +4447,7 @@ const workflowStepClass = (step) => {
               <div className="hero-content">
                 <div className="seal-badge">
                   <span className="seal-badge-dot" />
-                  AI-Powered Inspection
+                  Powered Inspection
                 </div>
 
                 <h1 className="seal-title">
@@ -4444,7 +4456,7 @@ const workflowStepClass = (step) => {
                 </h1>
 
                 <p className="seal-subtitle">
-                  Upload a coffee packet seal image and let the AI model analyze
+                  Upload a coffee packet seal image and let the model analyze
                   packaging quality, identify possible seal defects, and generate
                   a visual prediction overlay for inspection support.
                 </p>
@@ -4616,7 +4628,7 @@ const workflowStepClass = (step) => {
                   </div>
                   <div className="guide-item">
                     <div className="guide-icon">2️⃣</div>
-                    <div className="guide-text">Run AI scan</div>
+                    <div className="guide-text">Run scan</div>
                   </div>
                   <div className="guide-item">
                     <div className="guide-icon">3️⃣</div>
@@ -4632,7 +4644,7 @@ const workflowStepClass = (step) => {
               <div className="results-head">
                 <div>
                   <div className="results-kicker">Inspection Completed</div>
-                  <h2 className="results-main-title">AI Detection Results</h2>
+                  <h2 className="results-main-title"> Detection Results</h2>
                 </div>
 
                 <div className="results-summary-pill">
@@ -4646,7 +4658,7 @@ const workflowStepClass = (step) => {
                   <div className="sc-label">Final Status</div>
                   <div className={`sc-value ${statusClass}`}>{result.status || "Unknown"}</div>
                   <div className="sc-caption">
-                    Overall seal quality decision from the AI inspection output.
+                    Overall seal quality decision from the inspection output.
                   </div>
                   <div className="sc-icon">{statusClass === "good" ? "✅" : "⚠️"}</div>
                 </div>
@@ -4862,7 +4874,7 @@ const workflowStepClass = (step) => {
                           </div>
 
                           <div className="realtime-cycle-title">
-                            New AI result every 3 seconds
+                            AI Frame Capture & Analysis
                           </div>
                         </div>
 
@@ -4881,19 +4893,17 @@ const workflowStepClass = (step) => {
 
                       <div className="realtime-cycle-bottom">
                         <div className="realtime-cycle-time">
-                          Next update in{" "}
-                          <strong>{realtimeRemaining.toFixed(1)}s</strong>
-                        </div>
+                          Capturing inspection frames...
+                      </div>
 
                         <div className="realtime-cycle-number">
-                          Inspection Cycle #{realtimeCycle}
+                          Inspection Frame Analysis
                         </div>
                       </div>
 
                       <div className="realtime-result-refresh-line">
                         <span className="refresh-dot" />
-                        Camera and AI processing continue automatically.
-                        The current result updates when this cycle completes.
+                        Camera captures multiple frames and AI selects the most reliable inspection result automatically.
                       </div>
                     </div>
                   )}
@@ -5048,7 +5058,7 @@ const workflowStepClass = (step) => {
                         <div className="realtime-validation-value">
                           {realtimeResult.validation?.confirmed_frames ?? 0}
                           {" / "}
-                          {realtimeResult.validation?.required_frames ?? 5}
+                          {realtimeResult.validation?.required_frames ?? 3}
                           {" frames"}
                         </div>
                       </div>
@@ -5072,7 +5082,7 @@ const workflowStepClass = (step) => {
                         </div>
 
                         <div className="realtime-snapshot-badge">
-                          3s RESULT
+                          AI FRAME ANALYSIS RESULT
                         </div>
                       </div>
 
@@ -5088,7 +5098,7 @@ const workflowStepClass = (step) => {
 
                       <div className="realtime-snapshot-caption">
                         Seal and defect boundary boxes shown from the
-                        completed AI inspection cycle.
+                        Completed multi-frame AI inspection.
                       </div>
                     </div>
                   )}
