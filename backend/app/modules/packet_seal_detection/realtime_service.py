@@ -119,7 +119,7 @@ class RealtimeSealInspector:
 
         self.overheat_history = []
 
-        self.validation_frames = 5
+        self.validation_frames = 3
 
         self.min_overheat_confidence = 0.40
 
@@ -137,7 +137,7 @@ class RealtimeSealInspector:
 
         self.inspection_start_time = None
 
-        self.inspection_duration = 3
+        self.required_capture_frames = 3
 
 
         self.final_image = None
@@ -432,14 +432,10 @@ class RealtimeSealInspector:
             self.inspection_start_time = time.time()
 
 
-        elapsed = (
-            time.time()
-            -
-            self.inspection_start_time
-        )
+        
 
 
-        if elapsed <= self.inspection_duration:
+        if len(self.captured_frames) < self.required_capture_frames:
 
             self.captured_frames.append(
                 frame.copy()
@@ -845,7 +841,7 @@ class RealtimeSealInspector:
 
             "inspection_cycle": {
 
-                "duration_seconds": 3,
+                "required_frames": self.required_capture_frames,
 
                 "frames_captured": len(
                     self.captured_frames
@@ -910,11 +906,10 @@ class RealtimeSealInspector:
 
 
         if (
-            time.time() - self.inspection_start_time
-            >= self.inspection_duration
+            len(self.captured_frames) >= self.required_capture_frames
             and len(seals_data) > 0
             and not self.history_saved
-        ): 
+        ):
 
 
             image_path = self.save_final_image()
