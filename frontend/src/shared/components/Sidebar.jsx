@@ -263,6 +263,10 @@ function Sidebar() {
           path: "/powder",
           icon: "powder",
         },
+        {
+          label: "POWDER QUALITY",
+          path: "/powder",
+        },
       ];
     }
 

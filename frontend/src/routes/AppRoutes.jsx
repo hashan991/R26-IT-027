@@ -32,7 +32,7 @@ import PowderDashboardLayout from "../features/powder-quality-checking/layouts/D
 
 import PowderDashboard from "../features/powder-quality-checking/pages/Dashboard";
 import BatchIntelligence from "../features/powder-quality-checking/pages/BatchIntelligence";
-import ProductionIntelligence from "../features/powder-quality-checking/pages/ProductionIntelligence";
+import ReportsSystem from "../features/powder-quality-checking/pages/ReportsSystem";
 import CoffeeInspectionReport from "../features/powder-quality-checking/pages/report/CoffeeInspectionReport";
 
 import { RefreshProvider } from "../features/powder-quality-checking/context/RefreshContext";
@@ -171,33 +171,40 @@ function AppRoutes() {
           POWDER QUALITY MODULE
       ===================================================== */}
 
-        <Route
-          path="/powder"
-          element={
-            <RoleRoute allowedRoles={["ADMIN", "POWDER_QUALITY_INSPECTOR"]}>
-              <RefreshProvider>
+      <Route
+      path="/powder"
+      element={
+        <RoleRoute allowedRoles={["ADMIN","POWDER_QUALITY_INSPECTOR"]}>
+            <RefreshProvider>
                 <PowderDashboardLayout />
-              </RefreshProvider>
-            </RoleRoute>
-          }
-        >
-          {/* Powder Dashboard */}
+            </RefreshProvider>
+        </RoleRoute>
+      }
+      >
 
-          <Route index element={<PowderDashboard />} />
 
-          <Route path="dashboard" element={<PowderDashboard />} />
+      <Route index element={<PowderDashboard />} />
 
-          {/* Batch Intelligence */}
 
-          <Route path="batch-intelligence" element={<BatchIntelligence />} />
+      <Route 
+      path="dashboard" 
+      element={<PowderDashboard />} 
+      />
 
-          {/* Production Intelligence */}
 
-          <Route
-            path="production-intelligence"
-            element={<ProductionIntelligence />}
-          />
-        </Route>
+      <Route
+      path="batch-intelligence"
+      element={<BatchIntelligence />}
+      />
+
+
+      <Route
+      path="reports-system"
+      element={<ReportsSystem />}
+      />
+
+
+      </Route>
 
         {/* =====================================================
           POWDER QUALITY REPORT
