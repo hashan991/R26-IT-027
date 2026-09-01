@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
 
 import os
+import asyncio
 
 from .schema import (
     SensorReadingRequest,
@@ -1125,13 +1126,31 @@ def disconnect_device():
 
     powder_serial_service.disconnect()
 
-
+    # Do NOT call get_status() here.
+    # The reconnect-capable get_status() would immediately reopen the
+    # serial port while the device is still physically plugged in.
     return {
-
         "message":
             "Powder sensor device disconnected",
 
-        **powder_serial_service.get_status(),
+        "connected":
+            False,
+
+        "port":
+            powder_serial_service.port,
+
+        "configured_port":
+            getattr(
+                powder_serial_service,
+                "configured_port",
+                powder_serial_service.port,
+            ),
+
+        "baud_rate":
+            powder_serial_service.baud_rate,
+
+        "device":
+            "Coffee Powder Sensor Module",
     }
 
 
@@ -1158,8 +1177,10 @@ async def read_device():
     # READ LIVE DATA FROM ARDUINO
     # --------------------------------------------------------
 
-    sensor_data = (
-        powder_serial_service.read_sensor_data()
+    # Serial I/O is blocking. Run it in a worker thread so a
+    # reconnect/read timeout does not block FastAPI's event loop.
+    sensor_data = await asyncio.to_thread(
+        powder_serial_service.read_sensor_data
     )
 
 

@@ -26,19 +26,16 @@ import { useEffect, useState } from "react";
 
 import apiClient from "../api/apiClient";
 
-
 // =====================================================
 // CUSTOM CHART TOOLTIP
 // =====================================================
 
 function SensorTooltip({ active, payload, label, unit }) {
-
   if (!active || !payload || !payload.length) {
     return null;
   }
 
   return (
-
     <div
       className="
         min-w-[150px]
@@ -58,7 +55,6 @@ function SensorTooltip({ active, payload, label, unit }) {
         backdrop-blur-xl
       "
     >
-
       <p
         className="
           mb-2
@@ -75,9 +71,7 @@ function SensorTooltip({ active, payload, label, unit }) {
         {label}
       </p>
 
-
       <div className="flex items-end gap-1">
-
         <span
           className="
             text-xl
@@ -89,7 +83,6 @@ function SensorTooltip({ active, payload, label, unit }) {
         >
           {payload[0]?.value}
         </span>
-
 
         <span
           className="
@@ -103,16 +96,10 @@ function SensorTooltip({ active, payload, label, unit }) {
         >
           {unit}
         </span>
-
       </div>
-
     </div>
-
   );
-
 }
-
-
 
 // =====================================================
 // INFORMATION CARD
@@ -125,31 +112,24 @@ function InfoCard({
   valueClassName = "text-[#FFF3DE]",
   delay = 0,
 }) {
-
   return (
-
     <motion.div
-
       initial={{
         opacity: 0,
         y: 18,
       }}
-
       animate={{
         opacity: 1,
         y: 0,
       }}
-
       transition={{
         duration: 0.5,
         delay,
         ease: "easeOut",
       }}
-
       whileHover={{
         y: -4,
       }}
-
       className="
         group
 
@@ -184,7 +164,6 @@ function InfoCard({
         hover:shadow-[0_20px_55px_rgba(39,20,12,0.30)]
       "
     >
-
       {/* SUBTLE HOVER GLOW */}
 
       <div
@@ -211,7 +190,6 @@ function InfoCard({
         "
       />
 
-
       <div
         className="
           relative
@@ -224,9 +202,7 @@ function InfoCard({
           gap-4
         "
       >
-
         <div>
-
           <div
             className="
               mb-4
@@ -245,17 +221,10 @@ function InfoCard({
               text-[#B19A88]
             "
           >
-
-            <Icon
-              size={17}
-              strokeWidth={1.8}
-              className="text-[#D8A06F]"
-            />
+            <Icon size={17} strokeWidth={1.8} className="text-[#D8A06F]" />
 
             {label}
-
           </div>
-
 
           <p
             className={`
@@ -271,9 +240,7 @@ function InfoCard({
           >
             {value}
           </p>
-
         </div>
-
 
         <div
           className="
@@ -295,7 +262,6 @@ function InfoCard({
             bg-[#4A3023]/55
           "
         >
-
           <TrendingUp
             size={16}
             className="
@@ -307,18 +273,11 @@ function InfoCard({
               group-hover:text-[#DAA174]
             "
           />
-
         </div>
-
       </div>
-
     </motion.div>
-
   );
-
 }
-
-
 
 // =====================================================
 // CHART CARD
@@ -337,31 +296,24 @@ function ChartCard({
   iconBackground,
   delay = 0,
 }) {
-
   return (
-
     <motion.div
-
       initial={{
         opacity: 0,
         y: 28,
       }}
-
       animate={{
         opacity: 1,
         y: 0,
       }}
-
       transition={{
         duration: 0.55,
         delay,
         ease: "easeOut",
       }}
-
       whileHover={{
         y: -6,
       }}
-
       className="
         group
 
@@ -397,7 +349,6 @@ function ChartCard({
         sm:p-6
       "
     >
-
       {/* TOP GLOW */}
 
       <div
@@ -420,7 +371,6 @@ function ChartCard({
         "
       />
 
-
       {/* HEADER */}
 
       <div
@@ -437,7 +387,6 @@ function ChartCard({
           gap-4
         "
       >
-
         <div
           className="
             flex
@@ -445,7 +394,6 @@ function ChartCard({
             gap-4
           "
         >
-
           <div
             className={`
               flex
@@ -466,18 +414,10 @@ function ChartCard({
               ${iconBackground}
             `}
           >
-
-            <Icon
-              size={24}
-              strokeWidth={2}
-              className={iconColor}
-            />
-
+            <Icon size={24} strokeWidth={2} className={iconColor} />
           </div>
 
-
           <div>
-
             <h3
               className="
                 text-[17px]
@@ -493,7 +433,6 @@ function ChartCard({
               {title}
             </h3>
 
-
             <p
               className="
                 mt-1
@@ -506,11 +445,8 @@ function ChartCard({
             >
               {description}
             </p>
-
           </div>
-
         </div>
-
 
         {/* LIVE MINI BADGE */}
 
@@ -543,7 +479,6 @@ function ChartCard({
             sm:flex
           "
         >
-
           <span
             className="
               h-1.5
@@ -556,13 +491,9 @@ function ChartCard({
               shadow-[0_0_10px_rgba(52,211,153,0.8)]
             "
           />
-
           Live
-
         </div>
-
       </div>
-
 
       {/* CHART */}
 
@@ -575,12 +506,7 @@ function ChartCard({
           w-full
         "
       >
-
-        <ResponsiveContainer
-          width="100%"
-          height="100%"
-        >
-
+        <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}
             margin={{
@@ -590,39 +516,15 @@ function ChartCard({
               bottom: 0,
             }}
           >
-
             <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={lineColor} stopOpacity={0.32} />
 
-              <linearGradient
-                id={gradientId}
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
+                <stop offset="60%" stopColor={lineColor} stopOpacity={0.1} />
 
-                <stop
-                  offset="0%"
-                  stopColor={lineColor}
-                  stopOpacity={0.32}
-                />
-
-                <stop
-                  offset="60%"
-                  stopColor={lineColor}
-                  stopOpacity={0.10}
-                />
-
-                <stop
-                  offset="100%"
-                  stopColor={lineColor}
-                  stopOpacity={0}
-                />
-
+                <stop offset="100%" stopColor={lineColor} stopOpacity={0} />
               </linearGradient>
-
             </defs>
-
 
             <CartesianGrid
               strokeDasharray="4 7"
@@ -630,33 +532,23 @@ function ChartCard({
               stroke="rgba(235,190,155,0.10)"
             />
 
-
             <XAxis
               dataKey="time"
-
               axisLine={false}
-
               tickLine={false}
-
               minTickGap={50}
-
               tick={{
                 fill: "#B69A84",
                 fontSize: 11,
                 fontWeight: 500,
               }}
-
               dy={10}
             />
 
-
             <YAxis
               axisLine={false}
-
               tickLine={false}
-
               width={52}
-
               tick={{
                 fill: "#B69A84",
                 fontSize: 11,
@@ -664,68 +556,41 @@ function ChartCard({
               }}
             />
 
-
             <Tooltip
-
               cursor={{
                 stroke: "rgba(231,180,139,0.20)",
                 strokeDasharray: "4 4",
               }}
-
-              content={
-                <SensorTooltip
-                  unit={unit}
-                />
-              }
-
+              content={<SensorTooltip unit={unit} />}
             />
 
-
             <Area
-
               type="monotone"
-
               dataKey={dataKey}
-
               stroke={lineColor}
-
               strokeWidth={3}
-
               fill={`url(#${gradientId})`}
-
               dot={false}
-
               activeDot={{
                 r: 5,
                 strokeWidth: 3,
                 stroke: "#2D1D16",
                 fill: lineColor,
               }}
-
               animationDuration={900}
-
             />
-
           </AreaChart>
-
         </ResponsiveContainer>
-
       </div>
-
     </motion.div>
-
   );
-
 }
-
-
 
 // =====================================================
 // SENSOR ANALYTICS
 // =====================================================
 
 function SensorAnalytics() {
-
   const [sensorData, setSensorData] = useState([]);
 
   const [loading, setLoading] = useState(true);
@@ -734,133 +599,73 @@ function SensorAnalytics() {
 
   const [lastUpdate, setLastUpdate] = useState(null);
 
-
-
   // =====================================================
   // FETCH REAL-TIME SENSOR HISTORY
   // =====================================================
 
   const fetchSensorData = async () => {
-
     try {
+      const response = await apiClient.get("/sensor/history");
 
-      const response = await apiClient.get(
-        "/sensor/history"
-      );
-
-
-      const records =
-        response.data?.data || [];
-
+      const records = response.data?.data || [];
 
       const formattedData = records
 
         .slice(-30)
 
         .map((item) => ({
-
-          time: new Date(
-            item.time
-          ).toLocaleTimeString([], {
-
+          time: new Date(item.time).toLocaleTimeString([], {
             hour: "2-digit",
 
             minute: "2-digit",
 
             second: "2-digit",
-
           }),
 
+          temperature: Number(item.temperature) || 0,
 
-          temperature:
-            Number(item.temperature) || 0,
+          humidity: Number(item.humidity) || 0,
 
-
-          humidity:
-            Number(item.humidity) || 0,
-
-
-          moisture:
-            Number(item.moisture) || 0,
-
+          moisture: Number(item.moisture) || 0,
         }));
 
+      setSensorData(formattedData);
 
-      setSensorData(
-        formattedData
-      );
-
-
-      setLastUpdate(
-        new Date()
-      );
-
+      setLastUpdate(new Date());
 
       setError("");
+    } catch (err) {
+      console.error("Sensor Analytics Error:", err);
 
-    }
-
-    catch (err) {
-
-      console.error(
-        "Sensor Analytics Error:",
-        err
-      );
-
-
-      setError(
-        "Sensor analytics connection lost"
-      );
-
-    }
-
-    finally {
-
+      setError("Sensor analytics connection lost");
+    } finally {
       setLoading(false);
-
     }
-
   };
-
-
 
   // =====================================================
   // AUTO LIVE UPDATE
   // =====================================================
 
   useEffect(() => {
-
     fetchSensorData();
 
-
-    const interval =
-      setInterval(() => {
-
-        fetchSensorData();
-
-      }, 60000);
-
+    const interval = setInterval(() => {
+      fetchSensorData();
+    }, 60000);
 
     return () => {
-
       clearInterval(interval);
-
     };
-
   }, []);
-
-
 
   // =====================================================
   // LOADING
   // =====================================================
 
   if (loading) {
-
     return (
-
       <section className="mt-10 w-full">
-
         <div
           className="
             flex
@@ -889,7 +694,6 @@ function SensorAnalytics() {
             shadow-[0_25px_70px_rgba(54,29,17,0.24)]
           "
         >
-
           <div
             className="
               relative
@@ -912,17 +716,14 @@ function SensorAnalytics() {
               bg-[#D0925D]/15
             "
           >
-
             <Activity
               size={27}
-
               className="
                 animate-pulse
 
                 text-[#E3A46D]
               "
             />
-
 
             <span
               className="
@@ -937,9 +738,7 @@ function SensorAnalytics() {
                 border-[#D0925D]/15
               "
             />
-
           </div>
-
 
           <h3
             className="
@@ -952,7 +751,6 @@ function SensorAnalytics() {
             Loading Sensor Intelligence
           </h3>
 
-
           <p
             className="
               mt-2
@@ -964,30 +762,18 @@ function SensorAnalytics() {
           >
             Connecting to live sensor data...
           </p>
-
         </div>
-
       </section>
-
     );
-
   }
-
-
 
   // =====================================================
   // ERROR
   // =====================================================
 
-  if (
-    error &&
-    sensorData.length === 0
-  ) {
-
+  if (error && sensorData.length === 0) {
     return (
-
       <section className="mt-10 w-full">
-
         <div
           className="
             flex
@@ -1009,12 +795,9 @@ function SensorAnalytics() {
             text-center
           "
         >
-
           <div>
-
             <Activity
               size={30}
-
               className="
                 mx-auto
                 mb-3
@@ -1022,7 +805,6 @@ function SensorAnalytics() {
                 text-red-400
               "
             />
-
 
             <p
               className="
@@ -1033,48 +815,35 @@ function SensorAnalytics() {
             >
               {error}
             </p>
-
           </div>
-
         </div>
-
       </section>
-
     );
-
   }
-
-
 
   // =====================================================
   // UI
   // =====================================================
 
   return (
-
     <section
       className="
         mt-10
         w-full
       "
     >
-
       <motion.div
-
         initial={{
           opacity: 0,
           y: 20,
         }}
-
         animate={{
           opacity: 1,
           y: 0,
         }}
-
         transition={{
           duration: 0.6,
         }}
-
         className="
           relative
 
@@ -1099,7 +868,6 @@ function SensorAnalytics() {
           lg:p-8
         "
       >
-
         {/* =====================================================
             BACKGROUND DECORATION
         ===================================================== */}
@@ -1124,7 +892,6 @@ function SensorAnalytics() {
           "
         />
 
-
         <div
           className="
             pointer-events-none
@@ -1145,7 +912,6 @@ function SensorAnalytics() {
           "
         />
 
-
         <div
           className="
             pointer-events-none
@@ -1165,8 +931,6 @@ function SensorAnalytics() {
             blur-[120px]
           "
         />
-
-
 
         {/* =====================================================
             HEADER
@@ -1189,9 +953,7 @@ function SensorAnalytics() {
             lg:justify-between
           "
         >
-
           <div>
-
             <div
               className="
                 mb-3
@@ -1202,7 +964,6 @@ function SensorAnalytics() {
                 gap-2
               "
             >
-
               <div
                 className="
                   flex
@@ -1221,14 +982,8 @@ function SensorAnalytics() {
                   bg-[#D99861]/15
                 "
               >
-
-                <Sparkles
-                  size={15}
-                  className="text-[#F0B27B]"
-                />
-
+                <Sparkles size={15} className="text-[#F0B27B]" />
               </div>
-
 
               <span
                 className="
@@ -1244,9 +999,7 @@ function SensorAnalytics() {
               >
                 Live Sensor Intelligence
               </span>
-
             </div>
-
 
             <h2
               className="
@@ -1256,14 +1009,15 @@ function SensorAnalytics() {
 
                 tracking-[-0.035em]
 
-                text-[#FFF3DE]
+                !text-[#FFE4A3]
+
+                drop-shadow-[0_0_12px_rgba(255,196,86,0.38)]
 
                 sm:text-[32px]
               "
             >
               Sensor Analytics
             </h2>
-
 
             <p
               className="
@@ -1278,13 +1032,10 @@ function SensorAnalytics() {
                 text-[#B49C89]
               "
             >
-              Real-time environmental monitoring and
-              intelligent analysis of coffee quality sensor data.
+              Real-time environmental monitoring and intelligent analysis of
+              coffee quality sensor data.
             </p>
-
           </div>
-
-
 
           {/* LIVE BADGE */}
 
@@ -1311,9 +1062,7 @@ function SensorAnalytics() {
               shadow-[0_0_30px_rgba(52,211,153,0.08)]
             "
           >
-
             <div className="relative">
-
               <span
                 className="
                   block
@@ -1329,7 +1078,6 @@ function SensorAnalytics() {
                 "
               />
 
-
               <span
                 className="
                   absolute
@@ -1344,15 +1092,9 @@ function SensorAnalytics() {
                   opacity-50
                 "
               />
-
             </div>
 
-
-            <Radio
-              size={15}
-              className="text-emerald-400"
-            />
-
+            <Radio size={15} className="text-emerald-400" />
 
             <span
               className="
@@ -1368,12 +1110,8 @@ function SensorAnalytics() {
             >
               Live Stream
             </span>
-
           </div>
-
         </div>
-
-
 
         {/* =====================================================
             SUMMARY CARDS
@@ -1394,7 +1132,6 @@ function SensorAnalytics() {
             md:grid-cols-3
           "
         >
-
           <InfoCard
             icon={Database}
             label="Samples"
@@ -1402,18 +1139,12 @@ function SensorAnalytics() {
             delay={0.08}
           />
 
-
           <InfoCard
             icon={Clock3}
             label="Last Update"
-            value={
-              lastUpdate
-                ? lastUpdate.toLocaleTimeString()
-                : "--"
-            }
+            value={lastUpdate ? lastUpdate.toLocaleTimeString() : "--"}
             delay={0.14}
           />
-
 
           <InfoCard
             icon={Activity}
@@ -1422,10 +1153,7 @@ function SensorAnalytics() {
             valueClassName="text-emerald-400"
             delay={0.2}
           />
-
         </div>
-
-
 
         {/* =====================================================
             SMALL SECTION HEADER
@@ -1443,9 +1171,7 @@ function SensorAnalytics() {
             justify-between
           "
         >
-
           <div>
-
             <p
               className="
                 text-[10px]
@@ -1461,7 +1187,6 @@ function SensorAnalytics() {
               Environmental Telemetry
             </p>
 
-
             <h3
               className="
                 mt-1
@@ -1474,9 +1199,7 @@ function SensorAnalytics() {
             >
               Live Sensor Trends
             </h3>
-
           </div>
-
 
           <div
             className="
@@ -1493,16 +1216,10 @@ function SensorAnalytics() {
               md:flex
             "
           >
-
             <Clock3 size={14} />
-
             Auto refresh every 60 sec
-
           </div>
-
         </div>
-
-
 
         {/* =====================================================
             CHARTS
@@ -1521,7 +1238,6 @@ function SensorAnalytics() {
             xl:grid-cols-3
           "
         >
-
           {/* TEMPERATURE */}
 
           <ChartCard
@@ -1537,7 +1253,6 @@ function SensorAnalytics() {
             iconBackground="bg-red-500/10"
             delay={0.24}
           />
-
 
           {/* HUMIDITY */}
 
@@ -1555,7 +1270,6 @@ function SensorAnalytics() {
             delay={0.31}
           />
 
-
           {/* MOISTURE */}
 
           <ChartCard
@@ -1571,16 +1285,10 @@ function SensorAnalytics() {
             iconBackground="bg-cyan-500/10"
             delay={0.38}
           />
-
         </div>
-
       </motion.div>
-
     </section>
-
   );
-
 }
-
 
 export default SensorAnalytics;

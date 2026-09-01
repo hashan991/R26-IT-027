@@ -30,6 +30,7 @@ import LastUpdated from "../components/LastUpdated";
 import SensorConnection from "../components/SensorConnection";
 
 import CoffeePowderQualityCard from "../components/CoffeePowderQualityCard";
+import PremiumCoffeeReport from "../components/PremiumCoffeeReport";
 
 function Dashboard() {
   const [sensor, setSensor] = useState(null);
@@ -44,6 +45,13 @@ function Dashboard() {
   // PDF report download state / target
   const dashboardReportRef = useRef(null);
   const [reportDownloading, setReportDownloading] = useState(false);
+
+  // Dedicated premium PDF report renderer.
+  // The report is rendered off-screen as fixed A4 pages and each page is
+  // captured separately, so cards/sections are never cut between pages.
+  const premiumReportRef = useRef(null);
+  const [reportHistory, setReportHistory] = useState([]);
+  const [reportGeneratedAt, setReportGeneratedAt] = useState(new Date());
 
   // =====================================================
   // PRODUCTION BATCH LIFECYCLE STATE
@@ -114,73 +122,128 @@ function Dashboard() {
   // =====================================================
 
   const handleDownloadReport = async () => {
-    if (!dashboardReportRef.current || reportDownloading) {
+    if (reportDownloading) {
       return;
     }
 
     try {
       setReportDownloading(true);
 
-      const reportElement = dashboardReportRef.current;
+      // -----------------------------------------------------
+      // 1. LOAD THE DATA NEEDED BY THE DEDICATED PDF REPORT
+      // -----------------------------------------------------
+      let historyRecords = [];
 
-      const canvas = await html2canvas(reportElement, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#F7EBDD",
-        scrollX: 0,
-        scrollY: -window.scrollY,
-        windowWidth: reportElement.scrollWidth,
-        logging: false,
+      try {
+        const historyResponse = await apiClient.get(
+          "/sensor/history?limit=120",
+        );
+
+        historyRecords = historyResponse.data?.data || [];
+      } catch (historyError) {
+        console.warn(
+          "PDF sensor history fetch failed. Continuing with current dashboard data:",
+          historyError,
+        );
+      }
+
+      const activeReportBatchId =
+        batchState.batch_id ||
+        batchState.last_completed_batch_id ||
+        sensor?.batch_id ||
+        null;
+
+      if (activeReportBatchId) {
+        const sameBatchRecords = historyRecords.filter(
+          (record) =>
+            !record?.batch_id || record.batch_id === activeReportBatchId,
+        );
+
+        if (sameBatchRecords.length) {
+          historyRecords = sameBatchRecords;
+        }
+      }
+
+      setReportHistory(historyRecords.slice(-30));
+
+      setReportGeneratedAt(new Date());
+
+      // -----------------------------------------------------
+      // 2. WAIT FOR THE HIDDEN A4 REPORT + RECHARTS SVGs
+      //    TO FINISH RENDERING
+      // -----------------------------------------------------
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(resolve);
+        });
       });
 
-      const imageData = canvas.toDataURL("image/png", 1.0);
+      await new Promise((resolve) => {
+        setTimeout(resolve, 180);
+      });
 
+      const reportRoot = premiumReportRef.current;
+
+      if (!reportRoot) {
+        throw new Error("Premium report renderer is not available.");
+      }
+
+      const reportPages = Array.from(
+        reportRoot.querySelectorAll('[data-report-page="true"]'),
+      );
+
+      if (!reportPages.length) {
+        throw new Error("No premium PDF report pages were found.");
+      }
+
+      // -----------------------------------------------------
+      // 3. CREATE A4 PDF - ONE DOM PAGE = ONE PDF PAGE
+      //
+      //    This completely removes the old screenshot-slicing issue:
+      //    no card can be half on one page and half on another.
+      // -----------------------------------------------------
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
+        compress: true,
       });
 
-      const margin = 8;
       const pdfWidth = pdf.internal.pageSize.getWidth();
+
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imageWidth = pdfWidth - margin * 2;
-      const imageHeight = (canvas.height * imageWidth) / canvas.width;
-      const printableHeight = pdfHeight - margin * 2;
 
-      let heightLeft = imageHeight;
-      let position = margin;
+      for (let pageIndex = 0; pageIndex < reportPages.length; pageIndex += 1) {
+        const pageElement = reportPages[pageIndex];
 
-      pdf.addImage(
-        imageData,
-        "PNG",
-        margin,
-        position,
-        imageWidth,
-        imageHeight,
-        undefined,
-        "FAST",
-      );
+        const pageCanvas = await html2canvas(pageElement, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: "#F6E8D5",
+          logging: false,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: pageElement.scrollWidth,
+          windowHeight: pageElement.scrollHeight,
+        });
 
-      heightLeft -= printableHeight;
+        const pageImage = pageCanvas.toDataURL("image/jpeg", 0.96);
 
-      while (heightLeft > 0) {
-        pdf.addPage();
-
-        position = margin - (imageHeight - heightLeft);
+        if (pageIndex > 0) {
+          pdf.addPage();
+        }
 
         pdf.addImage(
-          imageData,
-          "PNG",
-          margin,
-          position,
-          imageWidth,
-          imageHeight,
+          pageImage,
+          "JPEG",
+          0,
+          0,
+          pdfWidth,
+          pdfHeight,
           undefined,
           "FAST",
         );
-
-        heightLeft -= printableHeight;
       }
 
       const reportBatchId =
@@ -190,11 +253,21 @@ function Dashboard() {
         "dashboard";
 
       const safeBatchId = String(reportBatchId).replace(/[^a-zA-Z0-9_-]/g, "_");
+
       const reportDate = new Date().toISOString().slice(0, 10);
 
-      pdf.save(`CoffeeSense_Report_${safeBatchId}_${reportDate}.pdf`);
+      pdf.setProperties({
+        title: `CoffeeSense AI - ${reportBatchId} Quality Intelligence Report`,
+        subject: "Coffee Powder Quality Intelligence Report",
+        author: "CoffeeSense AI",
+        creator: "CoffeeSense AI Platform",
+        keywords:
+          "coffee quality, IoT sensors, AI quality intelligence, production batch",
+      });
+
+      pdf.save(`CoffeeSense_Premium_Report_${safeBatchId}_${reportDate}.pdf`);
     } catch (err) {
-      console.error("PDF report download error:", err);
+      console.error("Premium PDF report download error:", err);
     } finally {
       setReportDownloading(false);
     }
@@ -219,10 +292,7 @@ function Dashboard() {
       console.error("Current batch API error:", err);
 
       setBatchError(
-        getApiErrorMessage(
-          err,
-          "Unable to load the current production batch.",
-        ),
+        getApiErrorMessage(err, "Unable to load the current production batch."),
       );
 
       return null;
@@ -299,8 +369,7 @@ function Dashboard() {
         batch_id: response.data?.batch_id ?? null,
         started_at: response.data?.started_at ?? null,
         completed_at: null,
-        last_completed_batch_id:
-          batchState.last_completed_batch_id ?? null,
+        last_completed_batch_id: batchState.last_completed_batch_id ?? null,
       };
 
       setBatchState(nextState);
@@ -323,10 +392,7 @@ function Dashboard() {
       console.error("Start batch error:", err);
 
       setBatchError(
-        getApiErrorMessage(
-          err,
-          "Unable to start a new production batch.",
-        ),
+        getApiErrorMessage(err, "Unable to start a new production batch."),
       );
 
       // A 409 can happen if another tab has already started a batch.
@@ -446,8 +512,7 @@ function Dashboard() {
 
   const liveSensor = sensor || {};
 
-  const aiDecision =
-    liveSensor?.ai_decision?.decision?.toUpperCase();
+  const aiDecision = liveSensor?.ai_decision?.decision?.toUpperCase();
 
   // =====================================================
   // SENSOR STATUS LOGIC
@@ -461,16 +526,16 @@ function Dashboard() {
           humidity: "Healthy",
         }
       : aiDecision === "HOLD"
-      ? {
-          moisture: "Risk Detected",
-          temperature: "Check Required",
-          humidity: "Attention Required",
-        }
-      : {
-          moisture: "Monitoring",
-          temperature: "Monitoring",
-          humidity: "Monitoring",
-        };
+        ? {
+            moisture: "Risk Detected",
+            temperature: "Check Required",
+            humidity: "Attention Required",
+          }
+        : {
+            moisture: "Monitoring",
+            temperature: "Monitoring",
+            humidity: "Monitoring",
+          };
 
   const getStatusColors = (status) => {
     if (status === "Risk Detected") {
@@ -481,10 +546,7 @@ function Dashboard() {
       };
     }
 
-    if (
-      status === "Check Required" ||
-      status === "Attention Required"
-    ) {
+    if (status === "Check Required" || status === "Attention Required") {
       return {
         color: "text-amber-600",
         dot: "bg-amber-500",
@@ -492,11 +554,7 @@ function Dashboard() {
       };
     }
 
-    if (
-      status === "Optimal" ||
-      status === "Stable" ||
-      status === "Healthy"
-    ) {
+    if (status === "Optimal" || status === "Stable" || status === "Healthy") {
       return {
         color: "text-emerald-600",
         dot: "bg-emerald-500",
@@ -514,37 +572,37 @@ function Dashboard() {
   const moistureStatus = !batchState.batch_active
     ? "Standby"
     : error
-    ? "Offline"
-    : sensorStatus.moisture;
+      ? "Offline"
+      : sensorStatus.moisture;
 
   const tempStatus = !batchState.batch_active
     ? "Standby"
     : error
-    ? "Offline"
-    : sensorStatus.temperature;
+      ? "Offline"
+      : sensorStatus.temperature;
 
   const humidityStatus = !batchState.batch_active
     ? "Standby"
     : error
-    ? "Offline"
-    : sensorStatus.humidity;
+      ? "Offline"
+      : sensorStatus.humidity;
 
-  const moistureColors =
-    getStatusColors(moistureStatus);
+  const moistureColors = getStatusColors(moistureStatus);
 
-  const tempColors =
-    getStatusColors(tempStatus);
+  const tempColors = getStatusColors(tempStatus);
 
-  const humidityColors =
-    getStatusColors(humidityStatus);
+  const humidityColors = getStatusColors(humidityStatus);
 
   return (
     <div
       ref={dashboardReportRef}
       className="
+        w-full
+        max-w-none
+        min-w-0
         min-h-screen
         relative
-        overflow-hidden
+        overflow-x-hidden
 
         bg-gradient-to-br
         from-[#F7EBDD]
@@ -553,11 +611,16 @@ function Dashboard() {
 
         text-[#3B2415]
 
-        p-5
-        lg:p-7
+        px-3
+        py-4
+        sm:px-4
+        sm:py-5
+        lg:px-5
+        lg:py-6
+        xl:px-6
+        2xl:px-8
       "
     >
-
       {/* =================================================
           PREMIUM COFFEE AMBIENT BACKGROUND
       ================================================= */}
@@ -638,26 +701,30 @@ function Dashboard() {
         "
       />
 
-      <div className="relative z-10 max-w-7xl mx-auto">
-
-
-          {/* =================================================
+      <div
+        data-pdf-content-root="true"
+        className="relative z-10 w-full max-w-none min-w-0 mx-0"
+      >
+        {/* =================================================
               TOP SENSOR CONNECTION STATUS
           ================================================= */}
 
-          <motion.div
-            initial={{
-              opacity: 0,
-              y: -10,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            transition={{
-              duration: 0.5,
-            }}
-            className="
+        <motion.div
+          data-pdf-keep="true"
+          initial={{
+            opacity: 0,
+            y: -10,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            duration: 0.5,
+          }}
+          className="
+              w-full
+              min-w-0
               mb-5
 
               rounded-[28px]
@@ -674,54 +741,55 @@ function Dashboard() {
 
               overflow-hidden
             "
-          >
+        >
+          <SensorConnection online={!error} lastUpdate={lastRefresh} />
+        </motion.div>
 
-            <SensorConnection
-              online={!error}
-              lastUpdate={lastRefresh}
-            />
-
-          </motion.div>
-
-
-
-          {/* =================================================
+        {/* =================================================
               PRODUCTION BATCH LIFECYCLE CONTROL
           ================================================= */}
 
-          <motion.div
-            initial={{
-              opacity: 0,
-              y: 14,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            transition={{
-              duration: 0.5,
-              delay: 0.12,
-            }}
-            className="
+        <motion.div
+          data-pdf-keep="true"
+          initial={{
+            opacity: 0,
+            y: 14,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            duration: 0.5,
+            delay: 0.12,
+          }}
+          className="
               relative
+              box-border
+              w-full
+              min-w-0
+
               mb-5
               overflow-hidden
               rounded-[26px]
+
               border
               border-[#B9782B]/25
+
               bg-gradient-to-br
               from-[#3A2114]
               via-[#2B180E]
               to-[#1E1009]
+
               px-5
               py-5
-              shadow-[0_16px_42px_rgba(54,29,12,0.20)]
               sm:px-6
-            "
-          >
 
-            <div
-              className="
+              shadow-[0_16px_42px_rgba(54,29,12,0.20)]
+            "
+        >
+          <div
+            className="
                 pointer-events-none
                 absolute
                 -right-16
@@ -732,10 +800,10 @@ function Dashboard() {
                 bg-[#D89D35]/15
                 blur-[85px]
               "
-            />
+          />
 
-            <div
-              className="
+          <div
+            className="
                 relative
                 z-10
                 flex
@@ -745,19 +813,17 @@ function Dashboard() {
                 xl:items-center
                 xl:justify-between
               "
-            >
-
-              <div
-                className="
+          >
+            <div
+              className="
                   flex
                   min-w-0
                   items-start
                   gap-4
                 "
-              >
-
-                <div
-                  className="
+            >
+              <div
+                className="
                     flex
                     h-12
                     w-12
@@ -769,41 +835,40 @@ function Dashboard() {
                     border-[#D9A441]/25
                     bg-[#D9A441]/10
                   "
-                >
-                  <Package
-                    className="
+              >
+                <Package
+                  className="
                       h-5
                       w-5
                       text-[#F0BC69]
                     "
-                  />
-                </div>
+                />
+              </div>
 
-                <div className="min-w-0">
-
-                  <div
-                    className="
+              <div className="min-w-0">
+                <div
+                  className="
                       flex
                       flex-wrap
                       items-center
                       gap-2
                     "
-                  >
-                    <p
-                      className="
+                >
+                  <p
+                    className="
                         text-[10px]
                         font-black
                         uppercase
                         tracking-[2.5px]
                         text-[#D6A365]
                       "
-                    >
-                      Production Batch Control
-                    </p>
+                  >
+                    Production Batch Control
+                  </p>
 
-                    {!batchLoading && (
-                      <span
-                        className={`
+                  {!batchLoading && (
+                    <span
+                      className={`
                           inline-flex
                           items-center
                           gap-1.5
@@ -821,9 +886,9 @@ function Dashboard() {
                               : "border-[#C8A27D]/20 bg-white/[0.04] text-[#BFA58F]"
                           }
                         `}
-                      >
-                        <span
-                          className={`
+                    >
+                      <span
+                        className={`
                             h-1.5
                             w-1.5
                             rounded-full
@@ -833,14 +898,14 @@ function Dashboard() {
                                 : "bg-[#8F7764]"
                             }
                           `}
-                        />
-                        {batchState.batch_active ? "Active" : "Standby"}
-                      </span>
-                    )}
-                  </div>
+                      />
+                      {batchState.batch_active ? "Active" : "Standby"}
+                    </span>
+                  )}
+                </div>
 
-                  <div
-                    className="
+                <div
+                  className="
                       mt-2
                       flex
                       flex-wrap
@@ -848,26 +913,26 @@ function Dashboard() {
                       gap-x-4
                       gap-y-2
                     "
-                  >
-                    <h3
-                      className="
+                >
+                  <h3
+                    className="
                         text-[24px]
                         font-black
                         tracking-[-0.5px]
                         !text-[#FFF0D6]
                         sm:text-[28px]
                       "
-                    >
-                      {batchLoading
-                        ? "Loading batch..."
-                        : batchState.batch_active
+                  >
+                    {batchLoading
+                      ? "Loading batch..."
+                      : batchState.batch_active
                         ? batchState.batch_id
                         : "No Active Batch"}
-                    </h3>
+                  </h3>
 
-                    {batchState.batch_active && (
-                      <div
-                        className="
+                  {batchState.batch_active && (
+                    <div
+                      className="
                           mb-1
                           flex
                           items-center
@@ -876,31 +941,31 @@ function Dashboard() {
                           font-semibold
                           text-[#BFA58F]
                         "
-                      >
-                        <Clock3 className="h-3.5 w-3.5" />
-                        Started {formatBatchDateTime(batchState.started_at)}
-                      </div>
-                    )}
-                  </div>
+                    >
+                      <Clock3 className="h-3.5 w-3.5" />
+                      Started {formatBatchDateTime(batchState.started_at)}
+                    </div>
+                  )}
+                </div>
 
-                  <p
-                    className="
+                <p
+                  className="
                       mt-1.5
                       max-w-2xl
                       text-[12px]
                       leading-5
                       text-[#B6957A]
                     "
-                  >
-                    {batchState.batch_active
-                      ? "Live sensor readings and AI decisions are now assigned only to this production batch."
-                      : "Start a production batch before live sensor collection. This prevents readings from being stored under a previous batch ID."}
-                  </p>
+                >
+                  {batchState.batch_active
+                    ? "Live sensor readings and AI decisions are now assigned only to this production batch."
+                    : "Start a production batch before live sensor collection. This prevents readings from being stored under a previous batch ID."}
+                </p>
 
-                  {!batchState.batch_active &&
-                    batchState.last_completed_batch_id && (
-                      <p
-                        className="
+                {!batchState.batch_active &&
+                  batchState.last_completed_batch_id && (
+                    <p
+                      className="
                           mt-2
                           text-[10px]
                           font-bold
@@ -908,17 +973,15 @@ function Dashboard() {
                           tracking-[1px]
                           text-[#8F7661]
                         "
-                      >
-                        Last completed: {batchState.last_completed_batch_id}
-                      </p>
-                    )}
-
-                </div>
-
+                    >
+                      Last completed: {batchState.last_completed_batch_id}
+                    </p>
+                  )}
               </div>
+            </div>
 
-              <div
-                className="
+            <div
+              className="
                   flex
                   shrink-0
                   flex-col
@@ -926,20 +989,19 @@ function Dashboard() {
                   sm:flex-row
                   xl:justify-end
                 "
-              >
-
-                {batchState.batch_active ? (
-                  <motion.button
-                    whileHover={{
-                      y: -2,
-                      scale: 1.01,
-                    }}
-                    whileTap={{
-                      scale: 0.98,
-                    }}
-                    onClick={handleCompleteBatch}
-                    disabled={batchActionLoading}
-                    className="
+            >
+              {batchState.batch_active ? (
+                <motion.button
+                  whileHover={{
+                    y: -2,
+                    scale: 1.01,
+                  }}
+                  whileTap={{
+                    scale: 0.98,
+                  }}
+                  onClick={handleCompleteBatch}
+                  disabled={batchActionLoading}
+                  className="
                       inline-flex
                       h-12
                       items-center
@@ -959,24 +1021,22 @@ function Dashboard() {
                       disabled:cursor-not-allowed
                       disabled:opacity-50
                     "
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    {batchActionLoading
-                      ? "Completing..."
-                      : "Complete Batch"}
-                  </motion.button>
-                ) : (
-                  <motion.button
-                    whileHover={{
-                      y: -2,
-                      scale: 1.01,
-                    }}
-                    whileTap={{
-                      scale: 0.98,
-                    }}
-                    onClick={handleStartBatch}
-                    disabled={batchActionLoading || batchLoading}
-                    className="
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  {batchActionLoading ? "Completing..." : "Complete Batch"}
+                </motion.button>
+              ) : (
+                <motion.button
+                  whileHover={{
+                    y: -2,
+                    scale: 1.01,
+                  }}
+                  whileTap={{
+                    scale: 0.98,
+                  }}
+                  onClick={handleStartBatch}
+                  disabled={batchActionLoading || batchLoading}
+                  className="
                       inline-flex
                       h-12
                       items-center
@@ -999,21 +1059,17 @@ function Dashboard() {
                       disabled:cursor-not-allowed
                       disabled:opacity-50
                     "
-                  >
-                    <Play className="h-4 w-4" />
-                    {batchActionLoading
-                      ? "Starting..."
-                      : "Start New Batch"}
-                  </motion.button>
-                )}
-
-              </div>
-
+                >
+                  <Play className="h-4 w-4" />
+                  {batchActionLoading ? "Starting..." : "Start New Batch"}
+                </motion.button>
+              )}
             </div>
+          </div>
 
-            {(batchMessage || batchError) && (
-              <div
-                className={`
+          {(batchMessage || batchError) && (
+            <div
+              className={`
                   relative
                   z-10
                   mt-4
@@ -1032,28 +1088,25 @@ function Dashboard() {
                       : "border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-300"
                   }
                 `}
-              >
-                {batchError ? (
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                ) : (
-                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                )}
+            >
+              {batchError ? (
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              ) : (
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              )}
 
-                <span>{batchError || batchMessage}</span>
-              </div>
-            )}
+              <span>{batchError || batchMessage}</span>
+            </div>
+          )}
+        </motion.div>
 
-          </motion.div>
-
-
-
-          {/* =================================================
+        {/* =================================================
               COFFEE POWDER QUALITY INTELLIGENCE
           ================================================= */}
 
+        <div data-pdf-keep="true" className="w-full min-w-0">
           <CoffeePowderQualityCard />
-
-
+        </div>
 
         {/* =================================================
             PREMIUM DASHBOARD HEADER
@@ -1061,6 +1114,7 @@ function Dashboard() {
         ================================================= */}
 
         <motion.div
+          data-pdf-keep="true"
           initial={{
             opacity: 0,
             y: 18,
@@ -1073,9 +1127,8 @@ function Dashboard() {
             duration: 0.65,
             ease: "easeOut",
           }}
-          className="mb-8"
+          className="mb-8 w-full min-w-0"
         >
-
           <div
             className="
               relative
@@ -1099,7 +1152,6 @@ function Dashboard() {
               lg:py-6
             "
           >
-
             {/* Ambient coffee glow */}
 
             <div
@@ -1171,13 +1223,11 @@ function Dashboard() {
                 gap-6
               "
             >
-
               {/* =================================================
                   LEFT — BRAND / TITLE
               ================================================= */}
 
               <div className="min-w-0">
-
                 <div
                   className="
                     flex
@@ -1186,7 +1236,6 @@ function Dashboard() {
                     flex-wrap
                   "
                 >
-
                   <motion.div
                     whileHover={{
                       rotate: 3,
@@ -1217,7 +1266,6 @@ function Dashboard() {
                       justify-center
                     "
                   >
-
                     <LayoutDashboard
                       className="
                         w-5
@@ -1225,9 +1273,7 @@ function Dashboard() {
                         text-[#9B5D19]
                       "
                     />
-
                   </motion.div>
-
 
                   <div
                     className="
@@ -1237,7 +1283,6 @@ function Dashboard() {
                       flex-wrap
                     "
                   >
-
                     <p
                       className="
                         text-[10px]
@@ -1257,7 +1302,6 @@ function Dashboard() {
                     >
                       INDUSTRIAL COFFEE INTELLIGENCE
                     </p>
-
 
                     <span
                       className="
@@ -1286,11 +1330,8 @@ function Dashboard() {
                     >
                       AI
                     </span>
-
                   </div>
-
                 </div>
-
 
                 <motion.h2
                   initial={{
@@ -1324,7 +1365,6 @@ function Dashboard() {
                   CoffeeSense Control Center
                 </motion.h2>
 
-
                 <p
                   className="
                     mt-2
@@ -1341,12 +1381,10 @@ function Dashboard() {
                     leading-relaxed
                   "
                 >
-                  Real-time coffee quality monitoring powered by
-                  IoT sensors and AI-driven production intelligence.
+                  Real-time coffee quality monitoring powered by IoT sensors and
+                  AI-driven production intelligence.
                 </p>
-
               </div>
-
 
               {/* =================================================
                   RIGHT — ACTION / TIME
@@ -1355,6 +1393,9 @@ function Dashboard() {
               <div
                 className="
                   flex
+                  w-full
+                  xl:w-auto
+                  min-w-0
                   items-center
                   gap-2.5
                   sm:gap-3
@@ -1364,7 +1405,6 @@ function Dashboard() {
                   xl:justify-end
                 "
               >
-
                 <motion.button
                   whileHover={{
                     y: -2,
@@ -1375,9 +1415,7 @@ function Dashboard() {
                   }}
                   onClick={() => fetchSensorData()}
                   disabled={
-                    refreshing ||
-                    batchActionLoading ||
-                    !batchState.batch_active
+                    refreshing || batchActionLoading || !batchState.batch_active
                   }
                   className="
                     h-12
@@ -1415,24 +1453,21 @@ function Dashboard() {
                     disabled:cursor-not-allowed
                   "
                 >
-
-                  <Activity
-                    className="w-4 h-4"
-                  />
+                  <Activity className="w-4 h-4" />
 
                   {refreshing
                     ? "Refreshing..."
                     : batchState.batch_active
-                    ? "Refresh"
-                    : "No Active Batch"}
-
+                      ? "Refresh"
+                      : "No Active Batch"}
                 </motion.button>
-
 
                 <div
                   className="
                     h-12
-                    min-w-[270px]
+                    w-full
+                    sm:w-auto
+                    sm:min-w-[250px]
 
                     px-4
 
@@ -1459,13 +1494,8 @@ function Dashboard() {
                     [&>div]:!p-0
                   "
                 >
-
-                  <LastUpdated
-                    time={lastRefresh}
-                  />
-
+                  <LastUpdated time={lastRefresh} />
                 </div>
-
 
                 <motion.div
                   animate={{
@@ -1499,7 +1529,6 @@ function Dashboard() {
                     justify-center
                   "
                 >
-
                   <p
                     className="
                       text-[7px]
@@ -1530,23 +1559,13 @@ function Dashboard() {
                       leading-none
                     "
                   >
-                    {batchState.batch_active
-                      ? `${countdown}s`
-                      : "PAUSED"}
+                    {batchState.batch_active ? `${countdown}s` : "PAUSED"}
                   </p>
-
                 </motion.div>
-
               </div>
-
             </div>
-
           </div>
-
-          
-
         </motion.div>
-
 
         {/* =================================================
             MAIN CONTENT
@@ -1565,14 +1584,14 @@ function Dashboard() {
             duration: 0.6,
             delay: 0.2,
           }}
-          className="space-y-6"
+          className="w-full min-w-0 space-y-6"
         >
-
           {/* =================================================
               AI DECISION
           ================================================= */}
 
           <div
+            data-pdf-keep="true"
             className="
               rounded-[28px]
 
@@ -1589,33 +1608,27 @@ function Dashboard() {
               shadow-[0_18px_45px_rgba(91,52,20,0.12)]
             "
           >
-
             <QualityStatusCard
-                data={liveSensor.ai_decision}
-                onViewRecommendation={() => {
+              data={liveSensor.ai_decision}
+              onViewRecommendation={() => {
+                setShowRecommendation(true);
 
-                    setShowRecommendation(true);
-
-                    setTimeout(() => {
-
-                        recommendationRef.current?.scrollIntoView({
-                            behavior:"smooth",
-                            block:"start"
-                        });
-
-                    },300);
-
-                }}
+                setTimeout(() => {
+                  recommendationRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  });
+                }, 300);
+              }}
             />
-
           </div>
-
 
           {/* =================================================
               SENSOR CARDS
           ================================================= */}
 
           <div
+            data-pdf-keep="true"
             className="
               grid
 
@@ -1628,20 +1641,11 @@ function Dashboard() {
               w-full
             "
           >
-
             <div>
-
               <SensorCard
                 title="MOISTURE LEVEL"
-
-                value={
-                  loading
-                    ? "---"
-                    : liveSensor.moisture ?? "--"
-                }
-
+                value={loading ? "---" : (liveSensor.moisture ?? "--")}
                 unit=""
-
                 icon={
                   <Droplets
                     className="
@@ -1651,44 +1655,22 @@ function Dashboard() {
                     "
                   />
                 }
-
                 status={moistureStatus}
-
-                statusColor={
-                  moistureColors.color
-                }
-
-                statusDot={
-                  moistureColors.dot
-                }
-
-                valueColor={
-                  moistureColors.value
-                }
-
+                statusColor={moistureColors.color}
+                statusDot={moistureColors.dot}
+                valueColor={moistureColors.value}
                 color="
                   group-hover:border-[#C8892E]/50
                 "
-
                 delay={0}
               />
-
             </div>
 
-
             <div>
-
               <SensorCard
                 title="TEMPERATURE"
-
-                value={
-                  loading
-                    ? "---"
-                    : liveSensor.temperature ?? "--"
-                }
-
+                value={loading ? "---" : (liveSensor.temperature ?? "--")}
                 unit="°C"
-
                 icon={
                   <Thermometer
                     className="
@@ -1698,44 +1680,22 @@ function Dashboard() {
                     "
                   />
                 }
-
                 status={tempStatus}
-
-                statusColor={
-                  tempColors.color
-                }
-
-                statusDot={
-                  tempColors.dot
-                }
-
-                valueColor={
-                  tempColors.value
-                }
-
+                statusColor={tempColors.color}
+                statusDot={tempColors.dot}
+                valueColor={tempColors.value}
                 color="
                   group-hover:border-[#C8892E]/50
                 "
-
                 delay={0.1}
               />
-
             </div>
 
-
             <div>
-
               <SensorCard
                 title="HUMIDITY"
-
-                value={
-                  loading
-                    ? "---"
-                    : liveSensor.humidity ?? "--"
-                }
-
+                value={loading ? "---" : (liveSensor.humidity ?? "--")}
                 unit="%"
-
                 icon={
                   <Wind
                     className="
@@ -1745,38 +1705,24 @@ function Dashboard() {
                     "
                   />
                 }
-
                 status={humidityStatus}
-
-                statusColor={
-                  humidityColors.color
-                }
-
-                statusDot={
-                  humidityColors.dot
-                }
-
-                valueColor={
-                  humidityColors.value
-                }
-
+                statusColor={humidityColors.color}
+                statusDot={humidityColors.dot}
+                valueColor={humidityColors.value}
                 color="
                   group-hover:border-[#C8892E]/50
                 "
-
                 delay={0.2}
               />
-
             </div>
-
           </div>
-
 
           {/* =================================================
               RGB COFFEE INTELLIGENCE
           ================================================= */}
 
           <motion.div
+            data-pdf-keep="true"
             initial={{
               opacity: 0,
               scale: 0.97,
@@ -1805,7 +1751,6 @@ function Dashboard() {
               shadow-[0_18px_45px_rgba(91,52,20,0.11)]
             "
           >
-
             <div
               className="
                 flex
@@ -1822,9 +1767,7 @@ function Dashboard() {
                 gap-3
               "
             >
-
               <div>
-
                 <p
                   className="
                     text-[10px]
@@ -1840,7 +1783,6 @@ function Dashboard() {
                 >
                   COFFEE VISION INTELLIGENCE
                 </p>
-
 
                 <h2
                   className="
@@ -1858,7 +1800,6 @@ function Dashboard() {
                   RGB Coffee Intelligence
                 </h2>
 
-
                 <p
                   className="
                     text-[#76583E]
@@ -1868,9 +1809,7 @@ function Dashboard() {
                 >
                   Computer Vision Based Coffee Colour Analysis
                 </p>
-
               </div>
-
 
               <div
                 className="
@@ -1895,20 +1834,15 @@ function Dashboard() {
               >
                 Vision Intelligence
               </div>
-
             </div>
-
 
             <RGBCard
               red={liveSensor.red || 0}
               green={liveSensor.green || 0}
               blue={liveSensor.blue || 0}
             />
-
           </motion.div>
-
         </motion.div>
-
 
         {/* =================================================
             LOWER INTELLIGENCE SECTIONS
@@ -1928,20 +1862,19 @@ function Dashboard() {
             delay: 0.4,
           }}
           className="
+            w-full
+            min-w-0
             mt-10
 
             space-y-9
           "
         >
-
           {/* =================================================
               SENSOR ANALYTICS
           ================================================= */}
 
-          <section>
-
+          <section data-pdf-keep="true">
             <div className="mb-4">
-
               <p
                 className="
                   text-[10px]
@@ -1958,7 +1891,6 @@ function Dashboard() {
                 DATA ANALYTICS
               </p>
 
-
               <h2
                 className="
                   text-xl
@@ -1973,7 +1905,6 @@ function Dashboard() {
                 Sensor Intelligence Analytics
               </h2>
 
-
               <p
                 className="
                   text-[#76583E]
@@ -1985,9 +1916,7 @@ function Dashboard() {
               >
                 Historical sensor behaviour and quality trend monitoring
               </p>
-
             </div>
-
 
             <div
               className="
@@ -2005,23 +1934,15 @@ function Dashboard() {
                 shadow-[0_16px_40px_rgba(91,52,20,0.10)]
               "
             >
-
               <SensorAnalytics key={`sensor-analytics-${dataRefreshKey}`} />
-
             </div>
-
           </section>
-
-
-          
-
 
           {/* =================================================
               AI RECOMMENDATION
           ================================================= */}
 
-          <section ref={recommendationRef}>
-
+          <section ref={recommendationRef} data-pdf-keep="true">
             <div
               className="
                 rounded-[28px]
@@ -2039,77 +1960,498 @@ function Dashboard() {
                 shadow-[0_18px_45px_rgba(91,52,20,0.12)]
               "
             >
-
               {showRecommendation && (
-                  <RecommendationCard
-                      key={`recommendation-${dataRefreshKey}`}
-                  />
+                <RecommendationCard key={`recommendation-${dataRefreshKey}`} />
               )}
-
             </div>
-
           </section>
-
-
-          
-
 
           {/* =================================================
-              PDF REPORT
+              PREMIUM PDF REPORT EXPORT
           ================================================= */}
 
-          <section
-            data-html2canvas-ignore="true"
-            className="flex justify-center pt-1"
-          >
-            <motion.button
-              whileHover={{
-                y: -2,
-                scale: 1.02,
+          <section data-html2canvas-ignore="true" className="pt-2">
+            <motion.div
+              initial={{
+                opacity: 0,
+                y: 20,
               }}
-              whileTap={{
-                scale: 0.98,
+              animate={{
+                opacity: 1,
+                y: 0,
               }}
-              onClick={handleDownloadReport}
-              disabled={reportDownloading}
+              transition={{
+                duration: 0.6,
+                delay: 0.48,
+              }}
               className="
-                inline-flex
-                h-12
-                items-center
-                justify-center
-                gap-2.5
-                rounded-2xl
+                group
+                relative
+                overflow-hidden
+
+                rounded-[30px]
+
                 border
-                border-[#A9651B]/35
-                bg-gradient-to-r
-                from-[#E9B958]
-                via-[#D89D35]
-                to-[#B87325]
-                px-6
-                text-[12px]
-                font-black
-                text-[#2C180A]
-                shadow-[0_10px_24px_rgba(155,88,23,0.18)]
-                transition-all
-                duration-300
-                hover:shadow-[0_14px_30px_rgba(155,88,23,0.25)]
-                disabled:cursor-not-allowed
-                disabled:opacity-60
+                border-[#C8892E]/30
+
+                bg-gradient-to-br
+                from-[#3A2114]
+                via-[#2B170D]
+                to-[#1A0D07]
+
+                px-5
+                py-6
+
+                shadow-[0_24px_60px_rgba(66,34,13,0.22)]
+
+                sm:px-6
+                lg:px-8
+                lg:py-7
               "
             >
-              <Download className="h-4 w-4" />
-              {reportDownloading ? "Preparing Report..." : "Download Report"}
-            </motion.button>
-          </section>
+              {/* Ambient premium glows */}
+              <div
+                className="
+                  pointer-events-none
+                  absolute
+                  -left-20
+                  -top-24
+                  h-60
+                  w-60
+                  rounded-full
+                  bg-[#E5A33F]/15
+                  blur-[85px]
+                "
+              />
 
+              <div
+                className="
+                  pointer-events-none
+                  absolute
+                  -bottom-28
+                  right-[8%]
+                  h-72
+                  w-72
+                  rounded-full
+                  bg-[#B96F24]/14
+                  blur-[100px]
+                "
+              />
+
+              <div
+                className="
+                  pointer-events-none
+                  absolute
+                  left-8
+                  right-8
+                  top-0
+                  h-px
+                  bg-gradient-to-r
+                  from-transparent
+                  via-[#F2C46D]/70
+                  to-transparent
+                "
+              />
+
+              <div
+                className="
+                  relative
+                  z-10
+
+                  flex
+                  flex-col
+                  gap-6
+
+                  xl:flex-row
+                  xl:items-center
+                  xl:justify-between
+                "
+              >
+                {/* LEFT — REPORT INFORMATION */}
+                <div className="min-w-0">
+                  <div
+                    className="
+                      mb-3
+                      flex
+                      flex-wrap
+                      items-center
+                      gap-2.5
+                    "
+                  >
+                    <span
+                      className="
+                        inline-flex
+                        h-9
+                        w-9
+                        items-center
+                        justify-center
+
+                        rounded-xl
+
+                        border
+                        border-[#E1AC56]/30
+
+                        bg-[#D89D35]/12
+
+                        text-[#F5C66F]
+
+                        shadow-[0_0_24px_rgba(216,157,53,0.10)]
+                      "
+                    >
+                      <Download className="h-4 w-4" />
+                    </span>
+
+                    <p
+                      className="
+                        text-[10px]
+                        font-black
+                        uppercase
+                        tracking-[3px]
+                        text-[#E3AE60]
+                      "
+                    >
+                      Quality Report Export
+                    </p>
+
+                    <span
+                      className="
+                        inline-flex
+                        items-center
+                        gap-1.5
+
+                        rounded-full
+
+                        border
+                        border-emerald-400/20
+
+                        bg-emerald-400/[0.08]
+
+                        px-2.5
+                        py-1
+
+                        text-[8px]
+                        font-black
+                        uppercase
+                        tracking-[1px]
+                        text-emerald-300
+                      "
+                    >
+                      <span
+                        className="
+                          h-1.5
+                          w-1.5
+                          rounded-full
+                          bg-emerald-400
+                          shadow-[0_0_8px_rgba(52,211,153,0.75)]
+                        "
+                      />
+                      Ready
+                    </span>
+                  </div>
+
+                  <h3
+                    className="
+                      max-w-3xl
+
+                      text-[22px]
+                      font-black
+                      leading-tight
+                      tracking-[-0.4px]
+
+                      !text-[#FFF0D3]
+
+                      sm:text-[25px]
+                      lg:text-[28px]
+                    "
+                  >
+                    Export Your Coffee Quality Intelligence Report
+                  </h3>
+
+                  <p
+                    className="
+                      mt-2
+                      max-w-3xl
+
+                      text-[12px]
+                      font-medium
+                      leading-5
+
+                      text-[#C7A98B]
+
+                      sm:text-[13px]
+                    "
+                  >
+                    Generate a polished PDF containing your current batch,
+                    sensor intelligence, AI quality decision, analytics and
+                    production insights.
+                  </p>
+
+                  <div
+                    className="
+                      mt-4
+
+                      flex
+                      flex-wrap
+                      gap-2
+                    "
+                  >
+                    <span
+                      className="
+                        inline-flex
+                        items-center
+                        gap-1.5
+
+                        rounded-full
+
+                        border
+                        border-[#D8A24C]/20
+
+                        bg-white/[0.04]
+
+                        px-3
+                        py-1.5
+
+                        text-[9px]
+                        font-bold
+                        text-[#DABF9E]
+                      "
+                    >
+                      <Package className="h-3 w-3 text-[#E7B85F]" />
+                      {batchState.batch_id ||
+                        batchState.last_completed_batch_id ||
+                        "Current Batch"}
+                    </span>
+
+                    <span
+                      className="
+                        inline-flex
+                        items-center
+                        gap-1.5
+
+                        rounded-full
+
+                        border
+                        border-[#D8A24C]/20
+
+                        bg-white/[0.04]
+
+                        px-3
+                        py-1.5
+
+                        text-[9px]
+                        font-bold
+                        text-[#DABF9E]
+                      "
+                    >
+                      <CheckCircle2 className="h-3 w-3 text-emerald-300" />
+                      AI Decision Included
+                    </span>
+
+                    <span
+                      className="
+                        inline-flex
+                        items-center
+                        gap-1.5
+
+                        rounded-full
+
+                        border
+                        border-[#D8A24C]/20
+
+                        bg-white/[0.04]
+
+                        px-3
+                        py-1.5
+
+                        text-[9px]
+                        font-bold
+                        text-[#DABF9E]
+                      "
+                    >
+                      <Activity className="h-3 w-3 text-[#F0BC69]" />
+                      Sensor Analytics
+                    </span>
+                  </div>
+                </div>
+
+                {/* RIGHT — PREMIUM DOWNLOAD ACTION */}
+                <div
+                  className="
+                    flex
+                    shrink-0
+                    items-center
+
+                    xl:justify-end
+                  "
+                >
+                  <motion.button
+                    whileHover={{
+                      y: -3,
+                      scale: 1.025,
+                    }}
+                    whileTap={{
+                      scale: 0.975,
+                    }}
+                    onClick={handleDownloadReport}
+                    disabled={reportDownloading}
+                    className="
+                      group/button
+                      relative
+
+                      inline-flex
+                      min-h-[58px]
+                      w-full
+                      min-w-[230px]
+
+                      items-center
+                      justify-center
+                      gap-3
+
+                      overflow-hidden
+
+                      rounded-[18px]
+
+                      border
+                      border-[#FFD78B]/35
+
+                      bg-gradient-to-r
+                      from-[#F1C45E]
+                      via-[#DFA13A]
+                      to-[#B96E20]
+
+                      px-6
+                      py-3
+
+                      text-[12px]
+                      font-black
+                      tracking-[0.2px]
+                      text-[#251207]
+
+                      shadow-[0_16px_36px_rgba(181,103,28,0.30)]
+
+                      transition-all
+                      duration-300
+
+                      hover:border-[#FFE2A7]/55
+                      hover:shadow-[0_22px_46px_rgba(181,103,28,0.40)]
+
+                      disabled:cursor-not-allowed
+                      disabled:opacity-60
+
+                      sm:w-auto
+                    "
+                  >
+                    {/* Shimmer */}
+                    <span
+                      className="
+                        pointer-events-none
+                        absolute
+                        inset-y-0
+                        left-[-45%]
+                        w-[35%]
+
+                        -skew-x-12
+
+                        bg-gradient-to-r
+                        from-transparent
+                        via-white/35
+                        to-transparent
+
+                        transition-all
+                        duration-700
+
+                        group-hover/button:left-[120%]
+                      "
+                    />
+
+                    <span
+                      className="
+                        relative
+                        z-10
+
+                        flex
+                        h-9
+                        w-9
+
+                        items-center
+                        justify-center
+
+                        rounded-xl
+
+                        bg-[#2A1609]/12
+
+                        shadow-inner
+                      "
+                    >
+                      <Download
+                        className={`
+                          h-[18px]
+                          w-[18px]
+                          ${
+                            reportDownloading
+                              ? "animate-bounce"
+                              : "transition-transform duration-300 group-hover/button:translate-y-0.5"
+                          }
+                        `}
+                      />
+                    </span>
+
+                    <span
+                      className="
+                        relative
+                        z-10
+
+                        flex
+                        flex-col
+                        items-start
+                        leading-none
+                      "
+                    >
+                      <span className="text-[12px] font-black">
+                        {reportDownloading
+                          ? "Preparing Report..."
+                          : "Download Quality Report"}
+                      </span>
+
+                      <span
+                        className="
+                          mt-1
+                          text-[8px]
+                          font-bold
+                          uppercase
+                          tracking-[1.4px]
+                          text-[#4C2A10]/70
+                        "
+                      >
+                        PDF • Production Intelligence
+                      </span>
+                    </span>
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </section>
         </motion.div>
 
+        {/* =================================================
+            DEDICATED 2026 PREMIUM PDF REPORT
+            Off-screen only - does not change the visible dashboard UI.
+        ================================================= */}
+
+        <PremiumCoffeeReport
+          reportRef={premiumReportRef}
+          liveSensor={liveSensor}
+          batchState={batchState}
+          history={reportHistory}
+          generatedAt={reportGeneratedAt}
+        />
 
         {/* =================================================
             FOOTER
         ================================================= */}
 
         <motion.div
+          data-pdf-hide="true"
           initial={{
             opacity: 0,
           }}
@@ -2127,7 +2469,6 @@ function Dashboard() {
             text-center
           "
         >
-
           <div
             className="
               mx-auto
@@ -2157,9 +2498,7 @@ function Dashboard() {
           >
             © 2026 CoffeeSense AI • Powered by Next-Gen Intelligence • v3.0
           </p>
-
         </motion.div>
-
       </div>
     </div>
   );
