@@ -2786,7 +2786,6 @@ const styles = `
   text-align: right;
 }
 
-
 @media (max-width: 850px) {
 
   .workflow-steps {
@@ -2807,8 +2806,160 @@ const styles = `
     text-align: left;
   }
 
+}
+
+/* =====================================
+   INSPECTION REPORT DOWNLOAD CARD
+===================================== */
+
+.report-download-card {
+  width: 100%;
+  max-width: 1000px;
+  margin: 20px auto 28px;
+  padding: 28px 32px;
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.report-download-card h3 {
+  margin: 0 0 8px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 31px;
+  font-weight: 700;
+  color: #2b1812;
+}
+
+.report-download-card > p {
+  margin: 0 0 22px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.report-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.report-filter-item {
+  width: 100%;
+}
+
+.report-filter-item label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.report-filter-item select {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.report-filter-item select:focus {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.date-range-box {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.date-range-box input[type="date"] {
+  height: 46px;
+  width: 100%;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.date-range-box input[type="date"]:focus {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.date-range-box span {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+
+.report-download-main-btn {
+  min-width: 200px;
+  height: 46px;
+  padding: 0 24px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--accent-gradient);
+  color: var(--accent-ink);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 26px rgba(43, 24, 18, 0.14);
+  transition: opacity 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.report-download-main-btn:hover {
+  opacity: 0.94;
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(43, 24, 18, 0.18);
+}
+
+@media (max-width: 768px) {
+
+  .report-download-card {
+    padding: 20px;
   }
 
+  .report-filter-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .date-range-box {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .date-range-box span {
+    text-align: center;
+  }
+
+  .report-download-main-btn {
+    width: 100%;
+  }
+
+}
 `;
 
 function SealUploadPage() {
@@ -2838,6 +2989,12 @@ function SealUploadPage() {
   const [deviceError, setDeviceError] = useState("");
   const [leakHistory, setLeakHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+
+
+  const [historyStartDate, setHistoryStartDate] = useState("");
+  const [historyEndDate, setHistoryEndDate] = useState("");
+  const [historyType, setHistoryType] = useState("all");
+
 
   const [sealHistory, setSealHistory] = useState([]);
   const [sealHistoryLoading, setSealHistoryLoading] = useState(false);
@@ -3924,6 +4081,169 @@ const handleLeakDeviceTest = async () => {
 
     if (!cleanBase) return `/${cleanPath}`;
     return `${cleanBase}/${cleanPath}`;
+  };
+
+  const downloadHistoryCSV = () => {
+
+
+   
+    let data;
+
+
+      if(historyType==="seal"){
+
+      data = filterHistoryByDate(sealHistory);
+
+      }
+      else if(historyType==="leak"){
+
+      data = filterHistoryByDate(leakHistory);
+
+      }
+      else{
+
+      data = [
+      ...filterHistoryByDate(sealHistory),
+      ...filterHistoryByDate(leakHistory)
+      ];
+
+      }
+
+
+
+    if(data.length === 0){
+
+    alert("No records available for selected date range");
+
+    return;
+
+    }
+
+
+
+    let csv="";
+
+
+    if(historyType==="seal"){
+
+
+    csv =
+    "Packet ID,Date,Result,Status,Defect\n";
+
+
+    data.forEach(item=>{
+
+
+    csv +=
+`"${item.packet_id || ""}","${item.created_at || ""}","${item.result_type || ""}","${item.final_status || ""}","${item.overheat_result?.detected ? "Overheat":"Normal"}"\n`;
+
+
+    });
+
+
+    }
+
+    else{
+
+
+    csv =
+    "Date,Status,Average,Range\n";
+
+
+    data.forEach(item=>{
+
+
+    csv +=
+  `"${item.created_at || ""}","${item.status || ""}","${item.average || ""}","${item.range || ""}"\n`;
+
+
+    });
+
+
+    }
+
+
+
+    const blob =
+    new Blob(
+    [csv],
+    {
+    type:"text/csv"
+    }
+    );
+
+
+    const url =
+    URL.createObjectURL(blob);
+
+
+
+    const a=document.createElement("a");
+
+
+    a.href=url;
+
+
+    a.download=
+    `${historyType}_inspection_history.csv`;
+
+
+    a.click();
+
+
+    URL.revokeObjectURL(url);
+
+
+    };
+
+  const filterHistoryByDate = (history) => {
+
+    if (!historyStartDate && !historyEndDate) {
+      return history;
+    }
+
+
+    return history.filter(item => {
+
+      const itemDate = new Date(item.created_at);
+
+
+      const start = historyStartDate
+        ? new Date(historyStartDate)
+        : null;
+
+
+      const end = historyEndDate
+        ? new Date(historyEndDate)
+        : null;
+
+
+      if(start && itemDate < start){
+        return false;
+      }
+
+
+      if(end){
+
+        end.setHours(
+          23,
+          59,
+          59,
+          999
+        );
+
+
+        if(itemDate > end){
+          return false;
+        }
+
+      }
+
+
+      return true;
+
+    });
+
   };
 
   const formatSriLankaDateTime = (value) => formatInspectionDateTime(value);
@@ -5156,6 +5476,16 @@ const workflowStepClass = (step) => {
 
   <div className="history-header">
 
+  <div style={{
+    display:"flex",
+    gap:"10px",
+    marginBottom:"15px",
+    flexWrap:"wrap"
+    }}>
+
+
+    </div>
+
 <h3>
 📋 Previous AI Seal Inspection History
 </h3>
@@ -5604,7 +5934,7 @@ sealHistoryLoading
 <div className="history-panel">
 
     <h3>
-        📋 Previous AI Seal Inspection History
+        📋 Previous Packet Leak Detection History
     </h3>
 
 
@@ -5688,6 +6018,103 @@ item.status === "GOOD"
 
           ) : (
             <section className="report-page">
+              <div className="report-download-card">
+
+
+                <h3>
+                📄 Inspection Reports
+                </h3>
+
+                <p>
+                Generate Quality Inspection Report
+                </p>
+
+
+                <div className="report-filter-grid">
+
+                  <div className="report-filter-item">
+
+                    <label>
+                      Inspection Type
+                    </label>
+
+                    <select
+                      value={historyType}
+                      onChange={(e)=>setHistoryType(e.target.value)}
+                    >
+
+                      <option value="all">
+                        All Inspections
+                      </option>
+
+                      <option value="seal">
+                        📹 Real-Time Seal Inspection
+                      </option>
+
+                      <option value="leak">
+                        ⚙️ Packet Leak Detection
+                      </option>
+
+                    </select>
+
+                  </div>
+
+
+
+                  <div className="report-filter-item">
+
+                    <label>
+                      Date Range
+                    </label>
+
+
+                    <div className="date-range-box">
+
+                      <input
+                        type="date"
+                        max={new Date().toISOString().split("T")[0]}
+                        value={historyStartDate}
+                        onChange={
+                          e=>setHistoryStartDate(e.target.value)
+                        }
+                      />
+
+
+                      <span>
+                        -
+                      </span>
+
+
+                      <input
+                        type="date"
+                        max={new Date().toISOString().split("T")[0]}
+                        value={historyEndDate}
+                        onChange={
+                          e=>setHistoryEndDate(e.target.value)
+                        }
+                      />
+
+                    </div>
+
+
+                  </div>
+
+
+                </div>
+
+
+
+                <button
+                className="report-download-main-btn"
+                onClick={downloadHistoryCSV}
+                >
+
+                ⬇ Download Report
+
+                </button>
+
+
+                </div>
               <div className="report-card">
 
                 <div className="report-kicker">
