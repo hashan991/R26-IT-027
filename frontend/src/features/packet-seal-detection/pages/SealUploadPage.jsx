@@ -2786,7 +2786,6 @@ const styles = `
   text-align: right;
 }
 
-
 @media (max-width: 850px) {
 
   .workflow-steps {
@@ -2807,8 +2806,160 @@ const styles = `
     text-align: left;
   }
 
+}
+
+/* =====================================
+   INSPECTION REPORT DOWNLOAD CARD
+===================================== */
+
+.report-download-card {
+  width: 100%;
+  max-width: 1000px;
+  margin: 20px auto 28px;
+  padding: 28px 32px;
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.report-download-card h3 {
+  margin: 0 0 8px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 31px;
+  font-weight: 700;
+  color: #2b1812;
+}
+
+.report-download-card > p {
+  margin: 0 0 22px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.report-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.report-filter-item {
+  width: 100%;
+}
+
+.report-filter-item label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.report-filter-item select {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.report-filter-item select:focus {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.date-range-box {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.date-range-box input[type="date"] {
+  height: 46px;
+  width: 100%;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.date-range-box input[type="date"]:focus {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.date-range-box span {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+
+.report-download-main-btn {
+  min-width: 200px;
+  height: 46px;
+  padding: 0 24px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--accent-gradient);
+  color: var(--accent-ink);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 26px rgba(43, 24, 18, 0.14);
+  transition: opacity 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.report-download-main-btn:hover {
+  opacity: 0.94;
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(43, 24, 18, 0.18);
+}
+
+@media (max-width: 768px) {
+
+  .report-download-card {
+    padding: 20px;
   }
 
+  .report-filter-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .date-range-box {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .date-range-box span {
+    text-align: center;
+  }
+
+  .report-download-main-btn {
+    width: 100%;
+  }
+
+}
 `;
 
 function SealUploadPage() {
@@ -2819,7 +2970,7 @@ function SealUploadPage() {
   const [dragOver, setDragOver] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-    // Packet inspection session
+  // Packet inspection session
   const [activePacketId, setActivePacketId] = useState(null);
   const [sessionStarting, setSessionStarting] = useState(false);
   const [sessionError, setSessionError] = useState("");
@@ -2838,6 +2989,10 @@ function SealUploadPage() {
   const [deviceError, setDeviceError] = useState("");
   const [leakHistory, setLeakHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+
+  const [historyStartDate, setHistoryStartDate] = useState("");
+  const [historyEndDate, setHistoryEndDate] = useState("");
+  const [historyType, setHistoryType] = useState("all");
 
   const [sealHistory, setSealHistory] = useState([]);
   const [sealHistoryLoading, setSealHistoryLoading] = useState(false);
@@ -2863,113 +3018,104 @@ function SealUploadPage() {
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState("");
 
-    const refreshSessionStatus = async () => {
-      try {
-        const data = await getCurrentInspectionSession();
+  const refreshSessionStatus = async () => {
+    try {
+      const data = await getCurrentInspectionSession();
 
-        if (data?.active && data?.inspection) {
-          const inspection = data.inspection;
+      if (data?.active && data?.inspection) {
+        const inspection = data.inspection;
 
-          const packetId =
-            inspection.packet_id || null;
+        const packetId = inspection.packet_id || null;
 
-          const visionDone = Boolean(
-            inspection.vision_result ||
-            inspection.realtime_result ||
-            inspection.seal_result
-          );
-
-          const leakDone = Boolean(
-            inspection.leak_result ||
-            inspection.leak_test_result
-          );
-
-          // Restore active inspection state
-          setActivePacketId(packetId);
-          setVisionStageDone(visionDone);
-          setLeakStageDone(leakDone);
-
-          // ==========================================
-          // RESTORE CORRECT WORKFLOW PAGE
-          // ==========================================
-
-          if (!visionDone) {
-            // Stage 1 still needs to be completed
-            setActiveTab("realtime");
-
-          } else if (!leakDone) {
-            // Stage 1 completed.
-            // Continue from Leak Detection.
-            setActiveTab("device");
-
-          } else {
-            // Both inspection stages completed.
-            // Continue from Final Report.
-            setActiveTab("report");
-          }
-
-        } else {
-          // ==========================================
-          // NO ACTIVE INSPECTION
-          // Normal browsing mode
-          // ==========================================
-
-          setActivePacketId(null);
-          setVisionStageDone(false);
-          setLeakStageDone(false);
-
-          // Do NOT force navigation here.
-          // User can normally browse all 3 tabs.
-        }
-
-      } catch (error) {
-        console.error(
-          "Failed to refresh inspection session:",
-          error
+        const visionDone = Boolean(
+          inspection.vision_result ||
+          inspection.realtime_result ||
+          inspection.seal_result,
         );
+
+        const leakDone = Boolean(
+          inspection.leak_result || inspection.leak_test_result,
+        );
+
+        // Restore active inspection state
+        setActivePacketId(packetId);
+        setVisionStageDone(visionDone);
+        setLeakStageDone(leakDone);
+
+        // ==========================================
+        // RESTORE CORRECT WORKFLOW PAGE
+        // ==========================================
+
+        if (!visionDone) {
+          // Stage 1 still needs to be completed
+          setActiveTab("realtime");
+        } else if (!leakDone) {
+          // Stage 1 completed.
+          // Continue from Leak Detection.
+          setActiveTab("device");
+        } else {
+          // Both inspection stages completed.
+          // Continue from Final Report.
+          setActiveTab("report");
+        }
+      } else {
+        // ==========================================
+        // NO ACTIVE INSPECTION
+        // Normal browsing mode
+        // ==========================================
+
+        setActivePacketId(null);
+        setVisionStageDone(false);
+        setLeakStageDone(false);
+
+        // Do NOT force navigation here.
+        // User can normally browse all 3 tabs.
       }
-    };
+    } catch (error) {
+      console.error("Failed to refresh inspection session:", error);
+    }
+  };
 
   const handleStartInspectionSession = async () => {
-  if (sessionStarting) {
-    return;
-  }
-
-  try {
-    setSessionStarting(true);
-    setSessionError("");
-    setStageError("");
-
-    // Safety check:
-    // Never create another packet while one inspection is active.
-    const current = await getCurrentInspectionSession();
-
-    if (current?.active && current?.inspection?.packet_id) {
-      setActivePacketId(current.inspection.packet_id);
-
-      setVisionStageDone(
-        Boolean(
-          current.inspection.vision_result ||
-          current.inspection.realtime_result ||
-          current.inspection.seal_result
-        )
-      );
-
-      setLeakStageDone(
-        Boolean(
-          current.inspection.leak_result ||
-          current.inspection.leak_test_result
-        )
-      );
-
-      setSessionError(
-        `Inspection ${current.inspection.packet_id} is already active.`
-      );
-
+    if (sessionStarting) {
       return;
     }
 
-    const data = await startInspectionSession();
+    try {
+      setSessionStarting(true);
+      setSessionError("");
+      setStageError("");
+
+      // Safety check:
+      // Never create another packet while one inspection is active.
+      const current = await getCurrentInspectionSession();
+
+      if (current?.active && current?.inspection?.packet_id) {
+        setActivePacketId(current.inspection.packet_id);
+
+        setVisionStageDone(
+          Boolean(
+            current.inspection.vision_result ||
+            current.inspection.realtime_result ||
+            current.inspection.seal_result,
+          ),
+        );
+
+        setLeakStageDone(
+          Boolean(
+            current.inspection.leak_result ||
+            current.inspection.leak_test_result,
+          ),
+        );
+
+        setSessionError(
+          `Inspection ${current.inspection.packet_id} is already active.`,
+        );
+
+        return;
+      }
+
+      const data = await startInspectionSession();
 
       if (!data?.packet_id) {
         throw new Error("Backend did not return a Packet ID.");
@@ -2994,14 +3140,13 @@ function SealUploadPage() {
 
       // Always start at the first inspection stage.
       setActiveTab("realtime");
-
     } catch (error) {
       console.error("Could not start inspection session:", error);
 
       setSessionError(
         error?.response?.data?.detail ||
           error?.message ||
-          "Could not start a new inspection session."
+          "Could not start a new inspection session.",
       );
     } finally {
       setSessionStarting(false);
@@ -3021,8 +3166,7 @@ function SealUploadPage() {
       setReportStatus(null);
 
       setReportError(
-        error?.response?.data?.detail ||
-          "Could not check final report status."
+        error?.response?.data?.detail || "Could not check final report status.",
       );
     }
   };
@@ -3070,16 +3214,12 @@ function SealUploadPage() {
     }
 
     if (!visionStageDone) {
-      setReportError(
-        "Complete the Real-Time AI Seal Inspection first."
-      );
+      setReportError("Complete the Real-Time AI Seal Inspection first.");
       return;
     }
 
     if (!leakStageDone) {
-      setReportError(
-        "Complete the Packet Leak Detection first."
-      );
+      setReportError("Complete the Packet Leak Detection first.");
       return;
     }
 
@@ -3094,7 +3234,7 @@ function SealUploadPage() {
 
       if (!status?.ready) {
         setReportError(
-          "The final inspection report is not ready yet. Please verify both inspection stages are completed."
+          "The final inspection report is not ready yet. Please verify both inspection stages are completed.",
         );
         return;
       }
@@ -3112,51 +3252,37 @@ function SealUploadPage() {
       // activePacketId will become null and
       // "Start New Inspection" becomes available again.
       await refreshSessionStatus();
-
     } catch (error) {
-      console.error(
-        "Final report generation error:",
-        error
-      );
+      console.error("Final report generation error:", error);
 
       setReportError(
         error?.response?.data?.detail ||
-          "Could not generate the final inspection report."
+          "Could not generate the final inspection report.",
       );
-
     } finally {
       setReportLoading(false);
     }
   };
 
   useEffect(() => {
-  refreshSessionStatus();
-}, []);
+    refreshSessionStatus();
+  }, []);
 
-useEffect(() => {
+  useEffect(() => {
+    if (activeTab === "device") {
+      checkLeakDeviceStatus();
 
-  if (activeTab === "device") {
+      loadLeakHistory();
+    }
 
-    checkLeakDeviceStatus();
+    if (activeTab === "report") {
+      checkReportStatus();
+    }
 
-    loadLeakHistory();
-
-  }
-
-
-  if (activeTab === "report") {
-
-    checkReportStatus();
-
-  }
-
-  if (activeTab === "realtime") {
-
-    loadSealHistory();
-
-  }
-
-}, [activeTab]);
+    if (activeTab === "realtime") {
+      loadSealHistory();
+    }
+  }, [activeTab]);
 
   const fileInputRef = useRef(null);
 
@@ -3182,13 +3308,17 @@ useEffect(() => {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setErrorMessage("Please upload a valid image file. JPG, PNG or WEBP is recommended.");
+      setErrorMessage(
+        "Please upload a valid image file. JPG, PNG or WEBP is recommended.",
+      );
       return;
     }
 
     const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      setErrorMessage("Image size is too large. Please upload an image below 10MB.");
+      setErrorMessage(
+        "Image size is too large. Please upload an image below 10MB.",
+      );
       return;
     }
 
@@ -3233,7 +3363,9 @@ useEffect(() => {
       setResult(data.result);
     } catch (error) {
       console.error(error);
-      setErrorMessage("Packet seal prediction failed. Please check backend connection and try again.");
+      setErrorMessage(
+        "Packet seal prediction failed. Please check backend connection and try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -3247,320 +3379,257 @@ useEffect(() => {
 
       if (!data?.connected) {
         setDeviceError(
-          data?.error || "Leak detection device is not connected."
+          data?.error || "Leak detection device is not connected.",
         );
       }
     } catch (error) {
       console.error(error);
       setDeviceStatus({ connected: false });
       setDeviceError(
-        "Leak detection device is not connected. Check the Arduino USB connection and backend.."
+        "Leak detection device is not connected. Check the Arduino USB connection and backend..",
       );
     }
   };
 
   // ======================================
-// loadLeakHistory() function
-// ======================================
+  // loadLeakHistory() function
+  // ======================================
 
-const loadLeakHistory = async () => {
+  const loadLeakHistory = async () => {
+    try {
+      setHistoryLoading(true);
 
-  try {
+      const data = await getLeakTestHistory();
 
-    setHistoryLoading(true);
-
-    const data = await getLeakTestHistory();
-
-    setLeakHistory(
-      data?.history || []
-    );
-
-
-  } catch(error){
-
-    console.error(error);
-
-  } finally {
-
-    setHistoryLoading(false);
-
-  }
-
-};
-
-// ======================================
-// LOAD SEAL INSPECTION HISTORY
-// ======================================
-
-const loadSealHistory = async () => {
-
-  try {
-
-    setSealHistoryLoading(true);
-
-    const data = await getSealInspectionHistory();
-
-    const history = Array.isArray(data?.history)
-      ? [...data.history].sort(
-          (a, b) =>
-            new Date(b?.created_at || 0).getTime() -
-            new Date(a?.created_at || 0).getTime()
-        )
-      : [];
-
-    setSealHistory(history);
-
-
-    // Always keep the newest saved inspection image in sync.
-    if (history.length > 0 && history[0]?.image_path) {
-
-      setFinalInspectionImage(
-        buildImageUrl(history[0].image_path)
-      );
-
+      setLeakHistory(data?.history || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setHistoryLoading(false);
     }
+  };
 
-    return history;
+  // ======================================
+  // LOAD SEAL INSPECTION HISTORY
+  // ======================================
 
-  } catch(error){
+  const loadSealHistory = async () => {
+    try {
+      setSealHistoryLoading(true);
 
-    console.error(error);
-    return [];
+      const data = await getSealInspectionHistory();
 
-  } finally {
+      const history = Array.isArray(data?.history)
+        ? [...data.history].sort(
+            (a, b) =>
+              new Date(b?.created_at || 0).getTime() -
+              new Date(a?.created_at || 0).getTime(),
+          )
+        : [];
 
-    setSealHistoryLoading(false);
+      setSealHistory(history);
 
-  }
+      // Always keep the newest saved inspection image in sync.
+      if (history.length > 0 && history[0]?.image_path) {
+        setFinalInspectionImage(buildImageUrl(history[0].image_path));
+      }
 
-};
-
-const refreshRealtimeHistory = async () => {
-
-  // The backend saves the completed inspection in a background task.
-  // Give that save a short window, then verify that the newest record
-  // has appeared instead of showing stale historical data.
-
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-
-    const history = await loadSealHistory();
-
-    if (history.length > 0) {
       return history;
+    } catch (error) {
+      console.error(error);
+      return [];
+    } finally {
+      setSealHistoryLoading(false);
+    }
+  };
+
+  const refreshRealtimeHistory = async () => {
+    // The backend saves the completed inspection in a background task.
+    // Give that save a short window, then verify that the newest record
+    // has appeared instead of showing stale historical data.
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const history = await loadSealHistory();
+
+      if (history.length > 0) {
+        return history;
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
     }
 
-    await new Promise((resolve) =>
-      window.setTimeout(resolve, 350)
-    );
+    return [];
+  };
 
-  }
+  const handleLeakDeviceTest = async () => {
+    if (!activePacketId) {
+      setDeviceError("");
+    }
 
-  return [];
-
-};
-
-
-const handleLeakDeviceTest = async () => {
-  if (!activePacketId) {
-
-  setDeviceError("");
-
-}
-
-  if (activePacketId && !visionStageDone) {
-    setDeviceError(
-      "Complete the Real-Time AI Seal Inspection before running the Packet Leak Detection."
-    );
-    return;
-  }
-
-  if (leakStageDone) {
-    setDeviceError(
-      "Packet Leak Detection is already completed for this packet."
-    );
-    return;
-  }
-
-  if (!deviceStatus?.connected) {
-    setDeviceError(
-      "Device is not connected. Connect the Arduino and refresh the device status first."
-    );
-    return;
-  }
-
-  if (deviceLoading) {
-    return;
-  }
-
-  try {
-    setDeviceLoading(true);
-    setDeviceError("");
-    setStageError("");
-    setDeviceResult(null);
-
-    // Run physical packet leak test
-    const data = await runLeakDeviceTest();
-
-    const result = data?.result || null;
-
-    setDeviceResult(result);
-
-    // Explicit device/backend error
-    if (result?.error) {
+    if (activePacketId && !visionStageDone) {
       setDeviceError(
-        `Device error: ${result.error}`
+        "Complete the Real-Time AI Seal Inspection before running the Packet Leak Detection.",
       );
       return;
     }
 
-    if (!result) {
+    if (leakStageDone) {
       setDeviceError(
-        "Leak test finished without a valid result."
+        "Packet Leak Detection is already completed for this packet.",
       );
       return;
     }
 
-    // Refresh history only for UI display
-    await loadLeakHistory();
+    if (!deviceStatus?.connected) {
+      setDeviceError(
+        "Device is not connected. Connect the Arduino and refresh the device status first.",
+      );
+      return;
+    }
 
-    let leakCompleted = false;
+    if (deviceLoading) {
+      return;
+    }
 
-    // Verify that the CURRENT packet leak result
-    // has actually been saved in the backend.
-    for (let attempt = 0; attempt < 6; attempt++) {
-      try {
-        const current =
-          await getCurrentInspectionSession();
+    try {
+      setDeviceLoading(true);
+      setDeviceError("");
+      setStageError("");
+      setDeviceResult(null);
 
-        const inspection =
-          current?.inspection;
+      // Run physical packet leak test
+      const data = await runLeakDeviceTest();
 
-        const samePacket =
-          current?.active &&
-          (
-            !activePacketId ||
-            inspection?.packet_id === activePacketId
+      const result = data?.result || null;
+
+      setDeviceResult(result);
+
+      // Explicit device/backend error
+      if (result?.error) {
+        setDeviceError(`Device error: ${result.error}`);
+        return;
+      }
+
+      if (!result) {
+        setDeviceError("Leak test finished without a valid result.");
+        return;
+      }
+
+      // Refresh history only for UI display
+      await loadLeakHistory();
+
+      let leakCompleted = false;
+
+      // Verify that the CURRENT packet leak result
+      // has actually been saved in the backend.
+      for (let attempt = 0; attempt < 6; attempt++) {
+        try {
+          const current = await getCurrentInspectionSession();
+
+          const inspection = current?.inspection;
+
+          const samePacket =
+            current?.active &&
+            (!activePacketId || inspection?.packet_id === activePacketId);
+
+          const hasLeakResult = Boolean(
+            inspection?.leak_result || inspection?.leak_test_result,
           );
 
-        const hasLeakResult = Boolean(
-          inspection?.leak_result ||
-          inspection?.leak_test_result
-        );
-
-        if (samePacket && hasLeakResult) {
-          leakCompleted = true;
-          break;
+          if (samePacket && hasLeakResult) {
+            leakCompleted = true;
+            break;
+          }
+        } catch (error) {
+          console.error("Could not verify Leak Test stage:", error);
         }
 
-      } catch (error) {
-        console.error(
-          "Could not verify Leak Test stage:",
-          error
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+
+      if (leakCompleted) {
+        // CURRENT packet leak test really completed
+        setLeakStageDone(true);
+
+        setStageError("");
+        setDeviceError("");
+      } else {
+        setLeakStageDone(false);
+
+        setDeviceError(
+          "The leak test completed, but the result has not been saved for this packet yet.",
         );
       }
 
-      await new Promise((resolve) =>
-        setTimeout(resolve, 500)
+      // Final backend sync
+      await refreshSessionStatus();
+    } catch (error) {
+      console.error("Packet leak test error:", error);
+
+      const apiMessage =
+        error?.response?.data?.detail ||
+        "Packet leak test failed. Check the Arduino connection, HX711, and backend.";
+
+      setDeviceError(apiMessage);
+    } finally {
+      setDeviceLoading(false);
+    }
+  };
+
+  const handleStartRealtime = async () => {
+    if (visionStageDone) {
+      setRealtimeError(
+        "AI Vision inspection is already completed for this packet.",
       );
+      return;
     }
 
-    if (leakCompleted) {
-      // CURRENT packet leak test really completed
-      setLeakStageDone(true);
+    if (realtimeRunning || realtimeStarting) {
+      return;
+    }
 
+    try {
+      setRealtimeStarting(true);
+      setRealtimeError("");
       setStageError("");
-      setDeviceError("");
 
-    } else {
-      setLeakStageDone(false);
+      setRealtimeResult(null);
+      latestRealtimeResultRef.current = null;
 
-      setDeviceError(
-        "The leak test completed, but the result has not been saved for this packet yet."
+      const data = await startRealtimeSealInspection();
+
+      if (!data?.started) {
+        setRealtimeRunning(false);
+
+        setRealtimeError(
+          data?.message || "Could not start real-time seal inspection.",
+        );
+
+        return;
+      }
+
+      setRealtimeRunning(true);
+      setRealtimeElapsed(0);
+      setRealtimeCycle(1);
+
+      latestRealtimeResultRef.current = null;
+
+      setRealtimeResult(null);
+
+      setRealtimeVideoUrl(`${getRealtimeVideoUrl()}?t=${Date.now()}`);
+    } catch (error) {
+      console.error("Real-time start error:", error);
+
+      setRealtimeRunning(false);
+
+      setRealtimeError(
+        error?.response?.data?.detail ||
+          "Could not start the IP Webcam real-time inspection.",
       );
+    } finally {
+      setRealtimeStarting(false);
     }
-
-    // Final backend sync
-    await refreshSessionStatus();
-
-  } catch (error) {
-    console.error(
-      "Packet leak test error:",
-      error
-    );
-
-    const apiMessage =
-      error?.response?.data?.detail ||
-      "Packet leak test failed. Check the Arduino connection, HX711, and backend.";
-
-    setDeviceError(apiMessage);
-
-  } finally {
-    setDeviceLoading(false);
-  }
-};
-
-  
-
-      const handleStartRealtime = async () => {
-
-        if (visionStageDone) {
-          setRealtimeError(
-            "AI Vision inspection is already completed for this packet."
-          );
-          return;
-        }
-
-        if (realtimeRunning || realtimeStarting) {
-          return;
-        }
-
-        try {
-          setRealtimeStarting(true);
-          setRealtimeError("");
-          setStageError("");
-
-          setRealtimeResult(null);
-          latestRealtimeResultRef.current = null;
-
-          const data = await startRealtimeSealInspection();
-
-          if (!data?.started) {
-            setRealtimeRunning(false);
-
-            setRealtimeError(
-              data?.message ||
-                "Could not start real-time seal inspection."
-            );
-
-            return;
-          }
-
-          setRealtimeRunning(true);
-          setRealtimeElapsed(0);
-          setRealtimeCycle(1);
-
-          latestRealtimeResultRef.current = null;
-
-          setRealtimeResult(null);
-
-          setRealtimeVideoUrl(
-            `${getRealtimeVideoUrl()}?t=${Date.now()}`
-          );
-
-        } catch (error) {
-          console.error("Real-time start error:", error);
-
-          setRealtimeRunning(false);
-
-          setRealtimeError(
-            error?.response?.data?.detail ||
-              "Could not start the IP Webcam real-time inspection."
-          );
-
-        } finally {
-          setRealtimeStarting(false);
-        }
-      };
+  };
 
   const handleStopRealtime = async () => {
     if (!realtimeRunning) {
@@ -3571,18 +3640,13 @@ const handleLeakDeviceTest = async () => {
       setRealtimeError("");
 
       await stopRealtimeSealInspection();
-
     } catch (error) {
-      console.error(
-        "Real-time stop error:",
-        error
-      );
+      console.error("Real-time stop error:", error);
 
       setRealtimeError(
         error?.response?.data?.detail ||
-          "Could not stop the real-time inspection cleanly."
+          "Could not stop the real-time inspection cleanly.",
       );
-
     } finally {
       setRealtimeRunning(false);
 
@@ -3602,38 +3666,29 @@ const handleLeakDeviceTest = async () => {
       // the FINAL result for the CURRENT packet.
       for (let attempt = 0; attempt < 6; attempt++) {
         try {
-          const current =
-            await getCurrentInspectionSession();
+          const current = await getCurrentInspectionSession();
 
-          const inspection =
-            current?.inspection;
+          const inspection = current?.inspection;
 
           const samePacket =
-            current?.active &&
-            inspection?.packet_id === activePacketId;
+            current?.active && inspection?.packet_id === activePacketId;
 
           const hasVisionResult = Boolean(
             inspection?.vision_result ||
             inspection?.realtime_result ||
-            inspection?.seal_result
+            inspection?.seal_result,
           );
 
           if (samePacket && hasVisionResult) {
             visionCompleted = true;
             break;
           }
-
         } catch (error) {
-          console.error(
-            "Could not verify AI stage:",
-            error
-          );
+          console.error("Could not verify AI stage:", error);
         }
 
         // Wait before checking backend again
-        await new Promise((resolve) =>
-          setTimeout(resolve, 500)
-        );
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
       if (visionCompleted) {
@@ -3641,12 +3696,11 @@ const handleLeakDeviceTest = async () => {
         setVisionStageDone(true);
 
         setStageError("");
-
       } else {
         setVisionStageDone(false);
 
         setRealtimeError(
-          "The AI inspection stopped, but a completed result has not been saved for this packet yet."
+          "The AI inspection stopped, but a completed result has not been saved for this packet yet.",
         );
       }
 
@@ -3655,19 +3709,14 @@ const handleLeakDeviceTest = async () => {
     }
   };
 
-
-   const goToLeakTest = () => {
+  const goToLeakTest = () => {
     if (!activePacketId) {
-      setStageError(
-        "Please start a new inspection first."
-      );
+      setStageError("Please start a new inspection first.");
       return;
     }
 
     if (!visionStageDone) {
-      setStageError(
-        "Complete the Real-Time AI Seal Inspection first."
-      );
+      setStageError("Complete the Real-Time AI Seal Inspection first.");
       return;
     }
 
@@ -3675,26 +3724,19 @@ const handleLeakDeviceTest = async () => {
     setActiveTab("device");
   };
 
-
   const goToFinalReport = async () => {
     if (!activePacketId) {
-      setStageError(
-        "No active inspection packet."
-      );
+      setStageError("No active inspection packet.");
       return;
     }
 
     if (!visionStageDone) {
-      setStageError(
-        "Complete the Real-Time AI Seal Inspection first."
-      );
+      setStageError("Complete the Real-Time AI Seal Inspection first.");
       return;
     }
 
     if (!leakStageDone) {
-      setStageError(
-        "Complete the Packet Leak Detection first."
-      );
+      setStageError("Complete the Packet Leak Detection first.");
       return;
     }
 
@@ -3705,88 +3747,73 @@ const handleLeakDeviceTest = async () => {
     await checkReportStatus();
   };
 
+  const handleTabChange = async (nextTab) => {
+    setStageError("");
 
-      const handleTabChange = async (nextTab) => {
-        setStageError("");
+    // ==================================================
+    // NO ACTIVE INSPECTION
+    // Normal browsing mode.
+    // User can freely open all 3 pages.
+    // ==================================================
+    if (!activePacketId) {
+      setActiveTab(nextTab);
+      return;
+    }
 
-        // ==================================================
-        // NO ACTIVE INSPECTION
-        // Normal browsing mode.
-        // User can freely open all 3 pages.
-        // ==================================================
-        if (!activePacketId) {
-          setActiveTab(nextTab);
-          return;
-        }
+    // ==================================================
+    // ACTIVE INSPECTION WORKFLOW
+    // From here, strict stage order is enforced.
+    // ==================================================
 
-        // ==================================================
-        // ACTIVE INSPECTION WORKFLOW
-        // From here, strict stage order is enforced.
-        // ==================================================
+    // Stop live inspection before leaving realtime tab
+    if (activeTab === "realtime" && nextTab !== "realtime" && realtimeRunning) {
+      await handleStopRealtime();
+    }
 
-        // Stop live inspection before leaving realtime tab
-        if (
-          activeTab === "realtime" &&
-          nextTab !== "realtime" &&
-          realtimeRunning
-        ) {
-          await handleStopRealtime();
-        }
+    // ----------------------------------------------
+    // REAL-TIME AI STAGE
+    // ----------------------------------------------
+    if (nextTab === "realtime") {
+      // Once AI stage is completed,
+      // do not allow returning to it during this packet.
+      if (visionStageDone) {
+        setStageError("Real-Time AI Seal Inspection is already completed.");
+        return;
+      }
+    }
 
-        // ----------------------------------------------
-        // REAL-TIME AI STAGE
-        // ----------------------------------------------
-        if (nextTab === "realtime") {
-          // Once AI stage is completed,
-          // do not allow returning to it during this packet.
-          if (visionStageDone) {
-            setStageError(
-              "Real-Time AI Seal Inspection is already completed."
-            );
-            return;
-          }
-        }
+    // ----------------------------------------------
+    // LEAK TEST STAGE
+    // ----------------------------------------------
+    if (nextTab === "device") {
+      if (!visionStageDone) {
+        setStageError("Complete the Real-Time AI Seal Inspection first.");
+        return;
+      }
 
-        // ----------------------------------------------
-        // LEAK TEST STAGE
-        // ----------------------------------------------
-        if (nextTab === "device") {
-          if (!visionStageDone) {
-            setStageError(
-              "Complete the Real-Time AI Seal Inspection first."
-            );
-            return;
-          }
+      if (leakStageDone) {
+        setStageError("Packet Leak Detection is already completed.");
+        return;
+      }
+    }
 
-          if (leakStageDone) {
-            setStageError(
-              "Packet Leak Detection is already completed."
-            );
-            return;
-          }
-        }
+    // ----------------------------------------------
+    // FINAL REPORT STAGE
+    // ----------------------------------------------
+    if (nextTab === "report") {
+      if (!visionStageDone) {
+        setStageError("Complete the Real-Time AI Seal Inspection first.");
+        return;
+      }
 
-        // ----------------------------------------------
-        // FINAL REPORT STAGE
-        // ----------------------------------------------
-        if (nextTab === "report") {
-          if (!visionStageDone) {
-            setStageError(
-              "Complete the Real-Time AI Seal Inspection first."
-            );
-            return;
-          }
+      if (!leakStageDone) {
+        setStageError("Complete the Packet Leak Detection first.");
+        return;
+      }
+    }
 
-          if (!leakStageDone) {
-            setStageError(
-              "Complete the Packet Leak Detection first."
-            );
-            return;
-          }
-        }
-
-        setActiveTab(nextTab);
-      };
+    setActiveTab(nextTab);
+  };
 
   // ==================================================
   // REAL-TIME 3-SECOND INSPECTION CYCLE
@@ -3812,7 +3839,7 @@ const handleLeakDeviceTest = async () => {
         if (!cancelled) {
           setRealtimeError(
             error?.response?.data?.detail ||
-              "Could not read the latest real-time AI result."
+              "Could not read the latest real-time AI result.",
           );
         }
       }
@@ -3830,9 +3857,7 @@ const handleLeakDeviceTest = async () => {
       if (cancelled) return;
 
       const elapsed = Date.now() - cycleStartedAt;
-      setRealtimeElapsed(
-        Math.min(elapsed, REALTIME_CYCLE_MS)
-      );
+      setRealtimeElapsed(Math.min(elapsed, REALTIME_CYCLE_MS));
     }, 100);
 
     cycleTimerId = window.setInterval(async () => {
@@ -3843,27 +3868,18 @@ const handleLeakDeviceTest = async () => {
       console.log("NEWEST RESULT", newestResult);
 
       if (newestResult) {
-
         const capturedFrames =
-        newestResult.inspection_cycle?.frames_captured ?? 0;
-
+          newestResult.inspection_cycle?.frames_captured ?? 0;
 
         const requiredFrames =
-        newestResult.inspection_cycle?.required_frames ?? 3;
-
+          newestResult.inspection_cycle?.required_frames ?? 3;
 
         if (capturedFrames >= requiredFrames) {
+          setRealtimeResult(newestResult);
 
-            setRealtimeResult(newestResult);
-
-            setRealtimeError("");
-
+          setRealtimeError("");
         }
-
-      
-
       }
-    
 
       setRealtimeElapsed(0);
       setRealtimeCycle((previous) => previous + 1);
@@ -3871,7 +3887,6 @@ const handleLeakDeviceTest = async () => {
       // Backend history insertion happens in the background.
       // Retry briefly so the new record appears immediately after save.
       await refreshRealtimeHistory();
-
     }, REALTIME_CYCLE_MS);
 
     return () => {
@@ -3890,7 +3905,6 @@ const handleLeakDeviceTest = async () => {
       }
     };
   }, [realtimeRunning]);
-
 
   const getStatusClass = (status) => {
     if (!status) return "";
@@ -3926,6 +3940,87 @@ const handleLeakDeviceTest = async () => {
     return `${cleanBase}/${cleanPath}`;
   };
 
+  const downloadHistoryCSV = () => {
+    let data;
+
+    if (historyType === "seal") {
+      data = filterHistoryByDate(sealHistory);
+    } else if (historyType === "leak") {
+      data = filterHistoryByDate(leakHistory);
+    } else {
+      data = [
+        ...filterHistoryByDate(sealHistory),
+        ...filterHistoryByDate(leakHistory),
+      ];
+    }
+
+    if (data.length === 0) {
+      alert("No records available for selected date range");
+
+      return;
+    }
+
+    let csv = "";
+
+    if (historyType === "seal") {
+      csv = "Packet ID,Date,Result,Status,Defect\n";
+
+      data.forEach((item) => {
+        csv += `"${item.packet_id || ""}","${item.created_at || ""}","${item.result_type || ""}","${item.final_status || ""}","${item.overheat_result?.detected ? "Overheat" : "Normal"}"\n`;
+      });
+    } else {
+      csv = "Date,Status,Average,Range\n";
+
+      data.forEach((item) => {
+        csv += `"${item.created_at || ""}","${item.status || ""}","${item.average || ""}","${item.range || ""}"\n`;
+      });
+    }
+
+    const blob = new Blob([csv], {
+      type: "text/csv",
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+
+    a.href = url;
+
+    a.download = `${historyType}_inspection_history.csv`;
+
+    a.click();
+
+    URL.revokeObjectURL(url);
+  };
+
+  const filterHistoryByDate = (history) => {
+    if (!historyStartDate && !historyEndDate) {
+      return history;
+    }
+
+    return history.filter((item) => {
+      const itemDate = new Date(item.created_at);
+
+      const start = historyStartDate ? new Date(historyStartDate) : null;
+
+      const end = historyEndDate ? new Date(historyEndDate) : null;
+
+      if (start && itemDate < start) {
+        return false;
+      }
+
+      if (end) {
+        end.setHours(23, 59, 59, 999);
+
+        if (itemDate > end) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  };
+
   const formatSriLankaDateTime = (value) => formatInspectionDateTime(value);
 
   const formatRealtimeConfidence = (value) => {
@@ -3949,12 +4044,12 @@ const handleLeakDeviceTest = async () => {
 
   const realtimeProgress = Math.min(
     100,
-    Math.max(0, (realtimeElapsed / REALTIME_CYCLE_MS) * 100)
+    Math.max(0, (realtimeElapsed / REALTIME_CYCLE_MS) * 100),
   );
 
   const realtimeRemaining = Math.max(
     0,
-    (REALTIME_CYCLE_MS - realtimeElapsed) / 1000
+    (REALTIME_CYCLE_MS - realtimeElapsed) / 1000,
   );
 
   const realtimeCyclePhase =
@@ -3967,139 +4062,129 @@ const handleLeakDeviceTest = async () => {
           : "FINALISING INSPECTION";
 
   const normalizedWorkflowState = useMemo(() => {
-  // No inspection running
-  if (!activePacketId) {
-    return "NOT_STARTED";
-  }
-
-  // STEP 01
-  if (!visionStageDone) {
-    if (realtimeRunning) {
-      return "CAMERA_RUNNING";
+    // No inspection running
+    if (!activePacketId) {
+      return "NOT_STARTED";
     }
 
-    return "CAMERA_READY";
-  }
+    // STEP 01
+    if (!visionStageDone) {
+      if (realtimeRunning) {
+        return "CAMERA_RUNNING";
+      }
 
-  // STEP 02
-  if (!leakStageDone) {
-    if (deviceLoading) {
-      return "LEAK_RUNNING";
+      return "CAMERA_READY";
     }
 
-    return "LEAK_READY";
-  }
+    // STEP 02
+    if (!leakStageDone) {
+      if (deviceLoading) {
+        return "LEAK_RUNNING";
+      }
 
-  // STEP 03
-  if (reportLoading) {
-    return "REPORT_GENERATING";
-  }
-
-  if (generatedReport) {
-    return "COMPLETED";
-  }
-
-  return "REPORT_READY";
-
-}, [
-  activePacketId,
-  visionStageDone,
-  leakStageDone,
-  realtimeRunning,
-  deviceLoading,
-  reportLoading,
-  generatedReport
-]);
-
-
-const workflowLabel = useMemo(() => {
-  switch (normalizedWorkflowState) {
-    case "NOT_STARTED":
-      return "Start a new inspection to begin";
-
-    case "CAMERA_READY":
-      return "Ready for AI Seal Inspection";
-
-    case "CAMERA_RUNNING":
-      return "AI Seal Inspection is running";
-
-    case "LEAK_READY":
-      return "Ready for Physical Leak Test";
-
-    case "LEAK_RUNNING":
-      return "Physical Leak Test is running";
-
-    case "REPORT_READY":
-      return "Ready to generate Final Report";
-
-    case "REPORT_GENERATING":
-      return "Generating Final Inspection Report";
-
-    case "COMPLETED":
-      return "Inspection workflow completed";
-
-    default:
-      return "Waiting";
-  }
-}, [normalizedWorkflowState]);
-
-
-const workflowStepClass = (step) => {
-
-  // No workflow currently running
-  if (!activePacketId) {
-    return "waiting";
-  }
-
-  // ==========================================
-  // STEP 01 — AI Seal Inspection
-  // ==========================================
-  if (step === "camera") {
-
-    if (visionStageDone) {
-      return "done";
+      return "LEAK_READY";
     }
 
-    return "active";
-  }
-
-  // ==========================================
-  // STEP 02 — Leak Test
-  // ==========================================
-  if (step === "leak") {
-
-    if (leakStageDone) {
-      return "done";
+    // STEP 03
+    if (reportLoading) {
+      return "REPORT_GENERATING";
     }
-
-    if (visionStageDone) {
-      return "active";
-    }
-
-    return "locked";
-  }
-
-  // ==========================================
-  // STEP 03 — Final Report
-  // ==========================================
-  if (step === "report") {
 
     if (generatedReport) {
-      return "done";
+      return "COMPLETED";
     }
 
-    if (
-      visionStageDone &&
-      leakStageDone
-    ) {
+    return "REPORT_READY";
+  }, [
+    activePacketId,
+    visionStageDone,
+    leakStageDone,
+    realtimeRunning,
+    deviceLoading,
+    reportLoading,
+    generatedReport,
+  ]);
+
+  const workflowLabel = useMemo(() => {
+    switch (normalizedWorkflowState) {
+      case "NOT_STARTED":
+        return "Start a new inspection to begin";
+
+      case "CAMERA_READY":
+        return "Ready for AI Seal Inspection";
+
+      case "CAMERA_RUNNING":
+        return "AI Seal Inspection is running";
+
+      case "LEAK_READY":
+        return "Ready for Physical Leak Test";
+
+      case "LEAK_RUNNING":
+        return "Physical Leak Test is running";
+
+      case "REPORT_READY":
+        return "Ready to generate Final Report";
+
+      case "REPORT_GENERATING":
+        return "Generating Final Inspection Report";
+
+      case "COMPLETED":
+        return "Inspection workflow completed";
+
+      default:
+        return "Waiting";
+    }
+  }, [normalizedWorkflowState]);
+
+  const workflowStepClass = (step) => {
+    // No workflow currently running
+    if (!activePacketId) {
+      return "waiting";
+    }
+
+    // ==========================================
+    // STEP 01 — AI Seal Inspection
+    // ==========================================
+    if (step === "camera") {
+      if (visionStageDone) {
+        return "done";
+      }
+
       return "active";
     }
 
-    return "locked";
-  }
+    // ==========================================
+    // STEP 02 — Leak Test
+    // ==========================================
+    if (step === "leak") {
+      if (leakStageDone) {
+        return "done";
+      }
 
-  return "waiting";
-};
+      if (visionStageDone) {
+        return "active";
+      }
+
+      return "locked";
+    }
+
+    // ==========================================
+    // STEP 03 — Final Report
+    // ==========================================
+    if (step === "report") {
+      if (generatedReport) {
+        return "done";
+      }
+
+      if (visionStageDone && leakStageDone) {
+        return "active";
+      }
+
+      return "locked";
+    }
+
+    return "waiting";
+  };
 
   return (
     <>
@@ -4112,39 +4197,46 @@ const workflowStepClass = (step) => {
               <div className="brand-logo">📦</div>
               <div className="brand-text">
                 <div className="brand-title">Coffee Seal Vision</div>
-                <div className="brand-subtitle">Industrial packet seal quality inspection</div>
+                <div className="brand-subtitle">
+                  Industrial packet seal quality inspection
+                </div>
               </div>
             </div>
 
             <div className="nav-pills">
               <div className="nav-pill nav-pill-live">
                 <span className="live-dot" />
-                 Ready
+                Ready
               </div>
               <div className="nav-pill">YOLO Detection</div>
               <div className="nav-pill">Seal QC</div>
             </div>
           </nav>
 
-                    <div className={`session-bar ${activePacketId ? "active" : ""}`}>
+          <div className={`session-bar ${activePacketId ? "active" : ""}`}>
             <div className="session-left">
               <div className="session-icon">🏷️</div>
               <div>
                 <div className="session-label">Active Inspection Session</div>
                 <div className="session-value">
-                  {activePacketId || "No active packet — start a new inspection"}
+                  {activePacketId ||
+                    "No active packet — start a new inspection"}
                 </div>
               </div>
             </div>
 
             <div className="session-right">
               <div className="session-stage">
-                <span className={`session-stage-dot ${visionStageDone ? "done" : ""}`} />
+                <span
+                  className={`session-stage-dot ${visionStageDone ? "done" : ""}`}
+                />
                 <span className="session-stage-text"> Vision</span>
               </div>
 
               <div className="session-stage">
-                <span className={`session-stage-dot ${leakStageDone ? "done" : ""}`} />
+                <span
+                  className={`session-stage-dot ${leakStageDone ? "done" : ""}`}
+                />
                 <span className="session-stage-text">Leak Test</span>
               </div>
 
@@ -4166,11 +4258,7 @@ const workflowStepClass = (step) => {
               <div className="session-error">⚠️ {sessionError}</div>
             )}
 
-            {stageError && (
-              <div className="session-error">
-                ⚠️ {stageError}
-              </div>
-            )}
+            {stageError && <div className="session-error">⚠️ {stageError}</div>}
           </div>
 
           {/* =================================================
@@ -4178,17 +4266,11 @@ const workflowStepClass = (step) => {
           ================================================= */}
 
           <section className="workflow-panel">
-
             <div className="workflow-header">
-
               <div>
-                <div className="workflow-kicker">
-                  PACKET INSPECTION PROCESS
-                </div>
+                <div className="workflow-kicker">PACKET INSPECTION PROCESS</div>
 
-                <div className="workflow-title">
-                  Inspection Workflow
-                </div>
+                <div className="workflow-title">Inspection Workflow</div>
               </div>
 
               <div
@@ -4200,173 +4282,96 @@ const workflowStepClass = (step) => {
                       : ""
                 }`}
               >
-                {activePacketId
-                  ? workflowLabel
-                  : "No Active Inspection"}
+                {activePacketId ? workflowLabel : "No Active Inspection"}
               </div>
-
             </div>
 
-
             <div className="workflow-steps">
-
               {/* ==============================
                   STEP 01
               ============================== */}
 
-              <div
-                className={`workflow-step ${workflowStepClass(
-                  "camera"
-                )}`}
-              >
-
+              <div className={`workflow-step ${workflowStepClass("camera")}`}>
                 <div className="workflow-step-top">
+                  <div className="workflow-step-number">STEP 01</div>
 
-                  <div className="workflow-step-number">
-                    STEP 01
-                  </div>
-
-                  <div className="workflow-step-icon">
-                    📹
-                  </div>
-
+                  <div className="workflow-step-icon">📹</div>
                 </div>
 
-                <div className="workflow-step-title">
-                  Seal Inspection
-                </div>
+                <div className="workflow-step-title">Seal Inspection</div>
 
                 <div className="workflow-step-status">
-
                   {!activePacketId
                     ? "Available"
-
                     : visionStageDone
                       ? "✓ Completed"
-
                       : realtimeRunning
                         ? "● Running"
-
                         : "Ready"}
-
                 </div>
-
               </div>
 
-
-              <div className="workflow-arrow">
-                →
-              </div>
-
+              <div className="workflow-arrow">→</div>
 
               {/* ==============================
                   STEP 02
               ============================== */}
 
-              <div
-                className={`workflow-step ${workflowStepClass(
-                  "leak"
-                )}`}
-              >
-
+              <div className={`workflow-step ${workflowStepClass("leak")}`}>
                 <div className="workflow-step-top">
+                  <div className="workflow-step-number">STEP 02</div>
 
-                  <div className="workflow-step-number">
-                    STEP 02
-                  </div>
-
-                  <div className="workflow-step-icon">
-                    ⚙️
-                  </div>
-
+                  <div className="workflow-step-icon">⚙️</div>
                 </div>
 
-                <div className="workflow-step-title">
-                  Physical Leak Test
-                </div>
+                <div className="workflow-step-title">Physical Leak Test</div>
 
                 <div className="workflow-step-status">
-
                   {!activePacketId
                     ? "Available"
-
                     : leakStageDone
                       ? "✓ Completed"
-
                       : deviceLoading
                         ? "● Running"
-
                         : visionStageDone
                           ? "Ready"
-
                           : "🔒 Locked"}
-
                 </div>
-
               </div>
 
-
-              <div className="workflow-arrow">
-                →
-              </div>
-
+              <div className="workflow-arrow">→</div>
 
               {/* ==============================
                   STEP 03
               ============================== */}
 
-              <div
-                className={`workflow-step ${workflowStepClass(
-                  "report"
-                )}`}
-              >
-
+              <div className={`workflow-step ${workflowStepClass("report")}`}>
                 <div className="workflow-step-top">
+                  <div className="workflow-step-number">STEP 03</div>
 
-                  <div className="workflow-step-number">
-                    STEP 03
-                  </div>
-
-                  <div className="workflow-step-icon">
-                    📄
-                  </div>
-
+                  <div className="workflow-step-icon">📄</div>
                 </div>
 
-                <div className="workflow-step-title">
-                  Final Report
-                </div>
+                <div className="workflow-step-title">Final Report</div>
 
                 <div className="workflow-step-status">
-
                   {!activePacketId
                     ? "Available"
-
                     : generatedReport
                       ? "✓ Completed"
-
                       : reportLoading
                         ? "● Generating"
-
-                        : visionStageDone &&
-                          leakStageDone
+                        : visionStageDone && leakStageDone
                           ? "Ready"
-
                           : "🔒 Locked"}
-
                 </div>
-
               </div>
-
             </div>
-
 
             {/* CURRENT WORKFLOW STATE */}
 
             <div className="workflow-current-state">
-
               <div>
-
                 <div className="workflow-current-label">
                   CURRENT WORKFLOW STATE
                 </div>
@@ -4374,15 +4379,12 @@ const workflowStepClass = (step) => {
                 <div className="workflow-current-value">
                   {normalizedWorkflowState}
                 </div>
-
               </div>
 
               <div className="workflow-current-description">
                 {workflowLabel}
               </div>
-
             </div>
-
           </section>
 
           <div className="mode-tabs">
@@ -4399,10 +4401,7 @@ const workflowStepClass = (step) => {
                 type="button"
                 className={`mode-tab ${activeTab === "realtime" ? "active" : ""}`}
                 onClick={() => handleTabChange("realtime")}
-                disabled={
-                  !!activePacketId &&
-                  visionStageDone
-                }
+                disabled={!!activePacketId && visionStageDone}
               >
                 📹 Real-Time Seal Inspection
               </button>
@@ -4412,11 +4411,7 @@ const workflowStepClass = (step) => {
                 className={`mode-tab ${activeTab === "device" ? "active" : ""}`}
                 onClick={() => handleTabChange("device")}
                 disabled={
-                  !!activePacketId &&
-                  (
-                    !visionStageDone ||
-                    leakStageDone
-                  )
+                  !!activePacketId && (!visionStageDone || leakStageDone)
                 }
               >
                 ⚙️ Packet Leak Detection
@@ -4427,404 +4422,434 @@ const workflowStepClass = (step) => {
                 className={`mode-tab ${activeTab === "report" ? "active" : ""}`}
                 onClick={() => handleTabChange("report")}
                 disabled={
-                  !!activePacketId &&
-                  (
-                    !visionStageDone ||
-                    !leakStageDone
-                  )
+                  !!activePacketId && (!visionStageDone || !leakStageDone)
                 }
               >
                 📄 Final Inspection Report
               </button>
-
             </div>
           </div>
 
           {activeTab === "ai" ? (
             <>
-          <section className="hero-layout">
-            <div className="hero-left">
-              <div className="hero-content">
-                <div className="seal-badge">
-                  <span className="seal-badge-dot" />
-                  Powered Inspection
-                </div>
-
-                <h1 className="seal-title">
-                  <span>Packet Seal</span>
-                  <span className="gradient-word">Defect Detection</span>
-                </h1>
-
-                <p className="seal-subtitle">
-                  Upload a coffee packet seal image and let the model analyze
-                  packaging quality, identify possible seal defects, and generate
-                  a visual prediction overlay for inspection support.
-                </p>
-
-                <div className="hero-actions">
-                  <div className="hero-chip">⚡ Fast inspection</div>
-                  <div className="hero-chip">🎯 Defect classification</div>
-                  <div className="hero-chip">🖼️ Annotated output</div>
-                  <div className="hero-chip">📊 Confidence view</div>
-                </div>
-
-                <div className="metrics-strip">
-                  <div className="metric-card">
-                    <div className="metric-icon">🔍</div>
-                    <div className="metric-value">Detect</div>
-                    <div className="metric-label">Analyze uploaded seal image</div>
-                  </div>
-
-                  <div className="metric-card">
-                    <div className="metric-icon">🧠</div>
-                    <div className="metric-value">Classify</div>
-                    <div className="metric-label">Identify defect categories</div>
-                  </div>
-
-                  <div className="metric-card">
-                    <div className="metric-icon">✅</div>
-                    <div className="metric-value">Decide</div>
-                    <div className="metric-label">Support quality inspection</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="hero-right">
-              <div className="upload-panel">
-                <div className="panel-top">
-                  <div>
-                    <div className="panel-eyebrow">Image Input</div>
-                    <div className="panel-title">Upload Seal Image</div>
-                  </div>
-
-                  <div className="panel-status">
-                    <span className="live-dot" />
-                    Online
-                  </div>
-                </div>
-
-                {!preview ? (
-                  <div
-                    className={`upload-zone${dragOver ? " drag-over" : ""}`}
-                    onClick={() => fileInputRef.current?.click()}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setDragOver(true);
-                    }}
-                    onDragLeave={() => setDragOver(false)}
-                    onDrop={handleDrop}
-                  >
-                    <div className="upload-inner">
-                      <div className="upload-icon-wrap">📸</div>
-                      <div className="upload-label">Drop your seal image here</div>
-                      <div className="upload-hint">
-                        Upload a clear packet seal image for AI-based defect
-                        detection and visual prediction overlay.
-                      </div>
-                      <div className="upload-btn-fake">Browse Image</div>
-
-                      <div className="upload-formats">
-                        <span className="format-pill">JPG</span>
-                        <span className="format-pill">PNG</span>
-                        <span className="format-pill">WEBP</span>
-                        <span className="format-pill">MAX 10MB</span>
-                      </div>
+              <section className="hero-layout">
+                <div className="hero-left">
+                  <div className="hero-content">
+                    <div className="seal-badge">
+                      <span className="seal-badge-dot" />
+                      Powered Inspection
                     </div>
 
-                    <input
-                      ref={fileInputRef}
-                      className="upload-input"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                    />
-                  </div>
-                ) : (
-                  <div className="preview-section">
-                    <div className="preview-card">
-                      <div className="preview-image-box">
-                        <img src={preview} alt="Selected seal" className="preview-img" />
-                        <div className="preview-glow" />
-                        <div className="preview-floating-tag">
-                          <span className="live-dot" />
-                          Image Loaded
+                    <h1 className="seal-title">
+                      <span>Packet Seal</span>
+                      <span className="gradient-word">Defect Detection</span>
+                    </h1>
+
+                    <p className="seal-subtitle">
+                      Upload a coffee packet seal image and let the model
+                      analyze packaging quality, identify possible seal defects,
+                      and generate a visual prediction overlay for inspection
+                      support.
+                    </p>
+
+                    <div className="hero-actions">
+                      <div className="hero-chip">⚡ Fast inspection</div>
+                      <div className="hero-chip">🎯 Defect classification</div>
+                      <div className="hero-chip">🖼️ Annotated output</div>
+                      <div className="hero-chip">📊 Confidence view</div>
+                    </div>
+
+                    <div className="metrics-strip">
+                      <div className="metric-card">
+                        <div className="metric-icon">🔍</div>
+                        <div className="metric-value">Detect</div>
+                        <div className="metric-label">
+                          Analyze uploaded seal image
                         </div>
                       </div>
 
-                      <div className="preview-info">
-                        <div className="preview-info-label">Selected Image</div>
-                        <div className="preview-info-name">{selectedImage?.name}</div>
-
-                        <div className="preview-meta-row">
-                          <span className="preview-meta">
-                            {formatFileSize(selectedImage?.size)}
-                          </span>
-                          <span className="preview-meta">
-                            {selectedImage?.type || "Image file"}
-                          </span>
+                      <div className="metric-card">
+                        <div className="metric-icon">🧠</div>
+                        <div className="metric-value">Classify</div>
+                        <div className="metric-label">
+                          Identify defect categories
                         </div>
+                      </div>
 
-                        <div className="preview-actions">
-                          <button
-                            type="button"
-                            className="soft-btn"
-                            onClick={() => fileInputRef.current?.click()}
-                          >
-                            🔁 Replace
-                          </button>
-
-                          <button
-                            type="button"
-                            className="soft-btn danger"
-                            onClick={handleRemove}
-                          >
-                            ✕ Remove
-                          </button>
+                      <div className="metric-card">
+                        <div className="metric-icon">✅</div>
+                        <div className="metric-value">Decide</div>
+                        <div className="metric-label">
+                          Support quality inspection
                         </div>
                       </div>
                     </div>
-
-                    <input
-                      ref={fileInputRef}
-                      className="upload-input"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                    />
-                  </div>
-                )}
-
-                <div className="detect-wrap">
-                  <button
-                    type="button"
-                    className="detect-btn"
-                    onClick={handlePredict}
-                    disabled={loading || !selectedImage}
-                  >
-                    <span>
-                      {loading ? (
-                        <>
-                          <div className="spinner" />
-                          Analyzing Seal Image...
-                        </>
-                      ) : (
-                        <>🔍 Detect Seal Defects</>
-                      )}
-                    </span>
-                  </button>
-                </div>
-
-                {errorMessage && (
-                  <div className="error-box">
-                    ⚠️ {errorMessage}
-                  </div>
-                )}
-
-                <div className="quick-guide">
-                  <div className="guide-item">
-                    <div className="guide-icon">1️⃣</div>
-                    <div className="guide-text">Upload image</div>
-                  </div>
-                  <div className="guide-item">
-                    <div className="guide-icon">2️⃣</div>
-                    <div className="guide-text">Run scan</div>
-                  </div>
-                  <div className="guide-item">
-                    <div className="guide-icon">3️⃣</div>
-                    <div className="guide-text">Review result</div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </section>
 
-          {result && (
-            <section className="results-section">
-              <div className="results-head">
-                <div>
-                  <div className="results-kicker">Inspection Completed</div>
-                  <h2 className="results-main-title"> Detection Results</h2>
-                </div>
+                <div className="hero-right">
+                  <div className="upload-panel">
+                    <div className="panel-top">
+                      <div>
+                        <div className="panel-eyebrow">Image Input</div>
+                        <div className="panel-title">Upload Seal Image</div>
+                      </div>
 
-                <div className="results-summary-pill">
-                  <span className="live-dot" />
-                  Result generated successfully
-                </div>
-              </div>
-
-              <div className="status-cards">
-                <div className={`status-card ${statusClass}`}>
-                  <div className="sc-label">Final Status</div>
-                  <div className={`sc-value ${statusClass}`}>{result.status || "Unknown"}</div>
-                  <div className="sc-caption">
-                    Overall seal quality decision from the inspection output.
-                  </div>
-                  <div className="sc-icon">{statusClass === "good" ? "✅" : "⚠️"}</div>
-                </div>
-
-                <div className={`status-card ${totalDefects > 0 ? "bad" : "good"}`}>
-                  <div className="sc-label">Total Defects</div>
-                  <div className={`sc-value ${totalDefects > 0 ? "bad" : "good"}`}>
-                    {totalDefects}
-                  </div>
-                  <div className="sc-caption">
-                    Number of detected defect regions in the image.
-                  </div>
-                  <div className="sc-icon">{totalDefects > 0 ? "🚨" : "🎉"}</div>
-                </div>
-
-                <div className="status-card">
-                  <div className="sc-label">Detections</div>
-                  <div className="sc-value">{detections.length}</div>
-                  <div className="sc-caption">
-                    Detailed predictions with confidence scores.
-                  </div>
-                  <div className="sc-icon">📊</div>
-                </div>
-              </div>
-
-              <div className="results-grid">
-                <div className="result-block">
-                  <div className="block-header">
-                    <div className="block-title">
-                      <span className="block-dot" />
-                      Annotated Output
+                      <div className="panel-status">
+                        <span className="live-dot" />
+                        Online
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="block-body">
-                    <div className="pred-img-frame">
-                      {predictedImageUrl ? (
-                        <img
-                          src={predictedImageUrl}
-                          alt="Predicted seal"
-                          className="pred-img"
+                    {!preview ? (
+                      <div
+                        className={`upload-zone${dragOver ? " drag-over" : ""}`}
+                        onClick={() => fileInputRef.current?.click()}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragOver(true);
+                        }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={handleDrop}
+                      >
+                        <div className="upload-inner">
+                          <div className="upload-icon-wrap">📸</div>
+                          <div className="upload-label">
+                            Drop your seal image here
+                          </div>
+                          <div className="upload-hint">
+                            Upload a clear packet seal image for AI-based defect
+                            detection and visual prediction overlay.
+                          </div>
+                          <div className="upload-btn-fake">Browse Image</div>
+
+                          <div className="upload-formats">
+                            <span className="format-pill">JPG</span>
+                            <span className="format-pill">PNG</span>
+                            <span className="format-pill">WEBP</span>
+                            <span className="format-pill">MAX 10MB</span>
+                          </div>
+                        </div>
+
+                        <input
+                          ref={fileInputRef}
+                          className="upload-input"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
                         />
-                      ) : (
-                        <div className="empty-state">
-                          <div className="empty-icon">🖼️</div>
-                          Annotated image is not available.
+                      </div>
+                    ) : (
+                      <div className="preview-section">
+                        <div className="preview-card">
+                          <div className="preview-image-box">
+                            <img
+                              src={preview}
+                              alt="Selected seal"
+                              className="preview-img"
+                            />
+                            <div className="preview-glow" />
+                            <div className="preview-floating-tag">
+                              <span className="live-dot" />
+                              Image Loaded
+                            </div>
+                          </div>
+
+                          <div className="preview-info">
+                            <div className="preview-info-label">
+                              Selected Image
+                            </div>
+                            <div className="preview-info-name">
+                              {selectedImage?.name}
+                            </div>
+
+                            <div className="preview-meta-row">
+                              <span className="preview-meta">
+                                {formatFileSize(selectedImage?.size)}
+                              </span>
+                              <span className="preview-meta">
+                                {selectedImage?.type || "Image file"}
+                              </span>
+                            </div>
+
+                            <div className="preview-actions">
+                              <button
+                                type="button"
+                                className="soft-btn"
+                                onClick={() => fileInputRef.current?.click()}
+                              >
+                                🔁 Replace
+                              </button>
+
+                              <button
+                                type="button"
+                                className="soft-btn danger"
+                                onClick={handleRemove}
+                              >
+                                ✕ Remove
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                      )}
+
+                        <input
+                          ref={fileInputRef}
+                          className="upload-input"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                        />
+                      </div>
+                    )}
+
+                    <div className="detect-wrap">
+                      <button
+                        type="button"
+                        className="detect-btn"
+                        onClick={handlePredict}
+                        disabled={loading || !selectedImage}
+                      >
+                        <span>
+                          {loading ? (
+                            <>
+                              <div className="spinner" />
+                              Analyzing Seal Image...
+                            </>
+                          ) : (
+                            <>🔍 Detect Seal Defects</>
+                          )}
+                        </span>
+                      </button>
+                    </div>
+
+                    {errorMessage && (
+                      <div className="error-box">⚠️ {errorMessage}</div>
+                    )}
+
+                    <div className="quick-guide">
+                      <div className="guide-item">
+                        <div className="guide-icon">1️⃣</div>
+                        <div className="guide-text">Upload image</div>
+                      </div>
+                      <div className="guide-item">
+                        <div className="guide-icon">2️⃣</div>
+                        <div className="guide-text">Run scan</div>
+                      </div>
+                      <div className="guide-item">
+                        <div className="guide-icon">3️⃣</div>
+                        <div className="guide-text">Review result</div>
+                      </div>
                     </div>
                   </div>
                 </div>
+              </section>
 
-                <div className="analysis-column">
-                  <div className="result-block">
-                    <div className="block-header">
-                      <div className="block-title">
-                        <span className="block-dot" />
-                        Defect Breakdown
-                      </div>
+              {result && (
+                <section className="results-section">
+                  <div className="results-head">
+                    <div>
+                      <div className="results-kicker">Inspection Completed</div>
+                      <h2 className="results-main-title"> Detection Results</h2>
                     </div>
 
-                    <div className="table-wrap">
-                      {Object.keys(defectCounts).length > 0 ? (
-                        <table className="defect-table">
-                          <thead>
-                            <tr>
-                              <th>Defect Type</th>
-                              <th>Count</th>
-                            </tr>
-                          </thead>
-
-                          <tbody>
-                            {Object.entries(defectCounts).map(([defect, count]) => (
-                              <tr key={defect}>
-                                <td>{defect}</td>
-                                <td>
-                                  <span className="defect-badge">{count}</span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      ) : (
-                        <div className="empty-state">
-                          <div className="empty-icon">✅</div>
-                          No defect breakdown available.
-                        </div>
-                      )}
+                    <div className="results-summary-pill">
+                      <span className="live-dot" />
+                      Result generated successfully
                     </div>
                   </div>
 
-                  <div className="result-block">
-                    <div className="block-header">
-                      <div className="block-title">
-                        <span className="block-dot" />
-                        Detection Details
+                  <div className="status-cards">
+                    <div className={`status-card ${statusClass}`}>
+                      <div className="sc-label">Final Status</div>
+                      <div className={`sc-value ${statusClass}`}>
+                        {result.status || "Unknown"}
+                      </div>
+                      <div className="sc-caption">
+                        Overall seal quality decision from the inspection
+                        output.
+                      </div>
+                      <div className="sc-icon">
+                        {statusClass === "good" ? "✅" : "⚠️"}
                       </div>
                     </div>
 
-                    <div className="table-wrap">
-                      {detections.length > 0 ? (
-                        <table className="defect-table">
-                          <thead>
-                            <tr>
-                              <th>#</th>
-                              <th>Class</th>
-                              <th>Confidence</th>
-                            </tr>
-                          </thead>
+                    <div
+                      className={`status-card ${totalDefects > 0 ? "bad" : "good"}`}
+                    >
+                      <div className="sc-label">Total Defects</div>
+                      <div
+                        className={`sc-value ${totalDefects > 0 ? "bad" : "good"}`}
+                      >
+                        {totalDefects}
+                      </div>
+                      <div className="sc-caption">
+                        Number of detected defect regions in the image.
+                      </div>
+                      <div className="sc-icon">
+                        {totalDefects > 0 ? "🚨" : "🎉"}
+                      </div>
+                    </div>
 
-                          <tbody>
-                            {detections.map((item, index) => {
-                              const conf = parseConfidence(item.confidence);
-                              const pct = conf <= 1 ? conf * 100 : conf;
-                              const safePct = Math.max(0, Math.min(100, pct));
+                    <div className="status-card">
+                      <div className="sc-label">Detections</div>
+                      <div className="sc-value">{detections.length}</div>
+                      <div className="sc-caption">
+                        Detailed predictions with confidence scores.
+                      </div>
+                      <div className="sc-icon">📊</div>
+                    </div>
+                  </div>
 
-                              return (
-                                <tr key={`${item.class_name}-${index}`}>
-                                  <td>
-                                    <span className="row-num">{index + 1}</span>
-                                  </td>
+                  <div className="results-grid">
+                    <div className="result-block">
+                      <div className="block-header">
+                        <div className="block-title">
+                          <span className="block-dot" />
+                          Annotated Output
+                        </div>
+                      </div>
 
-                                  <td>
-                                    <span className="class-pill">
-                                      {item.class_name || "Unknown"}
-                                    </span>
-                                  </td>
+                      <div className="block-body">
+                        <div className="pred-img-frame">
+                          {predictedImageUrl ? (
+                            <img
+                              src={predictedImageUrl}
+                              alt="Predicted seal"
+                              className="pred-img"
+                            />
+                          ) : (
+                            <div className="empty-state">
+                              <div className="empty-icon">🖼️</div>
+                              Annotated image is not available.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
 
-                                  <td>
-                                    <div className="conf-bar-wrap">
-                                      <div className="conf-bar-track">
-                                        <div
-                                          className="conf-bar-fill"
-                                          style={{ width: `${safePct}%` }}
-                                        />
-                                      </div>
-                                      <span className="conf-text">
-                                        {safePct.toFixed(1)}%
-                                      </span>
-                                    </div>
-                                  </td>
+                    <div className="analysis-column">
+                      <div className="result-block">
+                        <div className="block-header">
+                          <div className="block-title">
+                            <span className="block-dot" />
+                            Defect Breakdown
+                          </div>
+                        </div>
+
+                        <div className="table-wrap">
+                          {Object.keys(defectCounts).length > 0 ? (
+                            <table className="defect-table">
+                              <thead>
+                                <tr>
+                                  <th>Defect Type</th>
+                                  <th>Count</th>
                                 </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      ) : (
-                        <div className="empty-state">
-                          <div className="empty-icon">📭</div>
-                          No detection details available.
+                              </thead>
+
+                              <tbody>
+                                {Object.entries(defectCounts).map(
+                                  ([defect, count]) => (
+                                    <tr key={defect}>
+                                      <td>{defect}</td>
+                                      <td>
+                                        <span className="defect-badge">
+                                          {count}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ),
+                                )}
+                              </tbody>
+                            </table>
+                          ) : (
+                            <div className="empty-state">
+                              <div className="empty-icon">✅</div>
+                              No defect breakdown available.
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
+
+                      <div className="result-block">
+                        <div className="block-header">
+                          <div className="block-title">
+                            <span className="block-dot" />
+                            Detection Details
+                          </div>
+                        </div>
+
+                        <div className="table-wrap">
+                          {detections.length > 0 ? (
+                            <table className="defect-table">
+                              <thead>
+                                <tr>
+                                  <th>#</th>
+                                  <th>Class</th>
+                                  <th>Confidence</th>
+                                </tr>
+                              </thead>
+
+                              <tbody>
+                                {detections.map((item, index) => {
+                                  const conf = parseConfidence(item.confidence);
+                                  const pct = conf <= 1 ? conf * 100 : conf;
+                                  const safePct = Math.max(
+                                    0,
+                                    Math.min(100, pct),
+                                  );
+
+                                  return (
+                                    <tr key={`${item.class_name}-${index}`}>
+                                      <td>
+                                        <span className="row-num">
+                                          {index + 1}
+                                        </span>
+                                      </td>
+
+                                      <td>
+                                        <span className="class-pill">
+                                          {item.class_name || "Unknown"}
+                                        </span>
+                                      </td>
+
+                                      <td>
+                                        <div className="conf-bar-wrap">
+                                          <div className="conf-bar-track">
+                                            <div
+                                              className="conf-bar-fill"
+                                              style={{ width: `${safePct}%` }}
+                                            />
+                                          </div>
+                                          <span className="conf-text">
+                                            {safePct.toFixed(1)}%
+                                          </span>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          ) : (
+                            <div className="empty-state">
+                              <div className="empty-icon">📭</div>
+                              No detection details available.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="insight-box">
+                        <div className="insight-title">💡 Inspection Note</div>
+                        This result is designed as a fast quality-control
+                        support tool. For explanation, The model detects seal
+                        defect regions and displays confidence values with an
+                        annotated output image.
+                      </div>
                     </div>
                   </div>
-
-                  <div className="insight-box">
-                    <div className="insight-title">💡 Inspection Note</div>
-                    This result is designed as a fast quality-control support tool.
-                    For explanation, The model detects seal
-                    defect regions and displays confidence values with an annotated
-                    output image.
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
+                </section>
+              )}
             </>
           ) : activeTab === "realtime" ? (
             <section className="realtime-page">
@@ -4833,7 +4858,9 @@ const workflowStepClass = (step) => {
                   <div className="realtime-card-head">
                     <div>
                       <div className="realtime-kicker">Two-Stage Vision AI</div>
-                      <div className="realtime-title">Live Packet Inspection</div>
+                      <div className="realtime-title">
+                        Live Packet Inspection
+                      </div>
                     </div>
 
                     <div
@@ -4856,10 +4883,14 @@ const workflowStepClass = (step) => {
                     ) : (
                       <div className="realtime-empty">
                         <div className="realtime-empty-icon">📹</div>
-                        <div className="realtime-empty-title">IP Webcam is ready to connect</div>
+                        <div className="realtime-empty-title">
+                          IP Webcam is ready to connect
+                        </div>
                         <div className="realtime-empty-text">
-                          Start the phone IP Webcam server first, then press Start Live Inspection.
-                          The full packet video will be displayed here with seal and exact overheat bounding boxes.
+                          Start the phone IP Webcam server first, then press
+                          Start Live Inspection. The full packet video will be
+                          displayed here with seal and exact overheat bounding
+                          boxes.
                         </div>
                       </div>
                     )}
@@ -4894,7 +4925,7 @@ const workflowStepClass = (step) => {
                       <div className="realtime-cycle-bottom">
                         <div className="realtime-cycle-time">
                           Capturing inspection frames...
-                      </div>
+                        </div>
 
                         <div className="realtime-cycle-number">
                           Inspection Frame Analysis
@@ -4903,7 +4934,8 @@ const workflowStepClass = (step) => {
 
                       <div className="realtime-result-refresh-line">
                         <span className="refresh-dot" />
-                        Camera captures multiple frames and AI selects the most reliable inspection result automatically.
+                        Camera captures multiple frames and AI selects the most
+                        reliable inspection result automatically.
                       </div>
                     </div>
                   )}
@@ -4913,10 +4945,8 @@ const workflowStepClass = (step) => {
                       type="button"
                       className="realtime-btn start"
                       onClick={handleStartRealtime}
-                      disabled={ 
-                        visionStageDone || 
-                        realtimeRunning || 
-                        realtimeStarting 
+                      disabled={
+                        visionStageDone || realtimeRunning || realtimeStarting
                       }
                     >
                       {realtimeStarting
@@ -5016,12 +5046,18 @@ const workflowStepClass = (step) => {
                     <div className="realtime-metric">
                       <div className="realtime-metric-label">Camera</div>
                       <div className="realtime-metric-value">
-                        {realtimeResult?.camera_connected ? "Connected" : realtimeRunning ? "Connecting" : "Stopped"}
+                        {realtimeResult?.camera_connected
+                          ? "Connected"
+                          : realtimeRunning
+                            ? "Connecting"
+                            : "Stopped"}
                       </div>
                     </div>
 
                     <div className="realtime-metric">
-                      <div className="realtime-metric-label">Seals Detected</div>
+                      <div className="realtime-metric-label">
+                        Seals Detected
+                      </div>
                       <div className="realtime-metric-value">
                         {realtimeResult?.seal_count ?? 0}
                       </div>
@@ -5030,16 +5066,22 @@ const workflowStepClass = (step) => {
                     <div className="realtime-metric">
                       <div className="realtime-metric-label">Overheat</div>
                       <div className="realtime-metric-value">
-                        {realtimeResult ? (realtimeOverheat ? "Detected" : "Not Detected") : "—"}
+                        {realtimeResult
+                          ? realtimeOverheat
+                            ? "Detected"
+                            : "Not Detected"
+                          : "—"}
                       </div>
                     </div>
 
                     <div className="realtime-metric">
-                      <div className="realtime-metric-label">Highest Overheat Confidence</div>
+                      <div className="realtime-metric-label">
+                        Highest Overheat Confidence
+                      </div>
                       <div className="realtime-metric-value">
                         {realtimeResult
                           ? formatRealtimeConfidence(
-                              realtimeResult.highest_overheat_confidence
+                              realtimeResult.highest_overheat_confidence,
                             )
                           : "—"}
                       </div>
@@ -5089,7 +5131,7 @@ const workflowStepClass = (step) => {
                       <div className="realtime-snapshot-frame">
                         <img
                           src={`${buildImageUrl(
-                            realtimeResult.inspection_image
+                            realtimeResult.inspection_image,
                           )}?cycle=${realtimeCycle}`}
                           alt="Latest AI annotated seal inspection"
                           className="realtime-snapshot-image"
@@ -5097,8 +5139,8 @@ const workflowStepClass = (step) => {
                       </div>
 
                       <div className="realtime-snapshot-caption">
-                        Seal and defect boundary boxes shown from the
-                        Completed multi-frame AI inspection.
+                        Seal and defect boundary boxes shown from the Completed
+                        multi-frame AI inspection.
                       </div>
                     </div>
                   )}
@@ -5107,10 +5149,14 @@ const workflowStepClass = (step) => {
                     {realtimeSeals.length > 0 ? (
                       realtimeSeals.map((seal, index) => {
                         const isOverheat =
-                          String(seal.status || "").toUpperCase() === "OVERHEAT";
+                          String(seal.status || "").toUpperCase() ===
+                          "OVERHEAT";
 
                         return (
-                          <div className="realtime-seal-card" key={`seal-${index}`}>
+                          <div
+                            className="realtime-seal-card"
+                            key={`seal-${index}`}
+                          >
                             <div className="realtime-seal-head">
                               <div className="realtime-seal-name">
                                 Seal {seal.seal_number ?? index + 1}
@@ -5125,224 +5171,150 @@ const workflowStepClass = (step) => {
                             </div>
 
                             <div className="realtime-seal-meta">
-                              Seal confidence: {formatRealtimeConfidence(seal.seal_confidence)}
+                              Seal confidence:{" "}
+                              {formatRealtimeConfidence(seal.seal_confidence)}
                               <br />
-                              Defect boxes: {Array.isArray(seal.defects) ? seal.defects.length : 0}
+                              Defect boxes:{" "}
+                              {Array.isArray(seal.defects)
+                                ? seal.defects.length
+                                : 0}
                             </div>
                           </div>
                         );
                       })
                     ) : (
                       <div className="realtime-seal-card">
-                        <div className="realtime-seal-name">Waiting for seal detections...</div>
+                        <div className="realtime-seal-name">
+                          Waiting for seal detections...
+                        </div>
                         <div className="realtime-seal-meta">
-                          Show the full coffee packet clearly to the phone camera.
+                          Show the full coffee packet clearly to the phone
+                          camera.
                         </div>
                       </div>
                     )}
                   </div>
 
                   <div className="realtime-note">
-                    AI 1 detects and crops each seal region. AI 2 runs object detection on each crop,
-                    and the overheat defect coordinates are mapped back onto the full packet frame.
+                    AI 1 detects and crops each seal region. AI 2 runs object
+                    detection on each crop, and the overheat defect coordinates
+                    are mapped back onto the full packet frame.
                   </div>
-
-
-
-                  </div>
-
                 </div>
+              </div>
               <div className="history-panel">
-
-  <div className="history-header">
-
-<h3>
-📋 Previous AI Seal Inspection History
-</h3>
-
-
-<div>
-
-<button
-type="button"
-className="refresh-device-btn"
-onClick={loadSealHistory}
-disabled={sealHistoryLoading}
->
-
-{
-sealHistoryLoading
-?
-"Refreshing..."
-:
-"↻ Refresh"
-}
-
-</button>
-
-
-<span className="history-count">
-
-{sealHistory.length} Records
-
-</span>
-
-
-</div>
-
-
-</div>
-
-
-  <div className="history-table-container">
-
-    <table className="defect-table">
-
-      <thead>
-
-        <tr>
-
-          <th>Packet ID</th>
-          <th>Date</th>
-          <th>Result</th>
-          <th>Status</th>
-          <th>Defect</th>
-          <th>Screenshot</th>
-
-        </tr>
-
-      </thead>
-
-
-      <tbody>
-
-      {
-        sealHistory.length > 0 ?
-
-        [...sealHistory]
-        .sort(
-          (a,b)=>
-          new Date(b.created_at) -
-          new Date(a.created_at)
-        )
-        .map((item,index)=>(
-
-          <tr key={item._id || item.id || item.packet_id || `${item.created_at}-${index}`}>
-
-            <td>
-              {item.packet_id || `PKT-${index+1}`}
-            </td>
-
-
-            <td>
-              {formatSriLankaDateTime(item.created_at)}
-            </td>
-
-
-            <td>
-
-              <span
-                className={
-                  item.result_type === "PASS"
-                  ?
-                  "good-badge defect-badge"
-                  :
-                  "defect-badge"
-                }
-              >
-
-              {
-                item.result_type || "DEFECT"
-              }
-
-              </span>
-
-            </td>
-
-
-            <td>
-              {item.final_status || "UNKNOWN"}
-            </td>
-
-
-            <td>
-
-            {
-              item.overheat_result?.detected
-
-              ?
-
-              "🔥 Overheat"
-
-              :
-
-              "✅ Normal"
-
-            }
-
-            </td>
-
-
-            <td>
-
-            {
-              item.image_path ?
-
-              <img
-
-              src={`${buildImageUrl(item.image_path)}?history=${encodeURIComponent(
-                item.created_at || item.packet_id || index
-              )}`}
-
-              className="history-image"
-
-              alt="AI final inspection"
-
-              />
-
-              :
-
-              "Not Available"
-
-            }
-
-            </td>
-
-
-          </tr>
-
-        ))
-
-        :
-
-        <tr>
-
-          <td colSpan="6">
-
-            <div className="empty-state">
-
-              📭 No previous inspection records
-
-            </div>
-
-          </td>
-
-        </tr>
-
-      }
-
-
-      </tbody>
-
-    </table>
-
-  </div>
-
-</div>
-
-            
-              
-          </section>
+                <div className="history-header">
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "10px",
+                      marginBottom: "15px",
+                      flexWrap: "wrap",
+                    }}
+                  ></div>
+
+                  <h3>📋 Previous AI Seal Inspection History</h3>
+
+                  <div>
+                    <button
+                      type="button"
+                      className="refresh-device-btn"
+                      onClick={loadSealHistory}
+                      disabled={sealHistoryLoading}
+                    >
+                      {sealHistoryLoading ? "Refreshing..." : "↻ Refresh"}
+                    </button>
+
+                    <span className="history-count">
+                      {sealHistory.length} Records
+                    </span>
+                  </div>
+                </div>
+
+                <div className="history-table-container">
+                  <table className="defect-table">
+                    <thead>
+                      <tr>
+                        <th>Packet ID</th>
+                        <th>Date</th>
+                        <th>Result</th>
+                        <th>Status</th>
+                        <th>Defect</th>
+                        <th>Screenshot</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {sealHistory.length > 0 ? (
+                        [...sealHistory]
+                          .sort(
+                            (a, b) =>
+                              new Date(b.created_at) - new Date(a.created_at),
+                          )
+                          .map((item, index) => (
+                            <tr
+                              key={
+                                item._id ||
+                                item.id ||
+                                item.packet_id ||
+                                `${item.created_at}-${index}`
+                              }
+                            >
+                              <td>{item.packet_id || `PKT-${index + 1}`}</td>
+
+                              <td>{formatSriLankaDateTime(item.created_at)}</td>
+
+                              <td>
+                                <span
+                                  className={
+                                    item.result_type === "PASS"
+                                      ? "good-badge defect-badge"
+                                      : "defect-badge"
+                                  }
+                                >
+                                  {item.result_type || "DEFECT"}
+                                </span>
+                              </td>
+
+                              <td>{item.final_status || "UNKNOWN"}</td>
+
+                              <td>
+                                {item.overheat_result?.detected
+                                  ? "🔥 Overheat"
+                                  : "✅ Normal"}
+                              </td>
+
+                              <td>
+                                {item.image_path ? (
+                                  <img
+                                    src={`${buildImageUrl(item.image_path)}?history=${encodeURIComponent(
+                                      item.created_at ||
+                                        item.packet_id ||
+                                        index,
+                                    )}`}
+                                    className="history-image"
+                                    alt="AI final inspection"
+                                  />
+                                ) : (
+                                  "Not Available"
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                      ) : (
+                        <tr>
+                          <td colSpan="6">
+                            <div className="empty-state">
+                              📭 No previous inspection records
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
           ) : activeTab === "device" ? (
             <section className="device-page">
               <div className="device-hero">
@@ -5355,45 +5327,51 @@ sealHistoryLoading
                   </h2>
 
                   <p className="device-description">
-                    Run the physical leak test directly from the web application.
-                    The backend sends a START command to the Arduino Uno, applies
-                    pressure using the motor, collects HX711 load-cell readings,
-                    classifies the packet, and returns the result to this page.
+                    Run the physical leak test directly from the web
+                    application. The backend sends a START command to the
+                    Arduino Uno, applies pressure using the motor, collects
+                    HX711 load-cell readings, classifies the packet, and returns
+                    the result to this page.
                   </p>
 
                   <div className="device-flow">
                     <div className="device-flow-item">
                       <div className="device-flow-num">01</div>
                       <div className="device-flow-text">
-                        Place the coffee packet correctly inside the leak-detection device.
+                        Place the coffee packet correctly inside the
+                        leak-detection device.
                       </div>
                     </div>
 
                     <div className="device-flow-item">
                       <div className="device-flow-num">02</div>
                       <div className="device-flow-text">
-                        Connect the Arduino USB cable and switch on the 12V motor adapter.
+                        Connect the Arduino USB cable and switch on the 12V
+                        motor adapter.
                       </div>
                     </div>
 
                     <div className="device-flow-item">
                       <div className="device-flow-num">03</div>
                       <div className="device-flow-text">
-                        Start the test. The motor moves down until the bottom limit switch is reached.
+                        Start the test. The motor moves down until the bottom
+                        limit switch is reached.
                       </div>
                     </div>
 
                     <div className="device-flow-item">
                       <div className="device-flow-num">04</div>
                       <div className="device-flow-text">
-                        Load-cell readings are collected and compared with the 286000 threshold.
+                        Load-cell readings are collected and compared with the
+                        286000 threshold.
                       </div>
                     </div>
 
                     <div className="device-flow-item">
                       <div className="device-flow-num">05</div>
                       <div className="device-flow-text">
-                        GOOD or LEAK is shown here and the motor returns to the top limit switch.
+                        GOOD or LEAK is shown here and the motor returns to the
+                        top limit switch.
                       </div>
                     </div>
                   </div>
@@ -5442,7 +5420,9 @@ sealHistoryLoading
                     </div>
 
                     <div className="device-warning">
-                      ⚠️ Before pressing Start Leak Test, keep hands clear of the moving mechanism and make sure the top/bottom limit switches are positioned correctly.
+                      ⚠️ Before pressing Start Leak Test, keep hands clear of
+                      the moving mechanism and make sure the top/bottom limit
+                      switches are positioned correctly.
                     </div>
                   </div>
 
@@ -5450,11 +5430,11 @@ sealHistoryLoading
                     type="button"
                     className="device-test-btn"
                     onClick={handleLeakDeviceTest}
-                    disabled={ 
-                      deviceLoading || 
-                      !deviceStatus?.connected || 
-                      (activePacketId && !visionStageDone) || 
-                      leakStageDone 
+                    disabled={
+                      deviceLoading ||
+                      !deviceStatus?.connected ||
+                      (activePacketId && !visionStageDone) ||
+                      leakStageDone
                     }
                   >
                     <span className="device-test-btn-content">
@@ -5472,22 +5452,23 @@ sealHistoryLoading
                   </button>
 
                   {deviceError && (
-                    <div className="device-error">
-                      ⚠️ {deviceError}
-                    </div>
+                    <div className="device-error">⚠️ {deviceError}</div>
                   )}
 
                   {deviceResult && (
                     <div className="device-result-section">
                       <div
                         className={`device-result-banner ${
-                          String(deviceResult.status || "").toUpperCase() === "GOOD"
+                          String(deviceResult.status || "").toUpperCase() ===
+                          "GOOD"
                             ? "good"
                             : "leak"
                         }`}
                       >
                         <div>
-                          <div className="device-result-label">Packet Result</div>
+                          <div className="device-result-label">
+                            Packet Result
+                          </div>
                           <div className="device-result-value">
                             {deviceResult.status
                               ? `${deviceResult.status} PACKET`
@@ -5496,7 +5477,8 @@ sealHistoryLoading
                         </div>
 
                         <div className="device-result-icon">
-                          {String(deviceResult.status || "").toUpperCase() === "GOOD"
+                          {String(deviceResult.status || "").toUpperCase() ===
+                          "GOOD"
                             ? "✅"
                             : "🚨"}
                         </div>
@@ -5548,14 +5530,18 @@ sealHistoryLoading
                         </div>
 
                         <div className="device-metric">
-                          <div className="device-metric-label">Initial Value</div>
+                          <div className="device-metric-label">
+                            Initial Value
+                          </div>
                           <div className="device-metric-value">
                             {deviceResult.initial_value ?? "—"}
                           </div>
                         </div>
 
                         <div className="device-metric">
-                          <div className="device-metric-label">Final Position</div>
+                          <div className="device-metric-label">
+                            Final Position
+                          </div>
                           <div className="device-metric-value">
                             {deviceResult.device_status || "—"}
                           </div>
@@ -5599,123 +5585,125 @@ sealHistoryLoading
     PREVIOUS LEAK TEST HISTORY
 ====================================== */}
 
-{leakHistory.length > 0 && (
+                  {leakHistory.length > 0 && (
+                    <div className="history-panel">
+                      <h3>📋 Previous Packet Leak Detection History</h3>
 
-<div className="history-panel">
+                      <div className="history-table-container">
+                        <table className="defect-table">
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th>Status</th>
+                              <th>Average</th>
+                              <th>Range</th>
+                            </tr>
+                          </thead>
 
-    <h3>
-        📋 Previous AI Seal Inspection History
-    </h3>
+                          <tbody>
+                            {leakHistory.map((item, index) => (
+                              <tr key={index}>
+                                <td>
+                                  {formatInspectionDateTime(item.created_at)}
+                                </td>
 
+                                <td>
+                                  <span
+                                    className={
+                                      item.status === "GOOD"
+                                        ? "good-badge defect-badge"
+                                        : "defect-badge"
+                                    }
+                                  >
+                                    {item.status}
+                                  </span>
+                                </td>
 
-    <div className="history-table-container">
+                                <td>{item.average}</td>
 
-        <table className="defect-table">
-
-<thead>
-
-<tr>
-<th>Date</th>
-<th>Status</th>
-<th>Average</th>
-<th>Range</th>
-</tr>
-
-</thead>
-
-
-<tbody>
-
-{
-leakHistory.map((item,index)=>(
-
-<tr key={index}>
-
-<td>
-{
-formatInspectionDateTime(item.created_at)
-}
-</td>
-
-
-<td>
-
-<span className={
-item.status === "GOOD"
-?
-"good-badge defect-badge"
-:
-"defect-badge"
-}>
-
-{item.status}
-
-</span>
-
-</td>
-
-
-<td>
-{item.average}
-</td>
-
-
-<td>
-{item.range}
-</td>
-
-
-</tr>
-
-))
-
-}
-
-</tbody>
-
-</table>
-
-</div>
-
-</div>
-
-)}
-
-
+                                <td>{item.range}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-                        </section>
-
+            </section>
           ) : (
             <section className="report-page">
-              <div className="report-card">
+              <div className="report-download-card">
+                <h3>📄 Inspection Reports</h3>
 
-                <div className="report-kicker">
-                  Final Quality Control
+                <p>Generate Quality Inspection Report</p>
+
+                <div className="report-filter-grid">
+                  <div className="report-filter-item">
+                    <label>Inspection Type</label>
+
+                    <select
+                      value={historyType}
+                      onChange={(e) => setHistoryType(e.target.value)}
+                    >
+                      <option value="all">All Inspections</option>
+
+                      <option value="seal">📹 Real-Time Seal Inspection</option>
+
+                      <option value="leak">⚙️ Packet Leak Detection</option>
+                    </select>
+                  </div>
+
+                  <div className="report-filter-item">
+                    <label>Date Range</label>
+
+                    <div className="date-range-box">
+                      <input
+                        type="date"
+                        max={new Date().toISOString().split("T")[0]}
+                        value={historyStartDate}
+                        onChange={(e) => setHistoryStartDate(e.target.value)}
+                      />
+
+                      <span>-</span>
+
+                      <input
+                        type="date"
+                        max={new Date().toISOString().split("T")[0]}
+                        value={historyEndDate}
+                        onChange={(e) => setHistoryEndDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
+
+                <button
+                  className="report-download-main-btn"
+                  onClick={downloadHistoryCSV}
+                >
+                  ⬇ Download Report
+                </button>
+              </div>
+              <div className="report-card">
+                <div className="report-kicker">Final Quality Control</div>
 
                 <h2 className="report-title">
                   Coffee Packet Inspection Report
                 </h2>
 
                 <p className="report-description">
-                  This final report combines the Real-Time Two-Stage
-                  AI Seal Inspection and the Physical Packet Leak
-                  Detection result.
+                  This final report combines the Real-Time Two-Stage AI Seal
+                  Inspection and the Physical Packet Leak Detection result.
                 </p>
 
                 <div className="report-status-grid">
-
                   <div
                     className={`report-status-card ${
-                      reportStatus?.has_realtime_result
-                        ? "ready"
-                        : "missing"
+                      reportStatus?.has_realtime_result ? "ready" : "missing"
                     }`}
                   >
-                    <div className="report-status-label">
-                      Real-Time AI
-                    </div>
+                    <div className="report-status-label">Real-Time AI</div>
 
                     <div className="report-status-value">
                       {reportStatus?.has_realtime_result
@@ -5726,9 +5714,7 @@ item.status === "GOOD"
 
                   <div
                     className={`report-status-card ${
-                      reportStatus?.has_leak_result
-                        ? "ready"
-                        : "missing"
+                      reportStatus?.has_leak_result ? "ready" : "missing"
                     }`}
                   >
                     <div className="report-status-label">
@@ -5744,26 +5730,18 @@ item.status === "GOOD"
 
                   <div
                     className={`report-status-card ${
-                      reportStatus?.ready
-                        ? "ready"
-                        : "missing"
+                      reportStatus?.ready ? "ready" : "missing"
                     }`}
                   >
-                    <div className="report-status-label">
-                      Report Readiness
-                    </div>
+                    <div className="report-status-label">Report Readiness</div>
 
                     <div className="report-status-value">
-                      {reportStatus?.ready
-                        ? "✅ Ready"
-                        : "⏳ Not Ready"}
+                      {reportStatus?.ready ? "✅ Ready" : "⏳ Not Ready"}
                     </div>
                   </div>
-
                 </div>
 
                 <div className="report-actions">
-
                   <button
                     type="button"
                     className="report-btn refresh"
@@ -5789,35 +5767,24 @@ item.status === "GOOD"
                       ? "Generating PDF..."
                       : "📄 Generate Final PDF Report"}
                   </button>
-
                 </div>
 
                 {reportError && (
-                  <div className="report-error">
-                    ⚠️ {reportError}
-                  </div>
+                  <div className="report-error">⚠️ {reportError}</div>
                 )}
 
                 {generatedReport && (
                   <div className="report-success">
-
                     <div className="report-success-title">
                       ✅ Final Report Generated
                     </div>
 
                     <div className="report-success-meta">
-                      Report ID:{" "}
-                      <strong>
-                        {generatedReport.report_id}
-                      </strong>
+                      Report ID: <strong>{generatedReport.report_id}</strong>
                       <br />
-
                       Final Decision:{" "}
-                      <strong>
-                        {generatedReport.final_decision}
-                      </strong>
+                      <strong>{generatedReport.final_decision}</strong>
                       <br />
-
                       {generatedReport.reason}
                     </div>
 
@@ -5825,7 +5792,7 @@ item.status === "GOOD"
                       <a
                         className="report-download-btn"
                         href={getReportDownloadUrl(
-                          generatedReport.download_url
+                          generatedReport.download_url,
                         )}
                         target="_blank"
                         rel="noreferrer"
@@ -5834,10 +5801,8 @@ item.status === "GOOD"
                         ⬇ Download Final PDF Report
                       </a>
                     )}
-
                   </div>
                 )}
-
               </div>
             </section>
           )}

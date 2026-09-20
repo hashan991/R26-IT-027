@@ -128,7 +128,7 @@ function ProcessingIntelligence({ data }) {
         )}
       </div>
 
-      <div className="pi-grid">
+     {/*} <div className="pi-grid">
         {data.batch_usage && (
           <div className="pi-module-section">
             <div className="pi-module-heading">
@@ -158,7 +158,7 @@ function ProcessingIntelligence({ data }) {
             <UsableYield data={data.usable_yield} />
           </div>
         )}
-      </div>
+      </div> */}
 
       <div className="pi-grid">
         {data.storage_handling && (

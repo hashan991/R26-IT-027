@@ -1133,10 +1133,10 @@ function UsableYield({ data }) {
                     <strong>{humanize(recoveryPotential)}</strong>
                   </div>
 
-                  <div className="yield-summary-card">
+                 {/* <div className="yield-summary-card">
                     <span>Weight Calibrated</span>
                     <strong>{data.weight_calibrated ? "Yes" : "No"}</strong>
-                  </div>
+                  </div>*/}
 
                   <div className="yield-summary-card">
                     <span>Weight-Based Yield</span>
@@ -1161,7 +1161,7 @@ function UsableYield({ data }) {
                 </div>
               </div>
 
-              <div className="yield-section">
+            {}  <div className="yield-section">
                 <div className="yield-section-heading">
                   <div>
                     <h4>Sample Weight Context</h4>
