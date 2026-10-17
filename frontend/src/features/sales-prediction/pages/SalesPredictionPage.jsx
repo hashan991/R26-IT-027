@@ -4006,6 +4006,9 @@ const styles = `
 
     letter-spacing:
       -.5px;
+
+        color: #ffffff;
+
   }
 
 
