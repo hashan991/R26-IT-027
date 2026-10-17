@@ -40,7 +40,7 @@ def _candidate_model_paths() -> list[Path]:
 
     Recommended location:
 
-    coffee-quality-ai-platform/
+    R26-IT-027/
     └── models/
         └── sales_prediction/
             └── final_coffee_xai_model.pkl
@@ -48,40 +48,38 @@ def _candidate_model_paths() -> list[Path]:
 
     current_file = Path(__file__).resolve()
 
-    # service.py location:
-    # backend/app/modules/market_suitability_prediction/service.py
+    # service.py:
+    # backend/app/modules/sales_prediction/service.py
     #
-    # parents[0] = market_suitability_prediction
+    # parents[0] = sales_prediction
     # parents[1] = modules
     # parents[2] = app
     # parents[3] = backend
-    # parents[4] = coffee-quality-ai-platform
+    # parents[4] = project root
 
     project_root = current_file.parents[4]
 
     paths: list[Path] = []
 
-    # Optional custom model path from environment variable
     env_path = os.getenv("SALES_MODEL_PATH")
 
     if env_path:
-        paths.append(Path(env_path))
+        paths.append(
+            Path(env_path)
+        )
 
     paths.extend(
         [
-            # Main / recommended path
             project_root
             / "models"
             / "sales_prediction"
             / "final_coffee_xai_model.pkl",
 
-            # Fallback when running from project root
             Path.cwd()
             / "models"
             / "sales_prediction"
             / "final_coffee_xai_model.pkl",
 
-            # Fallback when running inside backend/
             Path.cwd().parent
             / "models"
             / "sales_prediction"
@@ -125,15 +123,16 @@ def _get_model_path() -> Path:
 @lru_cache(maxsize=1)
 def load_model_bundle() -> Dict[str, Any]:
     """
-    Load the model bundle only once.
+    Load the trained model bundle once.
 
-    It is reused for all API requests.
+    The same model bundle is reused for API requests.
     """
 
     model_path = _get_model_path()
 
     print(
-        f"Loading coffee prediction model from: {model_path}"
+        f"Loading coffee prediction model from: "
+        f"{model_path}"
     )
 
     bundle = joblib.load(
@@ -155,7 +154,8 @@ def load_model_bundle() -> Dict[str, Any]:
 
     if missing:
         raise ValueError(
-            f"Invalid model bundle. Missing keys: {missing}"
+            f"Invalid model bundle. "
+            f"Missing keys: {missing}"
         )
 
     return bundle
@@ -167,9 +167,6 @@ def load_model_bundle() -> Dict[str, Any]:
 
 @lru_cache(maxsize=1)
 def load_xai_explainers():
-    """
-    Create SHAP explainers once and reuse them.
-    """
 
     bundle = load_model_bundle()
 
@@ -180,8 +177,13 @@ def load_xai_explainers():
     quality_explainer = None
 
     if "quality_model" in bundle:
-        quality_explainer = shap.TreeExplainer(
-            bundle["quality_model"]
+
+        quality_explainer = (
+            shap.TreeExplainer(
+                bundle[
+                    "quality_model"
+                ]
+            )
         )
 
     return (
@@ -217,6 +219,7 @@ def _previous_year_month(
 ) -> Tuple[int, int]:
 
     if month == 1:
+
         return (
             year - 1,
             12,
@@ -229,7 +232,29 @@ def _previous_year_month(
 
 
 # ============================================================
-# WEATHER PROFILE
+# NEXT YEAR / MONTH
+# ============================================================
+
+def _next_year_month(
+    year: int,
+    month: int,
+) -> Tuple[int, int]:
+
+    if month == 12:
+
+        return (
+            year + 1,
+            1,
+        )
+
+    return (
+        year,
+        month + 1,
+    )
+
+
+# ============================================================
+# WEATHER PROFILE FROM MODEL BUNDLE
 # ============================================================
 
 def _get_weather_profile(
@@ -244,7 +269,8 @@ def _get_weather_profile(
     if month not in profile.index:
 
         raise ValueError(
-            f"Weather profile is missing month {month}"
+            f"Weather profile is missing "
+            f"month {month}"
         )
 
     weather_row = profile.loc[
@@ -264,7 +290,9 @@ def _get_weather_profile(
     return {
         column:
             float(
-                weather_row[column]
+                weather_row[
+                    column
+                ]
             )
 
         for column
@@ -273,7 +301,34 @@ def _get_weather_profile(
 
 
 # ============================================================
-# PREVIOUS MONTH SALES
+# ALL MODEL WEATHER PROFILES
+# ============================================================
+
+def get_model_weather_profiles() -> Dict[
+    int,
+    Dict[str, float],
+]:
+
+    bundle = load_model_bundle()
+
+    return {
+        month:
+            _get_weather_profile(
+                bundle,
+                month,
+            )
+
+        for month
+        in range(
+            1,
+            13,
+        )
+    }
+
+
+# ============================================================
+# PREVIOUS MONTH SALES FROM TRAINING DATA
+# FALLBACK USED WHEN DATABASE SALES IS NOT PROVIDED
 # ============================================================
 
 def _get_previous_month_sales(
@@ -288,45 +343,51 @@ def _get_previous_month_sales(
         ]
     )
 
-    prev_year, prev_month = (
-        _previous_year_month(
-            year,
-            month,
-        )
+    (
+        prev_year,
+        prev_month,
+    ) = _previous_year_month(
+        year,
+        month,
     )
-
 
     # --------------------------------------------------------
     # Exact previous calendar month
     # --------------------------------------------------------
 
-    exact_previous_month = training_data[
-        (
-            training_data[
-                "Year"
-            ]
-            == prev_year
-        )
-        &
-        (
-            training_data[
-                "Month_Num"
-            ]
-            == prev_month
-        )
-    ]
+    exact_previous_month = (
+        training_data[
+            (
+                training_data[
+                    "Year"
+                ]
+                == prev_year
+            )
+            &
+            (
+                training_data[
+                    "Month_Num"
+                ]
+                == prev_month
+            )
+        ]
+    )
 
     if not exact_previous_month.empty:
 
         previous_sales = float(
-            exact_previous_month.iloc[-1][
+            exact_previous_month.iloc[
+                -1
+            ][
                 "Coffee_Sales_Units"
             ]
         )
 
         source = (
-            "Actual previous-month sales from "
-            f"{MONTH_NAMES[prev_month]} {prev_year}"
+            "Actual previous-month sales "
+            "from training data: "
+            f"{MONTH_NAMES[prev_month]} "
+            f"{prev_year}"
         )
 
         return (
@@ -334,17 +395,18 @@ def _get_previous_month_sales(
             source,
         )
 
-
     # --------------------------------------------------------
-    # Historical average for previous month type
+    # Historical same-month average
     # --------------------------------------------------------
 
-    same_month_history = training_data[
+    same_month_history = (
         training_data[
-            "Month_Num"
+            training_data[
+                "Month_Num"
+            ]
+            == prev_month
         ]
-        == prev_month
-    ]
+    )
 
     if not same_month_history.empty:
 
@@ -355,8 +417,8 @@ def _get_previous_month_sales(
         )
 
         source = (
-            "Average historical sales for "
-            "previous month type: "
+            "Average historical sales "
+            "for previous month type: "
             f"{MONTH_NAMES[prev_month]}"
         )
 
@@ -364,7 +426,6 @@ def _get_previous_month_sales(
             previous_sales,
             source,
         )
-
 
     # --------------------------------------------------------
     # Final fallback
@@ -391,11 +452,13 @@ def _sales_level(
     predicted_sales: float,
 ) -> str:
 
-    sales = bundle[
-        "training_data"
-    ][
-        "Coffee_Sales_Units"
-    ]
+    sales = (
+        bundle[
+            "training_data"
+        ][
+            "Coffee_Sales_Units"
+        ]
+    )
 
     q25 = float(
         sales.quantile(
@@ -434,12 +497,14 @@ def _monthly_average_change(
         ]
     )
 
-    month_rows = training_data[
+    month_rows = (
         training_data[
-            "Month_Num"
+            training_data[
+                "Month_Num"
+            ]
+            == month
         ]
-        == month
-    ]
+    )
 
     if month_rows.empty:
         return None
@@ -467,254 +532,19 @@ def _monthly_average_change(
         2,
     )
 
-    # ============================================================
-# PREVIOUS MONTH VS CURRENT MONTH COMPARISON
+
+# ============================================================
+# BUILD MODEL FEATURES
 # ============================================================
 
-def _get_monthly_comparison(
-    bundle: Dict[str, Any],
+def _build_base_features(
     year: int,
     month: int,
-    predicted_sales: float,
-):
-
-    training_data: pd.DataFrame = (
-        bundle["training_data"]
-    )
-
-
-    previous_year, previous_month = (
-        _previous_year_month(
-            year,
-            month,
-        )
-    )
-
-
-    # --------------------------------------------
-    # Get previous month sales
-    # --------------------------------------------
-
-    previous_month_data = training_data[
-        (
-            training_data["Year"]
-            == previous_year
-        )
-        &
-        (
-            training_data["Month_Num"]
-            == previous_month
-        )
-    ]
-
-
-    if not previous_month_data.empty:
-
-        previous_sales = float(
-            previous_month_data.iloc[-1][
-                "Coffee_Sales_Units"
-            ]
-        )
-
-        previous_source = "Actual previous month sales"
-
-
-    else:
-
-        historical_month_data = training_data[
-            training_data["Month_Num"]
-            ==
-            previous_month
-        ]
-
-
-        if not historical_month_data.empty:
-
-            previous_sales = float(
-                historical_month_data[
-                    "Coffee_Sales_Units"
-                ].mean()
-            )
-
-            previous_source = (
-                "Historical average previous month sales"
-            )
-
-        else:
-
-            previous_sales = float(
-                training_data[
-                    "Coffee_Sales_Units"
-                ].mean()
-            )
-
-            previous_source = (
-                "Overall historical average"
-            )
-
-
-    # --------------------------------------------
-    # Calculate difference
-    # --------------------------------------------
-
-    difference = (
-        predicted_sales
-        -
-        previous_sales
-    )
-
-
-    percentage = 0
-
-
-    if previous_sales != 0:
-
-        percentage = (
-            difference
-            /
-            previous_sales
-        ) * 100
-
-
+    previous_sales: float,
+    weather: Dict[str, float],
+) -> Dict[str, float]:
 
     return {
-
-
-        "previous_month": {
-
-
-            "month":
-                MONTH_NAMES[
-                    previous_month
-                ],
-
-
-            "year":
-                previous_year,
-
-
-            "sales_units":
-                round(
-                    previous_sales,
-                    2
-                )
-
-        },
-
-
-        "current_prediction": {
-
-
-            "month":
-                MONTH_NAMES[
-                    month
-                ],
-
-
-            "year":
-                year,
-
-
-            "sales_units":
-                round(
-                    predicted_sales,
-                    2
-                )
-
-        },
-
-
-        "change": {
-
-
-            "difference":
-                round(
-                    difference,
-                    2
-                ),
-
-
-            "percentage":
-                round(
-                    percentage,
-                    2
-                )
-
-        },
-
-
-        "source":
-            previous_source
-
-    }
-
-
-# ============================================================
-# MAIN SALES + QUALITY + XAI PREDICTION
-# ============================================================
-
-def predict_sales(
-    year: int,
-    month: int,
-) -> Dict[str, Any]:
-
-    # --------------------------------------------------------
-    # Validate month
-    # --------------------------------------------------------
-
-    if month < 1 or month > 12:
-
-        raise ValueError(
-            "Month must be between 1 and 12"
-        )
-
-
-    # --------------------------------------------------------
-    # Load model bundle
-    # --------------------------------------------------------
-
-    bundle = load_model_bundle()
-
-
-    # --------------------------------------------------------
-    # Load SHAP explainers
-    # --------------------------------------------------------
-
-    (
-        sales_explainer,
-        quality_explainer,
-    ) = load_xai_explainers()
-
-
-    # --------------------------------------------------------
-    # Get weather
-    # --------------------------------------------------------
-
-    weather = _get_weather_profile(
-        bundle,
-        month,
-    )
-
-
-    # --------------------------------------------------------
-    # Get previous month sales
-    # --------------------------------------------------------
-
-    (
-        previous_sales,
-        previous_sales_source,
-    ) = _get_previous_month_sales(
-        bundle,
-        year,
-        month,
-    )
-
-
-    # ========================================================
-    # BASE FEATURES
-    # ========================================================
-
-    base_features: Dict[str, float] = {
 
         "Year":
             float(
@@ -727,7 +557,9 @@ def predict_sales(
             ),
 
         "Prev_Month_Sales":
-            previous_sales,
+            float(
+                previous_sales
+            ),
 
         "Month_Sin":
             float(
@@ -749,9 +581,478 @@ def predict_sales(
                 )
             ),
 
-        **weather,
+        **{
+            key:
+                float(
+                    value
+                )
+
+            for key, value
+            in weather.items()
+        },
     }
 
+
+# ============================================================
+# COFFEE QUALITY PREDICTION
+# LOW / MEDIUM / HIGH
+# ============================================================
+
+def _predict_quality_from_base_features(
+    bundle: Dict[str, Any],
+    base_features: Dict[str, float],
+) -> Dict[str, Any]:
+
+    predicted_quality_label: Optional[
+        str
+    ] = None
+
+    predicted_quality_probabilities: Optional[
+        Dict[str, float]
+    ] = None
+
+    quality_available = all(
+        key in bundle
+        for key in [
+            "quality_model",
+            "quality_features",
+            "quality_encoder",
+        ]
+    )
+
+    if not quality_available:
+
+        return {
+            "predicted_quality_label":
+                None,
+
+            "predicted_quality_probabilities":
+                None,
+        }
+
+    quality_features = bundle[
+        "quality_features"
+    ]
+
+    missing_features = [
+        feature
+        for feature in quality_features
+        if feature not in base_features
+    ]
+
+    if missing_features:
+
+        raise ValueError(
+            "Missing quality model "
+            f"features: {missing_features}"
+        )
+
+    quality_input = pd.DataFrame(
+        [
+            {
+                feature:
+                    base_features[
+                        feature
+                    ]
+
+                for feature
+                in quality_features
+            }
+        ]
+    )
+
+    # --------------------------------------------------------
+    # Predict quality class
+    # --------------------------------------------------------
+
+    encoded_quality = int(
+        bundle[
+            "quality_model"
+        ].predict(
+            quality_input
+        )[0]
+    )
+
+    # --------------------------------------------------------
+    # Decode to LOW / MEDIUM / HIGH
+    # --------------------------------------------------------
+
+    predicted_quality_label = str(
+        bundle[
+            "quality_encoder"
+        ].inverse_transform(
+            [
+                encoded_quality
+            ]
+        )[0]
+    )
+
+    # --------------------------------------------------------
+    # Probabilities
+    # --------------------------------------------------------
+
+    if hasattr(
+        bundle[
+            "quality_model"
+        ],
+        "predict_proba",
+    ):
+
+        probabilities = (
+            bundle[
+                "quality_model"
+            ].predict_proba(
+                quality_input
+            )[0]
+        )
+
+        classes = (
+            bundle[
+                "quality_model"
+            ].classes_
+        )
+
+        decoded_classes = (
+            bundle[
+                "quality_encoder"
+            ].inverse_transform(
+                classes
+            )
+        )
+
+        predicted_quality_probabilities = {
+
+            str(label):
+                round(
+                    float(
+                        probability
+                    ),
+                    4,
+                )
+
+            for label, probability
+            in zip(
+                decoded_classes,
+                probabilities,
+            )
+        }
+
+    return {
+
+        "predicted_quality_label":
+            predicted_quality_label,
+
+        "predicted_quality_probabilities":
+            predicted_quality_probabilities,
+    }
+
+
+# ============================================================
+# QUALITY XAI EXPLANATION
+# ============================================================
+
+def _get_quality_explanation(
+    bundle: Dict[str, Any],
+    quality_explainer,
+    base_features: Dict[str, float],
+    predicted_quality_label: Optional[str],
+) -> Optional[list]:
+
+    if (
+        quality_explainer is None
+        or predicted_quality_label is None
+    ):
+        return None
+
+    if not all(
+        key in bundle
+        for key in [
+            "quality_model",
+            "quality_features",
+            "quality_encoder",
+        ]
+    ):
+        return None
+
+    quality_features = (
+        bundle[
+            "quality_features"
+        ]
+    )
+
+    quality_input = pd.DataFrame(
+        [
+            {
+                feature:
+                    base_features[
+                        feature
+                    ]
+
+                for feature
+                in quality_features
+            }
+        ]
+    )
+
+    encoded_quality = int(
+        bundle[
+            "quality_encoder"
+        ].transform(
+            [
+                predicted_quality_label
+            ]
+        )[0]
+    )
+
+    quality_shap_result = (
+        quality_explainer(
+            quality_input
+        )
+    )
+
+    quality_explanation = []
+
+    values = (
+        quality_shap_result.values
+    )
+
+    for index, feature in enumerate(
+        quality_features
+    ):
+
+        # RF classifier SHAP normally returns:
+        # [row, feature, class]
+        #
+        # This fallback also supports
+        # [row, feature] format.
+
+        if getattr(
+            values,
+            "ndim",
+            0,
+        ) >= 3:
+
+            shap_value = float(
+                values[
+                    0,
+                    index,
+                    encoded_quality,
+                ]
+            )
+
+        else:
+
+            shap_value = float(
+                values[
+                    0,
+                    index,
+                ]
+            )
+
+        feature_value = float(
+            quality_input.iloc[
+                0
+            ][
+                feature
+            ]
+        )
+
+        quality_explanation.append(
+            {
+                "feature":
+                    feature,
+
+                "value":
+                    round(
+                        feature_value,
+                        4,
+                    ),
+
+                "shap_value":
+                    round(
+                        shap_value,
+                        4,
+                    ),
+
+                "absolute_impact":
+                    round(
+                        abs(
+                            shap_value
+                        ),
+                        4,
+                    ),
+
+                "direction":
+                    _impact_direction(
+                        shap_value
+                    ),
+            }
+        )
+
+    return sorted(
+        quality_explanation,
+
+        key=lambda item:
+            item[
+                "absolute_impact"
+            ],
+
+        reverse=True,
+
+    )[:5]
+
+
+# ============================================================
+# CURRENT WEATHER -> QUALITY PREDICTION
+# USED BY /weather/current-month
+# ============================================================
+
+def predict_quality_for_weather(
+    year: int,
+    month: int,
+    weather: Dict[str, float],
+    previous_sales: Optional[
+        float
+    ] = None,
+) -> Dict[str, Any]:
+
+    if month < 1 or month > 12:
+
+        raise ValueError(
+            "Month must be between 1 and 12"
+        )
+
+    bundle = load_model_bundle()
+
+    # --------------------------------------------------------
+    # If DB value is not supplied,
+    # fallback to historical model data.
+    # --------------------------------------------------------
+
+    if previous_sales is None:
+
+        (
+            previous_sales,
+            previous_sales_source,
+        ) = _get_previous_month_sales(
+            bundle,
+            year,
+            month,
+        )
+
+    else:
+
+        previous_sales_source = (
+            "Actual previous-month sales "
+            "saved in MongoDB"
+        )
+
+    base_features = (
+        _build_base_features(
+            year=year,
+            month=month,
+            previous_sales=previous_sales,
+            weather=weather,
+        )
+    )
+
+    quality_result = (
+        _predict_quality_from_base_features(
+            bundle,
+            base_features,
+        )
+    )
+
+    return {
+
+        "predicted_quality_label":
+            quality_result[
+                "predicted_quality_label"
+            ],
+
+        "predicted_quality_probabilities":
+            quality_result[
+                "predicted_quality_probabilities"
+            ],
+
+        "quality_previous_sales_used":
+            round(
+                float(
+                    previous_sales
+                ),
+                2,
+            ),
+
+        "quality_previous_sales_source":
+            previous_sales_source,
+    }
+
+
+# ============================================================
+# MAIN DETAILED SALES + QUALITY + XAI PREDICTION
+# EXISTING /api/sales/predict ENDPOINT
+# ============================================================
+
+def predict_sales(
+    year: int,
+    month: int,
+) -> Dict[str, Any]:
+
+    # --------------------------------------------------------
+    # Validate month
+    # --------------------------------------------------------
+
+    if month < 1 or month > 12:
+
+        raise ValueError(
+            "Month must be between 1 and 12"
+        )
+
+    # --------------------------------------------------------
+    # Load model
+    # --------------------------------------------------------
+
+    bundle = load_model_bundle()
+
+    (
+        sales_explainer,
+        quality_explainer,
+    ) = load_xai_explainers()
+
+    # --------------------------------------------------------
+    # Model-bundle monthly weather
+    # --------------------------------------------------------
+
+    weather = _get_weather_profile(
+        bundle,
+        month,
+    )
+
+    # --------------------------------------------------------
+    # Previous sales
+    # --------------------------------------------------------
+
+    (
+        previous_sales,
+        previous_sales_source,
+    ) = _get_previous_month_sales(
+        bundle,
+        year,
+        month,
+    )
+
+    # --------------------------------------------------------
+    # Base features
+    # --------------------------------------------------------
+
+    base_features = (
+        _build_base_features(
+            year=year,
+            month=month,
+            previous_sales=previous_sales,
+            weather=weather,
+        )
+    )
 
     # ========================================================
     # SALES INPUT
@@ -760,6 +1061,20 @@ def predict_sales(
     sales_features = bundle[
         "sales_features"
     ]
+
+    missing_sales_features = [
+        feature
+        for feature in sales_features
+        if feature not in base_features
+    ]
+
+    if missing_sales_features:
+
+        raise ValueError(
+            "Missing sales model "
+            f"features: "
+            f"{missing_sales_features}"
+        )
 
     sales_input = pd.DataFrame(
         [
@@ -774,7 +1089,6 @@ def predict_sales(
             }
         ]
     )
-
 
     # ========================================================
     # SALES PREDICTION
@@ -794,9 +1108,8 @@ def predict_sales(
         )
     )
 
-
     # ========================================================
-    # SALES SHAP XAI
+    # SALES SHAP
     # ========================================================
 
     sales_shap_result = (
@@ -814,7 +1127,7 @@ def predict_sales(
         shap_value = float(
             sales_shap_result.values[
                 0,
-                index
+                index,
             ]
         )
 
@@ -858,9 +1171,6 @@ def predict_sales(
             }
         )
 
-
-    # strongest 5 factors
-
     sales_explanation = sorted(
         sales_explanation,
 
@@ -870,216 +1180,44 @@ def predict_sales(
             ],
 
         reverse=True,
+
     )[:5]
 
-
     # ========================================================
-    # QUALITY DEFAULT VALUES
-    # ========================================================
-
-    predicted_quality_label: Optional[str] = None
-
-    predicted_quality_probabilities: Optional[
-        Dict[str, float]
-    ] = None
-
-    quality_explanation = None
-
-
-    # ========================================================
-    # QUALITY MODEL
+    # QUALITY PREDICTION
     # ========================================================
 
-    if all(
-        key in bundle
-        for key in [
-            "quality_model",
-            "quality_features",
-            "quality_encoder",
+    quality_result = (
+        _predict_quality_from_base_features(
+            bundle,
+            base_features,
+        )
+    )
+
+    predicted_quality_label = (
+        quality_result[
+            "predicted_quality_label"
         ]
-    ):
+    )
 
-        quality_features = bundle[
-            "quality_features"
+    predicted_quality_probabilities = (
+        quality_result[
+            "predicted_quality_probabilities"
         ]
+    )
 
+    # ========================================================
+    # QUALITY SHAP
+    # ========================================================
 
-        # ----------------------------------------------------
-        # QUALITY INPUT
-        # ----------------------------------------------------
-
-        quality_input = pd.DataFrame(
-            [
-                {
-                    feature:
-                        base_features[
-                            feature
-                        ]
-
-                    for feature
-                    in quality_features
-                }
-            ]
+    quality_explanation = (
+        _get_quality_explanation(
+            bundle,
+            quality_explainer,
+            base_features,
+            predicted_quality_label,
         )
-
-
-        # ----------------------------------------------------
-        # QUALITY PREDICTION
-        # ----------------------------------------------------
-
-        encoded_quality = int(
-            bundle[
-                "quality_model"
-            ].predict(
-                quality_input
-            )[0]
-        )
-
-
-        # ----------------------------------------------------
-        # DECODE QUALITY LABEL
-        # ----------------------------------------------------
-
-        predicted_quality_label = str(
-            bundle[
-                "quality_encoder"
-            ].inverse_transform(
-                [
-                    encoded_quality
-                ]
-            )[0]
-        )
-
-
-        # ====================================================
-        # QUALITY PROBABILITIES
-        # ====================================================
-
-        if hasattr(
-            bundle[
-                "quality_model"
-            ],
-            "predict_proba",
-        ):
-
-            probabilities = (
-                bundle[
-                    "quality_model"
-                ].predict_proba(
-                    quality_input
-                )[0]
-            )
-
-            classes = bundle[
-                "quality_model"
-            ].classes_
-
-            decoded_classes = (
-                bundle[
-                    "quality_encoder"
-                ].inverse_transform(
-                    classes
-                )
-            )
-
-            predicted_quality_probabilities = {
-
-                str(label):
-                    round(
-                        float(
-                            probability
-                        ),
-                        4,
-                    )
-
-                for label, probability
-                in zip(
-                    decoded_classes,
-                    probabilities,
-                )
-            }
-
-
-        # ====================================================
-        # QUALITY SHAP XAI
-        # ====================================================
-
-        if quality_explainer is not None:
-
-            quality_shap_result = (
-                quality_explainer(
-                    quality_input
-                )
-            )
-
-            quality_explanation = []
-
-            for index, feature in enumerate(
-                quality_features
-            ):
-
-                shap_value = float(
-                    quality_shap_result.values[
-                        0,
-                        index,
-                        encoded_quality
-                    ]
-                )
-
-                feature_value = float(
-                    quality_input.iloc[
-                        0
-                    ][
-                        feature
-                    ]
-                )
-
-                quality_explanation.append(
-                    {
-                        "feature":
-                            feature,
-
-                        "value":
-                            round(
-                                feature_value,
-                                4,
-                            ),
-
-                        "shap_value":
-                            round(
-                                shap_value,
-                                4,
-                            ),
-
-                        "absolute_impact":
-                            round(
-                                abs(
-                                    shap_value
-                                ),
-                                4,
-                            ),
-
-                        "direction":
-                            _impact_direction(
-                                shap_value
-                            ),
-                    }
-                )
-
-
-            # strongest 5 quality factors
-
-            quality_explanation = sorted(
-                quality_explanation,
-
-                key=lambda item:
-                    item[
-                        "absolute_impact"
-                    ],
-
-                reverse=True,
-            )[:5]
-
+    )
 
     # ========================================================
     # SALES LEVEL
@@ -1089,7 +1227,6 @@ def predict_sales(
         bundle,
         predicted_sales_raw,
     )
-
 
     # ========================================================
     # MONTHLY COMPARISON
@@ -1103,23 +1240,11 @@ def predict_sales(
         )
     )
 
-    monthly_comparison = _get_monthly_comparison(
-    bundle,
-    year,
-    month,
-    predicted_sales_raw,
-    )
-
-
     # ========================================================
-    # FINAL API RESPONSE
+    # FINAL RESPONSE
     # ========================================================
 
     return {
-
-        # ----------------------------------------------------
-        # USER INPUT
-        # ----------------------------------------------------
 
         "input": {
 
@@ -1135,11 +1260,6 @@ def predict_sales(
                 ],
         },
 
-
-        # ----------------------------------------------------
-        # SALES
-        # ----------------------------------------------------
-
         "predicted_sales_units":
             predicted_sales_units,
 
@@ -1149,9 +1269,8 @@ def predict_sales(
                 2,
             ),
 
-
         # ----------------------------------------------------
-        # QUALITY
+        # COFFEE QUALITY
         # ----------------------------------------------------
 
         "predicted_quality_label":
@@ -1160,26 +1279,15 @@ def predict_sales(
         "predicted_quality_probabilities":
             predicted_quality_probabilities,
 
-
         # ----------------------------------------------------
-        # SALES LEVEL
+        # DEMAND LEVEL
         # ----------------------------------------------------
 
         "sales_level":
             level,
 
-
-        # ----------------------------------------------------
-        # MONTHLY CHANGE
-        # ----------------------------------------------------
-
         "sales_change_vs_monthly_average_pct":
-        change_pct,
-
-
-        "monthly_comparison":
-        monthly_comparison,
-
+            change_pct,
 
         # ----------------------------------------------------
         # WEATHER
@@ -1189,7 +1297,9 @@ def predict_sales(
 
             key:
                 round(
-                    value,
+                    float(
+                        value
+                    ),
                     2,
                 )
 
@@ -1197,9 +1307,8 @@ def predict_sales(
             in weather.items()
         },
 
-
         # ----------------------------------------------------
-        # ALL FEATURES USED BY MODEL
+        # MODEL FEATURES
         # ----------------------------------------------------
 
         "model_features": {
@@ -1216,9 +1325,8 @@ def predict_sales(
             in base_features.items()
         },
 
-
         # ----------------------------------------------------
-        # EXPLAINABLE AI
+        # XAI
         # ----------------------------------------------------
 
         "xai": {
@@ -1230,17 +1338,17 @@ def predict_sales(
                 quality_explanation,
         },
 
-
         # ----------------------------------------------------
-        # DATA SOURCES
+        # SOURCES
         # ----------------------------------------------------
 
         "data_sources": {
 
             "weather_source":
                 (
-                    "Monthly weather profile saved "
-                    "inside the trained model bundle"
+                    "Monthly weather profile "
+                    "saved inside the trained "
+                    "model bundle"
                 ),
 
             "previous_month_sales_source":
@@ -1252,16 +1360,341 @@ def predict_sales(
                 ),
         },
 
-
-        # ----------------------------------------------------
-        # MESSAGE
-        # ----------------------------------------------------
-
         "message": (
 
             f"Predicted coffee sales for "
-            f"{MONTH_NAMES[month]} {year}: "
-            f"{predicted_sales_units:,} units "
-            f"({level})."
+            f"{MONTH_NAMES[month]} "
+            f"{year}: "
+            f"{predicted_sales_units:,} "
+            f"units ({level}). "
+            f"Coffee quality: "
+            f"{predicted_quality_label or 'N/A'}."
+        ),
+    }
+
+
+# ============================================================
+# EXPLICIT SALES + QUALITY PREDICTION
+# USED BY 12-MONTH RECURSIVE FORECAST
+# ============================================================
+
+def predict_sales_from_explicit_inputs(
+    year: int,
+    month: int,
+    previous_sales: float,
+    weather: Dict[str, float],
+) -> Dict[str, Any]:
+
+    if month < 1 or month > 12:
+
+        raise ValueError(
+            "Month must be between 1 and 12"
+        )
+
+    bundle = load_model_bundle()
+
+    # --------------------------------------------------------
+    # Build common features
+    # --------------------------------------------------------
+
+    base_features = (
+        _build_base_features(
+            year=year,
+            month=month,
+            previous_sales=previous_sales,
+            weather=weather,
+        )
+    )
+
+    # ========================================================
+    # SALES PREDICTION
+    # ========================================================
+
+    sales_features = bundle[
+        "sales_features"
+    ]
+
+    missing_features = [
+        feature
+        for feature in sales_features
+        if feature not in base_features
+    ]
+
+    if missing_features:
+
+        raise ValueError(
+            "Missing model features for "
+            "recursive forecast: "
+            f"{missing_features}"
+        )
+
+    sales_input = pd.DataFrame(
+        [
+            {
+                feature:
+                    base_features[
+                        feature
+                    ]
+
+                for feature
+                in sales_features
+            }
+        ]
+    )
+
+    predicted_sales_raw = float(
+        bundle[
+            "sales_model"
+        ].predict(
+            sales_input
+        )[0]
+    )
+
+    predicted_sales_units = int(
+        round(
+            predicted_sales_raw
+        )
+    )
+
+    # ========================================================
+    # COFFEE QUALITY PREDICTION
+    # ========================================================
+
+    quality_result = (
+        _predict_quality_from_base_features(
+            bundle,
+            base_features,
+        )
+    )
+
+    # ========================================================
+    # RETURN
+    # ========================================================
+
+    return {
+
+        "year":
+            int(
+                year
+            ),
+
+        "month":
+            int(
+                month
+            ),
+
+        "month_name":
+            MONTH_NAMES[
+                month
+            ],
+
+        "predicted_sales":
+            predicted_sales_units,
+
+        "predicted_sales_raw":
+            round(
+                predicted_sales_raw,
+                2,
+            ),
+
+        "previous_sales_used":
+            round(
+                float(
+                    previous_sales
+                ),
+                2,
+            ),
+
+        # ----------------------------------------------------
+        # LOW / MEDIUM / HIGH
+        # ----------------------------------------------------
+
+        "predicted_quality_label":
+            quality_result[
+                "predicted_quality_label"
+            ],
+
+        # ----------------------------------------------------
+        # LOW / MEDIUM / HIGH probabilities
+        # ----------------------------------------------------
+
+        "predicted_quality_probabilities":
+            quality_result[
+                "predicted_quality_probabilities"
+            ],
+
+        "weather_profile": {
+
+            key:
+                round(
+                    float(
+                        value
+                    ),
+                    2,
+                )
+
+            for key, value
+            in weather.items()
+        },
+    }
+
+
+# ============================================================
+# RECURSIVE 12-MONTH FORECAST
+# ============================================================
+
+def forecast_next_12_months(
+    start_year: int,
+    start_month: int,
+    actual_sales: float,
+    weather_profiles: Optional[
+        Dict[
+            int,
+            Dict[str, float],
+        ]
+    ] = None,
+    weather_source: str = (
+        "Monthly weather profile saved "
+        "inside the trained model bundle"
+    ),
+    weather_sources: Optional[Dict[int, str]] = None,
+) -> Dict[str, Any]:
+
+    bundle = load_model_bundle()
+
+    previous_sales = float(
+        actual_sales
+    )
+
+    year = int(
+        start_year
+    )
+
+    month = int(
+        start_month
+    )
+
+    forecast = []
+
+    # ========================================================
+    # 12 FUTURE MONTHS
+    # ========================================================
+
+    for _ in range(
+        12
+    ):
+
+        # The first iteration predicts start_year/start_month.
+        # After each prediction we advance to the following month.
+
+        # ----------------------------------------------------
+        # Weather source
+        # ----------------------------------------------------
+
+        if (
+            weather_profiles
+            and
+            month in weather_profiles
+        ):
+
+            weather = (
+                weather_profiles[
+                    month
+                ]
+            )
+
+        else:
+
+            weather = (
+                _get_weather_profile(
+                    bundle,
+                    month,
+                )
+            )
+
+        # ----------------------------------------------------
+        # Sales + coffee quality prediction
+        # ----------------------------------------------------
+
+        result = (
+            predict_sales_from_explicit_inputs(
+                year=year,
+                month=month,
+                previous_sales=previous_sales,
+                weather=weather,
+            )
+        )
+
+        result[
+            "weather_source"
+        ] = (
+            weather_sources.get(month, weather_source)
+            if weather_sources
+            else weather_source
+        )
+
+        forecast.append(
+            result
+        )
+
+        # ----------------------------------------------------
+        # RECURSIVE FORECAST
+        #
+        # Prediction of this month becomes
+        # Prev_Month_Sales for next month.
+        # ----------------------------------------------------
+
+        previous_sales = float(
+            result[
+                "predicted_sales"
+            ]
+        )
+
+        (
+            year,
+            month,
+        ) = _next_year_month(
+            year,
+            month,
+        )
+
+    # ========================================================
+    # FINAL RESPONSE
+    # ========================================================
+
+    return {
+
+        "base_period": {
+
+            "year":
+                int(start_year) - 1 if int(start_month) == 1 else int(start_year),
+
+            "month":
+                12 if int(start_month) == 1 else int(start_month) - 1,
+
+            "month_name":
+                MONTH_NAMES[12 if int(start_month) == 1 else int(start_month) - 1],
+
+            "actual_sales":
+                int(
+                    round(
+                        actual_sales
+                    )
+                ),
+        },
+
+        "forecast":
+            forecast,
+
+        "weather_source":
+            weather_source,
+
+        "message": (
+
+            "Generated a 12-month recursive "
+            "sales and coffee-quality forecast "
+            "starting from "
+            f"{MONTH_NAMES[int(start_month)]} "
+            f"{int(start_year)}, using the previous month actual sales as the first input."
         ),
     }

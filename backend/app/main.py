@@ -1,9 +1,10 @@
 from contextlib import asynccontextmanager
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.modules.packet_seal_detection.history_routes import router as history_router
+
 
 from app.database import (
     check_database_connection,
@@ -19,6 +20,10 @@ from app.modules.bean_defect_detection.routes import (
 
 from app.modules.packet_seal_detection.routes import (
     router as seal_router,
+)
+
+from app.modules.packet_seal_detection.history_routes import (
+    router as history_router,
 )
 
 from app.modules.powder_quality_checking.routes import (
@@ -91,6 +96,7 @@ app.add_middleware(
 
     allow_origins=[
         "http://localhost:5173",
+        "http://127.0.0.1:5173",
     ],
 
     allow_credentials=True,
