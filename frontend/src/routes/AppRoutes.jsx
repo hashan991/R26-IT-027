@@ -10,6 +10,8 @@ import BeanQualityPage from "../features/bean-defect-detection/pages/BeanQuality
 
 import SalesPredictionPage from "../features/sales-prediction/pages/SalesPredictionPage";
 
+import SalesHistoryPage from "../features/sales-prediction/pages/SalesHistoryPage";
+
 import SealUploadPage from "../features/packet-seal-detection/pages/SealUploadPage";
 
 import UserManagementPage from "../features/admin/pages/UserManagementPage";
@@ -163,6 +165,15 @@ function AppRoutes() {
           element={
             <RoleRoute allowedRoles={["ADMIN", "SALES_ANALYST"]}>
               <SalesPredictionPage />
+            </RoleRoute>
+          }
+        />
+
+        <Route  
+          path="/sales-history"  
+          element={
+            <RoleRoute allowedRoles={["ADMIN", "SALES_ANALYST"]}>
+            <SalesHistoryPage />
             </RoleRoute>
           }
         />

@@ -1,5 +1,7 @@
 # React + Vite
 
+The sales prediction page displays current conditions from the Open-Meteo API through the FastAPI backend. Set `VITE_WEATHER_LOCATION`, `VITE_WEATHER_LATITUDE`, and `VITE_WEATHER_LONGITUDE` in `.env` to use a different location.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
