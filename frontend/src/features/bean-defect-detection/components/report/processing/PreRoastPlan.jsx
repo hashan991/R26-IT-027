@@ -1,7 +1,15 @@
+import { useState } from "react";
+
 function PreRoastPlan({ data }) {
+  const [showDetails, setShowDetails] = useState(false);
+
   if (!data) {
     return null;
   }
+
+  // -------------------------------------------------------
+  // Helper functions
+  // -------------------------------------------------------
 
   const normalizeClass = (value) =>
     String(value || "")
@@ -15,6 +23,10 @@ function PreRoastPlan({ data }) {
       .replaceAll("_", " ")
       .toLowerCase()
       .replace(/\b\w/g, (char) => char.toUpperCase());
+
+  // -------------------------------------------------------
+  // Corrective actions
+  // -------------------------------------------------------
 
   const actions = Array.isArray(data.actions) ? data.actions : [];
 
@@ -36,6 +48,16 @@ function PreRoastPlan({ data }) {
 
     return Number(a?.step_number || 0) - Number(b?.step_number || 0);
   });
+
+  // Required actions shown on the main screen.
+  // They remain sorted by priority and then by step number.
+  const requiredActions = sortedActions.filter(
+    (item) => item.required !== false
+  );
+
+  // -------------------------------------------------------
+  // Control flags
+  // -------------------------------------------------------
 
   const controlFlags = [
     {
@@ -78,6 +100,20 @@ function PreRoastPlan({ data }) {
 
   const activeControls = controlFlags.filter((item) => item.active);
 
+  // -------------------------------------------------------
+  // Status values
+  // -------------------------------------------------------
+
+  const readinessStatus = data.readiness_status || "READY";
+
+  const preparationLevel = data.estimated_preparation_level || "MINIMAL";
+
+  const requiredActionCount = requiredActions.length;
+
+  // -------------------------------------------------------
+  // Icons
+  // -------------------------------------------------------
+
   const getActionIcon = (actionType) => {
     const icons = {
       HOLD_AND_VERIFY: "!",
@@ -92,8 +128,6 @@ function PreRoastPlan({ data }) {
     return icons[actionType] || "•";
   };
 
-  const readinessStatus = data.readiness_status || "READY";
-
   return (
     <section className="pre-roast-plan-module">
       <style>{`
@@ -103,48 +137,83 @@ function PreRoastPlan({ data }) {
           --coffee-800: #3d281b;
           --coffee-700: #5a3a25;
           --coffee-600: #7a5132;
-          --coffee-500: #9a6a45;
+
           --cream-50: #fffdf9;
           --cream-100: #fbf6ee;
           --cream-200: #f2e7d8;
+
+          --green-50: #edf7ef;
+          --green-600: #397349;
+
+          --amber-50: #fff6df;
+          --amber-600: #94651b;
+
+          --red-50: #fff0ec;
+          --red-600: #a34334;
+
           --text-main: #2a211c;
           --text-soft: #74665c;
+
           --line: rgba(91, 61, 40, 0.14);
-          --shadow: 0 18px 55px rgba(67, 43, 28, 0.10);
+
           width: 100%;
           color: var(--text-main);
-          font-family: Inter, ui-sans-serif, system-ui, -apple-system,
-            BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+          font-family:
+            Inter,
+            ui-sans-serif,
+            system-ui,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
         }
 
         .pre-roast-plan-module * {
           box-sizing: border-box;
         }
 
+        /* --------------------------------------------------
+           MAIN CONTAINER
+        -------------------------------------------------- */
+
         .pre-roast-shell {
           overflow: hidden;
-          border: 1px solid var(--line);
+
+          border:
+            1px solid
+            var(--line);
+
           border-radius: 24px;
+
           background:
-            radial-gradient(
-              circle at top right,
-              rgba(154, 106, 69, 0.12),
-              transparent 32%
-            ),
-            linear-gradient(145deg, #fffdf9 0%, #fbf6ee 100%);
-          box-shadow: var(--shadow);
+            linear-gradient(
+              145deg,
+              #fffdf9,
+              #fbf6ee
+            );
+
+          box-shadow:
+            0 18px 55px
+            rgba(67, 43, 28, 0.10);
         }
 
-        .pre-roast-hero {
+        /* --------------------------------------------------
+           TOP DECISION AREA
+        -------------------------------------------------- */
+
+        .pre-roast-decision {
           position: relative;
-          overflow: hidden;
-          padding: 26px;
-          color: #fff;
+
+          padding: 28px;
+
+          color: white;
+
           background:
             radial-gradient(
-              circle at 88% 10%,
+              circle at 90% 5%,
               rgba(255,255,255,0.10),
-              transparent 27%
+              transparent 30%
             ),
             linear-gradient(
               135deg,
@@ -154,880 +223,1532 @@ function PreRoastPlan({ data }) {
             );
         }
 
-        .pre-roast-hero::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          background-image:
-            linear-gradient(
-              rgba(255,255,255,0.025) 1px,
-              transparent 1px
-            ),
-            linear-gradient(
-              90deg,
-              rgba(255,255,255,0.025) 1px,
-              transparent 1px
-            );
-          background-size: 24px 24px;
-          mask-image: linear-gradient(to bottom, black, transparent);
-        }
-
-        .pre-roast-hero-top {
-          position: relative;
-          z-index: 1;
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 20px;
-        }
-
-        .pre-roast-kicker {
+        .decision-kicker {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          margin-bottom: 9px;
+
+          margin-bottom: 10px;
+
           color: #dbc4ad;
+
           font-size: 11px;
           font-weight: 850;
-          letter-spacing: 0.13em;
+
+          letter-spacing: 0.12em;
           text-transform: uppercase;
         }
 
-        .pre-roast-kicker-dot {
+        .decision-kicker-dot {
           width: 8px;
           height: 8px;
+
           border-radius: 50%;
+
           background: #e0b68e;
-          box-shadow: 0 0 0 5px rgba(224, 182, 142, 0.12);
+
+          box-shadow:
+            0 0 0 5px
+            rgba(224, 182, 142, 0.12);
         }
 
-        .pre-roast-title {
-          margin: 0;
-          max-width: 760px;
-          color: #fff8f1;
-          font-size: clamp(24px, 3vw, 34px);
-          line-height: 1.12;
-          letter-spacing: -0.035em;
-        }
-
-        .pre-roast-summary {
-          position: relative;
-          z-index: 1;
-          max-width: 850px;
-          margin: 13px 0 0;
-          color: #eadfd5;
-          font-size: 14px;
-          line-height: 1.72;
-        }
-
-        .pre-roast-status-wrap {
-          position: relative;
-          z-index: 1;
+        .decision-header {
           display: flex;
-          flex-direction: column;
-          align-items: flex-end;
-          gap: 8px;
-          flex: 0 0 auto;
+
+          align-items: flex-start;
+          justify-content: space-between;
+
+          gap: 22px;
         }
 
-        .pre-roast-status {
+        .decision-heading {
+          flex: 1;
+        }
+
+        .decision-heading h3 {
+          margin: 0;
+
+          color: #fff8f1;
+
+          font-size:
+            clamp(
+              25px,
+              3vw,
+              35px
+            );
+
+          line-height: 1.12;
+
+          letter-spacing:
+            -0.035em;
+        }
+
+        .decision-heading p {
+          max-width: 780px;
+
+          margin:
+            12px 0 0;
+
+          color: #eadfd5;
+
+          font-size: 14px;
+
+          line-height: 1.68;
+        }
+
+        /* --------------------------------------------------
+           STATUS BADGE
+        -------------------------------------------------- */
+
+        .decision-status {
           display: inline-flex;
+
           align-items: center;
           justify-content: center;
-          min-height: 38px;
-          padding: 0 13px;
-          border: 1px solid rgba(255,255,255,0.16);
+
+          min-height: 42px;
+
+          padding:
+            0 15px;
+
+          border:
+            1px solid
+            rgba(255,255,255,0.18);
+
           border-radius: 999px;
-          background: rgba(255,255,255,0.08);
-          backdrop-filter: blur(9px);
+
+          background:
+            rgba(255,255,255,0.08);
+
+          backdrop-filter:
+            blur(9px);
+
+          color: white;
+
           font-size: 11px;
           font-weight: 900;
-          letter-spacing: 0.075em;
+
+          letter-spacing: 0.06em;
+
+          text-align: center;
           text-transform: uppercase;
         }
 
-        .pre-roast-status.ready {
+        .decision-status.ready {
           color: #d7f8df;
-          background: rgba(46, 125, 70, 0.18);
-          border-color: rgba(112, 212, 140, 0.26);
+
+          background:
+            rgba(46, 125, 70, 0.18);
+
+          border-color:
+            rgba(112, 212, 140, 0.28);
         }
 
-        .pre-roast-status.ready-after-preparation {
+        .decision-status.ready-after-preparation {
           color: #fff0c7;
-          background: rgba(196, 132, 27, 0.19);
-          border-color: rgba(239, 190, 90, 0.30);
+
+          background:
+            rgba(196, 132, 27, 0.20);
+
+          border-color:
+            rgba(239, 190, 90, 0.32);
         }
 
-        .pre-roast-status.inspection-required {
+        .decision-status.inspection-required {
           color: #ffd8d0;
-          background: rgba(165, 57, 39, 0.20);
-          border-color: rgba(240, 123, 101, 0.30);
+
+          background:
+            rgba(165, 57, 39, 0.22);
+
+          border-color:
+            rgba(240, 123, 101, 0.32);
         }
 
-        .pre-roast-level {
-          display: inline-flex;
-          min-height: 29px;
-          align-items: center;
-          padding: 0 10px;
-          border-radius: 999px;
-          color: #e8d8ca;
-          background: rgba(255,255,255,0.055);
-          border: 1px solid rgba(255,255,255,0.09);
+        /* --------------------------------------------------
+           MAIN METRICS
+        -------------------------------------------------- */
+
+        .decision-metrics {
+          display: grid;
+
+          grid-template-columns:
+            repeat(
+              3,
+              minmax(0, 1fr)
+            );
+
+          gap: 12px;
+
+          margin-top: 24px;
+        }
+
+        .decision-metric {
+          padding: 15px 16px;
+
+          border:
+            1px solid
+            rgba(255,255,255,0.11);
+
+          border-radius: 16px;
+
+          background:
+            rgba(255,255,255,0.07);
+
+          backdrop-filter:
+            blur(8px);
+        }
+
+        .decision-metric span {
+          display: block;
+
+          color: #cbb8a8;
+
           font-size: 9px;
           font-weight: 850;
+
+          letter-spacing: 0.08em;
+
+          text-transform: uppercase;
+        }
+
+        .decision-metric strong {
+          display: block;
+
+          margin-top: 6px;
+
+          color: #fff;
+
+          font-size: 18px;
+
+          line-height: 1.2;
+
+          overflow-wrap: anywhere;
+        }
+
+        /* --------------------------------------------------
+           CONTENT
+        -------------------------------------------------- */
+
+        .pre-roast-content {
+          padding: 25px;
+        }
+
+        /* --------------------------------------------------
+           PRIMARY ACTION
+        -------------------------------------------------- */
+
+        .required-actions-main {
+          width: 100%;
+        }
+
+        .required-actions-list {
+          display: grid;
+          gap: 14px;
+          margin-top: 12px;
+        }
+
+        .main-action-step {
+          display: inline-flex;
+          align-items: center;
+          min-height: 25px;
+          margin-bottom: 9px;
+          padding: 0 9px;
+          border-radius: 999px;
+          color: #66462f;
+          background: #eee0d1;
+          font-size: 9px;
+          font-weight: 900;
           letter-spacing: 0.05em;
           text-transform: uppercase;
         }
 
-        .pre-roast-metrics {
-          position: relative;
-          z-index: 1;
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 11px;
-          margin-top: 22px;
+        .primary-action-card {
+          padding: 20px;
+
+          border:
+            1px solid
+            rgba(122, 81, 50, 0.18);
+
+          border-radius: 18px;
+
+          background:
+            linear-gradient(
+              145deg,
+              #fffaf4,
+              #f7ede1
+            );
+
+          box-shadow:
+            0 10px 30px
+            rgba(64, 41, 28, 0.05);
         }
 
-        .pre-roast-metric {
-          min-width: 0;
-          padding: 14px 15px;
-          border-radius: 16px;
-          border: 1px solid rgba(255,255,255,0.10);
-          background: rgba(255,255,255,0.065);
-          backdrop-filter: blur(7px);
-        }
+        .primary-action-label {
+          display: flex;
 
-        .pre-roast-metric span {
-          display: block;
-          color: #cbb8a8;
-          font-size: 9px;
-          font-weight: 800;
-          letter-spacing: 0.08em;
+          align-items: center;
+
+          gap: 8px;
+
+          margin-bottom: 9px;
+
+          color: #866448;
+
+          font-size: 10px;
+          font-weight: 900;
+
+          letter-spacing: 0.09em;
+
           text-transform: uppercase;
         }
 
-        .pre-roast-metric strong {
-          display: block;
-          margin-top: 6px;
-          overflow-wrap: anywhere;
-          color: #fff;
-          font-size: 18px;
-          line-height: 1.18;
+        .primary-action-label::before {
+          content: "→";
+
+          display: grid;
+          place-items: center;
+
+          width: 26px;
+          height: 26px;
+
+          border-radius: 8px;
+
+          color: white;
+          background: #765036;
         }
 
-        .pre-roast-content {
-          padding: 24px;
+        .primary-action-card h4 {
+          margin: 0;
+
+          color: #34271f;
+
+          font-size: 20px;
+
+          line-height: 1.28;
         }
 
-        .pre-roast-section + .pre-roast-section {
-          margin-top: 25px;
+        .primary-action-card p {
+          max-width: 900px;
+
+          margin:
+            8px 0 0;
+
+          color: #64574e;
+
+          font-size: 13px;
+
+          line-height: 1.7;
         }
 
-        .pre-roast-section-heading {
+        .primary-action-meta {
           display: flex;
+
+          flex-wrap: wrap;
+
+          gap: 7px;
+
+          margin-top: 13px;
+        }
+
+        .primary-chip {
+          display: inline-flex;
+
+          align-items: center;
+
+          min-height: 27px;
+
+          padding:
+            0 9px;
+
+          border-radius: 999px;
+
+          font-size: 9px;
+          font-weight: 900;
+
+          letter-spacing: 0.05em;
+
+          text-transform: uppercase;
+        }
+
+        .primary-chip.priority {
+          color: #815318;
+          background: #f8e8cc;
+        }
+
+        .primary-chip.required {
+          color: #3c6c46;
+          background: #e5f1e6;
+        }
+
+        .primary-chip.defect {
+          color: #66462f;
+          background: #eee2d4;
+        }
+
+        /* --------------------------------------------------
+           ACTIVE CONTROLS
+        -------------------------------------------------- */
+
+        .active-controls-section {
+          margin-top: 23px;
+        }
+
+        .section-title-row {
+          display: flex;
+
           align-items: flex-end;
           justify-content: space-between;
-          gap: 14px;
-          margin-bottom: 13px;
+
+          gap: 15px;
+
+          margin-bottom: 12px;
         }
 
-        .pre-roast-section-heading h4 {
+        .section-title-row h4 {
           margin: 0;
-          color: #32261f;
+
+          color: #352920;
+
           font-size: 17px;
-          letter-spacing: -0.015em;
         }
 
-        .pre-roast-section-heading p {
-          margin: 4px 0 0;
+        .section-title-row p {
+          margin:
+            4px 0 0;
+
           color: var(--text-soft);
+
           font-size: 12px;
+
           line-height: 1.55;
         }
 
-        .pre-roast-count-pill {
+        .section-count {
           flex: 0 0 auto;
-          padding: 6px 9px;
+
+          padding:
+            6px 10px;
+
           border-radius: 999px;
-          background: #f2e7d8;
+
           color: #5d402d;
+          background: #f2e7d8;
+
           font-size: 10px;
           font-weight: 900;
-          letter-spacing: 0.06em;
+
           text-transform: uppercase;
         }
 
-        .pre-roast-controls {
+        .active-controls-grid {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+
+          grid-template-columns:
+            repeat(
+              3,
+              minmax(0, 1fr)
+            );
+
           gap: 10px;
         }
 
-        .pre-roast-control {
+        .active-control-card {
           display: flex;
+
           align-items: center;
+
           gap: 11px;
-          min-height: 68px;
+
+          min-height: 66px;
+
           padding: 12px;
-          border: 1px solid var(--line);
-          border-radius: 16px;
-          background: rgba(255,255,255,0.64);
+
+          border:
+            1px solid
+            rgba(122, 81, 50, 0.17);
+
+          border-radius: 15px;
+
+          background: white;
         }
 
-        .pre-roast-control.active {
-          border-color: rgba(122, 81, 50, 0.25);
-          box-shadow: inset 0 0 0 1px rgba(122, 81, 50, 0.04);
-        }
-
-        .pre-roast-control.inactive {
-          opacity: 0.47;
-          background: rgba(255,255,255,0.34);
-        }
-
-        .pre-roast-control-code {
+        .active-control-code {
           display: grid;
+
           place-items: center;
-          flex: 0 0 42px;
-          height: 42px;
-          border-radius: 12px;
-          background: #eee0d1;
+
+          flex:
+            0 0 40px;
+
+          height: 40px;
+
+          border-radius: 11px;
+
           color: #573a27;
+          background: #eee0d1;
+
           font-size: 9px;
           font-weight: 900;
-          letter-spacing: 0.04em;
         }
 
-        .pre-roast-control strong {
+        .active-control-card strong {
           display: block;
+
           color: #3d3028;
+
           font-size: 12px;
         }
 
-        .pre-roast-control small {
+        .active-control-card small {
           display: block;
+
           margin-top: 3px;
-          color: #7a6d63;
+
+          color: #3d7148;
+
           font-size: 10px;
+          font-weight: 800;
+        }
+
+        .no-controls-card {
+          padding: 16px;
+
+          border:
+            1px solid
+            #dbe9dd;
+
+          border-radius: 15px;
+
+          color: #416349;
+          background: #f2f8f3;
+
+          font-size: 12px;
           font-weight: 700;
         }
 
-        .pre-roast-action-list {
-          display: grid;
-          gap: 14px;
+        /* --------------------------------------------------
+           DETAILS BUTTON
+        -------------------------------------------------- */
+
+        .details-toggle-wrap {
+          display: flex;
+
+          justify-content: center;
+
+          margin-top: 25px;
         }
 
-        .pre-roast-action {
-          overflow: hidden;
-          border: 1px solid var(--line);
-          border-radius: 19px;
-          background: rgba(255,255,255,0.78);
-          box-shadow: 0 8px 24px rgba(64, 41, 28, 0.05);
+        .details-toggle {
+          min-height: 44px;
+
+          padding:
+            0 18px;
+
+          border:
+            1px solid
+            #72513a;
+
+          border-radius: 12px;
+
+          color: white;
+          background: #543724;
+
+          cursor: pointer;
+
+          font-size: 12px;
+          font-weight: 850;
+
+          transition:
+            transform 0.15s ease,
+            background 0.15s ease;
         }
 
-        .pre-roast-action-head {
+        .details-toggle:hover {
+          background: #68452d;
+
+          transform:
+            translateY(-1px);
+        }
+
+        /* --------------------------------------------------
+           DETAILED ANALYSIS
+        -------------------------------------------------- */
+
+        .detailed-analysis {
+          margin-top: 28px;
+
+          padding-top: 27px;
+
+          border-top:
+            1px solid
+            var(--line);
+        }
+
+        .details-header {
+          margin-bottom: 22px;
+        }
+
+        .details-header span {
+          display: block;
+
+          color: #8b674c;
+
+          font-size: 10px;
+          font-weight: 900;
+
+          letter-spacing: 0.09em;
+
+          text-transform: uppercase;
+        }
+
+        .details-header h4 {
+          margin:
+            5px 0 0;
+
+          color: #33271f;
+
+          font-size: 21px;
+        }
+
+        .details-header p {
+          max-width: 750px;
+
+          margin:
+            7px 0 0;
+
+          color: var(--text-soft);
+
+          font-size: 12px;
+
+          line-height: 1.65;
+        }
+
+        .detail-section + .detail-section {
+          margin-top: 26px;
+        }
+
+        /* --------------------------------------------------
+           ALL CONTROL FLAGS
+        -------------------------------------------------- */
+
+        .control-details-grid {
           display: grid;
-          grid-template-columns: auto minmax(0, 1fr) auto;
-          gap: 13px;
-          align-items: center;
-          padding: 16px 17px;
-          border-bottom: 1px solid rgba(91, 61, 40, 0.10);
-          background:
-            linear-gradient(
-              90deg,
-              rgba(250,246,240,0.95),
-              rgba(255,255,255,0.92)
+
+          grid-template-columns:
+            repeat(
+              3,
+              minmax(0, 1fr)
             );
+
+          gap: 10px;
         }
 
-        .pre-roast-action-icon {
+        .control-detail-card {
+          display: flex;
+
+          align-items: center;
+
+          gap: 10px;
+
+          padding: 12px;
+
+          border:
+            1px solid
+            var(--line);
+
+          border-radius: 14px;
+
+          background: white;
+        }
+
+        .control-detail-card.inactive {
+          opacity: 0.55;
+
+          background: #faf8f5;
+        }
+
+        .control-detail-icon {
           display: grid;
+
           place-items: center;
-          width: 42px;
-          height: 42px;
-          border-radius: 13px;
+
+          width: 38px;
+          height: 38px;
+
+          border-radius: 10px;
+
+          color: #5c3d29;
+          background: #eee0d1;
+
+          font-size: 9px;
+          font-weight: 900;
+        }
+
+        .control-detail-card strong {
+          display: block;
+
+          color: #3d3028;
+
+          font-size: 11px;
+        }
+
+        .control-detail-card small {
+          display: block;
+
+          margin-top: 3px;
+
+          color: #7a6d63;
+
+          font-size: 10px;
+        }
+
+        /* --------------------------------------------------
+           ACTION CARDS
+        -------------------------------------------------- */
+
+        .action-list {
+          display: grid;
+
+          gap: 13px;
+        }
+
+        .action-card {
+          overflow: hidden;
+
+          border:
+            1px solid
+            var(--line);
+
+          border-radius: 17px;
+
+          background: white;
+
+          box-shadow:
+            0 7px 20px
+            rgba(64, 41, 28, 0.04);
+        }
+
+        .action-card-head {
+          display: grid;
+
+          grid-template-columns:
+            auto minmax(0, 1fr) auto;
+
+          align-items: center;
+
+          gap: 12px;
+
+          padding: 15px 16px;
+
+          background: #fcf8f3;
+        }
+
+        .action-icon {
+          display: grid;
+
+          place-items: center;
+
+          width: 40px;
+          height: 40px;
+
+          border-radius: 12px;
+
           color: #67452e;
           background: #eee1d2;
-          font-size: 15px;
+
           font-weight: 950;
         }
 
-        .pre-roast-action-icon.critical {
+        .action-icon.critical {
           color: #9f392a;
           background: #f9dfd9;
         }
 
-        .pre-roast-action-icon.high {
+        .action-icon.high {
           color: #8a5a16;
           background: #f8ead1;
         }
 
-        .pre-roast-action-icon.medium {
+        .action-icon.medium {
           color: #71601c;
           background: #f2ecd7;
         }
 
-        .pre-roast-action-icon.low {
+        .action-icon.low {
           color: #3d7148;
           background: #e3efe5;
         }
 
-        .pre-roast-action-meta {
-          min-width: 0;
-        }
-
-        .pre-roast-action-tags {
+        .action-tags {
           display: flex;
+
           flex-wrap: wrap;
+
           gap: 6px;
-          margin-bottom: 5px;
+
+          margin-bottom: 4px;
         }
 
-        .pre-roast-defect-chip,
-        .pre-roast-priority-chip,
-        .pre-roast-required-chip {
-          display: inline-flex;
-          align-items: center;
-          min-height: 23px;
-          padding: 0 8px;
+        .action-tag {
+          padding:
+            4px 8px;
+
           border-radius: 999px;
-          font-size: 9px;
+
+          background: #efe6dc;
+
+          color: #65452e;
+
+          font-size: 8px;
           font-weight: 900;
-          letter-spacing: 0.05em;
+
           text-transform: uppercase;
         }
 
-        .pre-roast-defect-chip {
-          color: #65452e;
-          background: #f3eadf;
+        .action-tag.required {
+          color: #416849;
+          background: #e6f1e6;
         }
 
-        .pre-roast-priority-chip {
-          color: #5e5148;
-          background: #eeeae6;
-        }
-
-        .pre-roast-priority-chip.critical {
+        .action-tag.critical {
           color: #9c3527;
           background: #fee4df;
         }
 
-        .pre-roast-priority-chip.high {
+        .action-tag.high {
           color: #8a5a16;
           background: #fff0d6;
         }
 
-        .pre-roast-priority-chip.medium {
+        .action-tag.medium {
           color: #72611d;
           background: #f2ecd7;
         }
 
-        .pre-roast-priority-chip.low {
+        .action-tag.low {
           color: #357142;
           background: #e8f3e9;
         }
 
-        .pre-roast-required-chip {
-          color: #4b6849;
-          background: #eaf3e8;
-        }
-
-        .pre-roast-action h5 {
+        .action-card h5 {
           margin: 0;
+
           color: #34271f;
+
           font-size: 15px;
-          line-height: 1.35;
         }
 
-        .pre-roast-step-box {
-          min-width: 72px;
-          padding: 8px 10px;
-          border-radius: 13px;
-          text-align: center;
+        .action-step {
+          min-width: 65px;
+
+          padding:
+            7px 9px;
+
+          border-radius: 11px;
+
           color: #5d4432;
           background: #f4eadf;
-          border: 1px solid #ead9c7;
-        }
 
-        .pre-roast-step-box span {
-          display: block;
-          color: #9a806b;
-          font-size: 8px;
-          font-weight: 800;
-          letter-spacing: 0.07em;
-          text-transform: uppercase;
-        }
-
-        .pre-roast-step-box strong {
-          display: block;
-          margin-top: 2px;
-          font-size: 18px;
-        }
-
-        .pre-roast-action-body {
-          padding: 16px 17px;
-        }
-
-        .pre-roast-description {
-          padding: 14px 15px;
-          border-radius: 14px;
-          background: #f8f1e7;
-          border: 1px solid rgba(122, 81, 50, 0.10);
-        }
-
-        .pre-roast-description span {
-          display: block;
-          margin-bottom: 5px;
-          color: #8b7768;
-          font-size: 9px;
-          font-weight: 900;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-        }
-
-        .pre-roast-description p {
-          margin: 0;
-          color: #51463f;
-          font-size: 12px;
-          line-height: 1.68;
-        }
-
-        .pre-roast-action-footer {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          gap: 7px;
-          padding: 10px 17px;
-          border-top: 1px solid var(--line);
-          background: rgba(250,247,242,0.72);
-        }
-
-        .pre-roast-action-type,
-        .pre-roast-evidence,
-        .pre-roast-detected {
-          display: inline-flex;
-          align-items: center;
-          min-height: 26px;
-          padding: 0 8px;
-          border-radius: 8px;
-          font-size: 9px;
-          font-weight: 900;
-        }
-
-        .pre-roast-action-type {
-          color: #62462f;
-          background: #eee2d4;
-        }
-
-        .pre-roast-evidence {
-          color: #5d5148;
-          background: #e9e2db;
-        }
-
-        .pre-roast-detected {
-          margin-left: auto;
-          color: #6c5a4c;
-          background: #fff;
-          border: 1px solid rgba(76, 56, 42, 0.10);
-        }
-
-        .pre-roast-empty {
-          padding: 22px;
-          border: 1px dashed rgba(91, 61, 40, 0.22);
-          border-radius: 17px;
-          background: rgba(255,255,255,0.52);
           text-align: center;
         }
 
-        .pre-roast-empty strong {
+        .action-step span {
           display: block;
-          color: #3f583f;
-          font-size: 14px;
-        }
 
-        .pre-roast-empty p {
-          margin: 5px 0 0;
-          color: var(--text-soft);
-          font-size: 12px;
-          line-height: 1.55;
-        }
+          color: #9a806b;
 
-        .pre-roast-summary-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 11px;
-        }
+          font-size: 8px;
+          font-weight: 850;
 
-        .pre-roast-summary-card {
-          padding: 15px;
-          border-radius: 16px;
-          border: 1px solid var(--line);
-          background: rgba(255,255,255,0.70);
-        }
-
-        .pre-roast-summary-card span {
-          display: block;
-          color: #8a7566;
-          font-size: 9px;
-          font-weight: 900;
-          letter-spacing: 0.07em;
           text-transform: uppercase;
         }
 
-        .pre-roast-summary-card strong {
+        .action-step strong {
           display: block;
-          margin-top: 6px;
-          color: #46362d;
+
+          margin-top: 2px;
+
           font-size: 17px;
-          line-height: 1.25;
         }
 
-        .pre-roast-methodology {
+        .action-card-body {
           padding: 15px 16px;
-          border-left: 4px solid #8b6345;
-          border-radius: 0 14px 14px 0;
+        }
+
+        .action-card-body p {
+          margin: 0;
+
+          color: #51463f;
+
+          font-size: 12px;
+
+          line-height: 1.7;
+        }
+
+        .action-card-footer {
+          display: flex;
+
+          flex-wrap: wrap;
+
+          gap: 7px;
+
+          padding:
+            10px 16px;
+
+          border-top:
+            1px solid
+            var(--line);
+
+          background: #faf7f2;
+        }
+
+        .footer-chip {
+          display: inline-flex;
+
+          align-items: center;
+
+          min-height: 25px;
+
+          padding:
+            0 8px;
+
+          border-radius: 7px;
+
+          color: #5d5148;
+          background: #ebe4dd;
+
+          font-size: 9px;
+          font-weight: 850;
+        }
+
+        /* --------------------------------------------------
+           TECHNICAL SUMMARY
+        -------------------------------------------------- */
+
+        .technical-summary-grid {
+          display: grid;
+
+          grid-template-columns:
+            repeat(
+              3,
+              minmax(0, 1fr)
+            );
+
+          gap: 10px;
+        }
+
+        .technical-summary-card {
+          padding: 14px;
+
+          border:
+            1px solid
+            var(--line);
+
+          border-radius: 14px;
+
+          background: white;
+        }
+
+        .technical-summary-card span {
+          display: block;
+
+          color: #8a7566;
+
+          font-size: 9px;
+          font-weight: 900;
+
+          text-transform: uppercase;
+        }
+
+        .technical-summary-card strong {
+          display: block;
+
+          margin-top: 6px;
+
+          color: #46362d;
+
+          font-size: 15px;
+
+          line-height: 1.3;
+        }
+
+        /* --------------------------------------------------
+           METHODOLOGY
+        -------------------------------------------------- */
+
+        .methodology-card {
+          padding: 15px 16px;
+
+          border-left:
+            4px solid
+            #8b6345;
+
+          border-radius:
+            0 13px 13px 0;
+
           background: #f3eadf;
         }
 
-        .pre-roast-methodology strong {
+        .methodology-card strong {
           display: block;
+
           margin-bottom: 5px;
+
           color: #5c3d29;
-          font-size: 11px;
-          text-transform: uppercase;
+
+          font-size: 10px;
+
           letter-spacing: 0.07em;
+
+          text-transform: uppercase;
         }
 
-        .pre-roast-methodology p {
+        .methodology-card p {
           margin: 0;
+
           color: #6f5e52;
+
           font-size: 11px;
+
           line-height: 1.67;
         }
 
-        @media (max-width: 980px) {
-          .pre-roast-metrics {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+        /* --------------------------------------------------
+           EMPTY STATE
+        -------------------------------------------------- */
+
+        .empty-action-card {
+          padding: 20px;
+
+          border:
+            1px dashed
+            rgba(91, 61, 40, 0.22);
+
+          border-radius: 15px;
+
+          background: #faf8f4;
+
+          text-align: center;
+        }
+
+        .empty-action-card strong {
+          display: block;
+
+          color: #3f583f;
+
+          font-size: 14px;
+        }
+
+        .empty-action-card p {
+          margin:
+            5px 0 0;
+
+          color: var(--text-soft);
+
+          font-size: 12px;
+        }
+
+        /* --------------------------------------------------
+           RESPONSIVE
+        -------------------------------------------------- */
+
+        @media (max-width: 900px) {
+          .decision-header {
+            flex-direction: column;
           }
 
-          .pre-roast-controls {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-
-          .pre-roast-summary-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+          .decision-metrics,
+          .active-controls-grid,
+          .control-details-grid,
+          .technical-summary-grid {
+            grid-template-columns:
+              repeat(
+                2,
+                minmax(0, 1fr)
+              );
           }
         }
 
-        @media (max-width: 650px) {
-          .pre-roast-hero,
+        @media (max-width: 620px) {
+          .pre-roast-decision,
           .pre-roast-content {
             padding: 18px;
           }
 
-          .pre-roast-hero-top {
-            flex-direction: column;
-          }
-
-          .pre-roast-status-wrap {
-            align-items: flex-start;
-          }
-
-          .pre-roast-metrics,
-          .pre-roast-controls,
-          .pre-roast-summary-grid {
+          .decision-metrics,
+          .active-controls-grid,
+          .control-details-grid,
+          .technical-summary-grid {
             grid-template-columns: 1fr;
           }
 
-          .pre-roast-action-head {
-            grid-template-columns: auto 1fr;
+          .action-card-head {
+            grid-template-columns:
+              auto 1fr;
           }
 
-          .pre-roast-step-box {
-            grid-column: 1 / -1;
+          .action-step {
+            grid-column:
+              1 / -1;
+
             text-align: left;
           }
 
-          .pre-roast-step-box span,
-          .pre-roast-step-box strong {
+          .action-step span,
+          .action-step strong {
             display: inline;
           }
 
-          .pre-roast-step-box strong {
-            margin-left: 7px;
-          }
-
-          .pre-roast-detected {
-            width: 100%;
-            margin-left: 0;
+          .action-step strong {
+            margin-left: 6px;
           }
         }
       `}</style>
 
       <div className="pre-roast-shell">
-        <header className="pre-roast-hero">
-          <div className="pre-roast-hero-top">
-            <div>
-              <div className="pre-roast-kicker">
-                <span className="pre-roast-kicker-dot" />
-                Module 2 · Pre-Roast Processing Intelligence
-              </div>
+        {/* ==================================================
+            MAIN DECISION
+        ================================================== */}
 
-              <h3 className="pre-roast-title">
-                {data.title || "Pre-Roast Corrective Actions"}
-              </h3>
-            </div>
-
-            <div className="pre-roast-status-wrap">
-              <span
-                className={`pre-roast-status ${normalizeClass(readinessStatus)}`}
-              >
-                {humanize(readinessStatus)}
-              </span>
-
-              <span className="pre-roast-level">
-                Preparation:{" "}
-                {humanize(data.estimated_preparation_level || "MINIMAL")}
-              </span>
-            </div>
+        <header className="pre-roast-decision">
+          <div className="decision-kicker">
+            <span className="decision-kicker-dot" />
+            Pre-Roast Processing Decision
           </div>
 
-          <p className="pre-roast-summary">
-            {data.summary ||
-              "Defect-driven corrective actions are available for the current batch."}
-          </p>
+          <div className="decision-header">
+            <div className="decision-heading">
+              <h3>{data.title || "Pre-Roast Corrective Actions"}</h3>
 
-          <div className="pre-roast-metrics">
-            <div className="pre-roast-metric">
-              <span>Total Actions</span>
-              <strong>{data.total_actions ?? actions.length}</strong>
+              <p>
+                {data.summary ||
+                  "The system has evaluated the current batch and generated the required preparation decision before roasting."}
+              </p>
             </div>
 
-            <div className="pre-roast-metric">
-              <span>Mandatory</span>
-              <strong>
-                {data.mandatory_actions ??
-                  actions.filter((item) => item.required !== false).length}
-              </strong>
+            <span
+              className={`decision-status ${normalizeClass(readinessStatus)}`}
+            >
+              {humanize(readinessStatus)}
+            </span>
+          </div>
+
+          {/* Main user-facing metrics */}
+
+          <div className="decision-metrics">
+            <div className="decision-metric">
+              <span>Current Status</span>
+
+              <strong>{humanize(readinessStatus)}</strong>
             </div>
 
-            <div className="pre-roast-metric">
-              <span>Active Defects</span>
-              <strong>{data.active_defect_count ?? actions.length}</strong>
+            <div className="decision-metric">
+              <span>Preparation Level</span>
+
+              <strong>{humanize(preparationLevel)}</strong>
             </div>
 
-            <div className="pre-roast-metric">
-              <span>Inspection</span>
-              <strong>
-                {data.inspection_complete === false ? "Review" : "Complete"}
-              </strong>
+            <div className="decision-metric">
+              <span>Required Actions</span>
+
+              <strong>{requiredActionCount}</strong>
             </div>
           </div>
         </header>
 
         <div className="pre-roast-content">
-          <div className="pre-roast-section">
-            <div className="pre-roast-section-heading">
-              <div>
-                <h4>Required Corrective Controls</h4>
-                <p>
-                  Operational follow-up controls activated by the current defect
-                  profile.
-                </p>
-              </div>
+          {/* ==================================================
+              WHAT SHOULD THE USER DO NOW?
+          ================================================== */}
 
-              <span className="pre-roast-count-pill">
-                {activeControls.length} active
-              </span>
-            </div>
+          <div className="required-actions-main">
+            <div className="primary-action-label">What Should I Do Now?</div>
 
-            <div className="pre-roast-controls">
-              {controlFlags.map((item) => (
-                <div
-                  className={`pre-roast-control ${
-                    item.active ? "active" : "inactive"
-                  }`}
-                  key={item.key}
-                >
-                  <div className="pre-roast-control-code">{item.short}</div>
-
-                  <div>
-                    <strong>{item.label}</strong>
-                    <small>{item.active ? "Required" : "Not triggered"}</small>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="pre-roast-section">
-            <div className="pre-roast-section-heading">
-              <div>
-                <h4>Defect-Specific Corrective Actions</h4>
-                <p>
-                  Each active defect independently produces the action required
-                  before the next roasting decision.
-                </p>
-              </div>
-
-              <span className="pre-roast-count-pill">
-                {sortedActions.length} action
-                {sortedActions.length === 1 ? "" : "s"}
-              </span>
-            </div>
-
-            {sortedActions.length > 0 ? (
-              <div className="pre-roast-action-list">
-                {sortedActions.map((item, index) => (
-                  <article
-                    className="pre-roast-action"
-                    key={`${item.defect || "action"}-${item.step_number || index}`}
+            {requiredActions.length > 0 ? (
+              <div className="required-actions-list">
+                {requiredActions.map((action, index) => (
+                  <div
+                    className="primary-action-card"
+                    key={`${action.defect || "action"}-${
+                      action.step_number ?? index
+                    }`}
                   >
-                    <div className="pre-roast-action-head">
-                      <div
-                        className={`pre-roast-action-icon ${normalizeClass(
-                          item.priority,
-                        )}`}
-                      >
-                        {getActionIcon(item.action_type)}
-                      </div>
-
-                      <div className="pre-roast-action-meta">
-                        <div className="pre-roast-action-tags">
-                          <span className="pre-roast-defect-chip">
-                            {humanize(item.defect)}
-                          </span>
-
-                          <span
-                            className={`pre-roast-priority-chip ${normalizeClass(
-                              item.priority,
-                            )}`}
-                          >
-                            {item.priority || "N/A"}
-                          </span>
-
-                          {item.required !== false && (
-                            <span className="pre-roast-required-chip">
-                              Required
-                            </span>
-                          )}
-                        </div>
-
-                        <h5>{item.title || "Corrective Action"}</h5>
-                      </div>
-
-                      <div className="pre-roast-step-box">
-                        <span>Step</span>
-                        <strong>{item.step_number ?? index + 1}</strong>
-                      </div>
+                    <div className="main-action-step">
+                      Step {action.step_number ?? index + 1}
                     </div>
 
-                    <div className="pre-roast-action-body">
-                      <div className="pre-roast-description">
-                        <span>Corrective Instruction</span>
-                        <p>
-                          {item.description ||
-                            "Complete the required corrective action before release."}
-                        </p>
-                      </div>
-                    </div>
+                    <h4>
+                      {action.title || "Complete Required Corrective Action"}
+                    </h4>
 
-                    <div className="pre-roast-action-footer">
-                      {item.action_type && (
-                        <span className="pre-roast-action-type">
-                          {humanize(item.action_type)}
+                    <p>
+                      {action.description ||
+                        "Complete the required corrective action before continuing to the roasting stage."}
+                    </p>
+
+                    <div className="primary-action-meta">
+                      {action.priority && (
+                        <span className="primary-chip priority">
+                          {humanize(action.priority)} Priority
                         </span>
                       )}
 
-                      {item.evidence_class && (
-                        <span className="pre-roast-evidence">
-                          {humanize(item.evidence_class)}
+                      {action.defect && (
+                        <span className="primary-chip defect">
+                          {humanize(action.defect)}
                         </span>
                       )}
 
-                      {item.detected_count !== null &&
-                        item.detected_count !== undefined && (
-                          <span className="pre-roast-detected">
-                            Detected count: {item.detected_count}
-                          </span>
-                        )}
+                      <span className="primary-chip required">Required</span>
                     </div>
-                  </article>
+                  </div>
                 ))}
               </div>
             ) : (
-              <div className="pre-roast-empty">
-                <strong>No corrective pre-roast action triggered</strong>
+              <div className="primary-action-card">
+                <h4>No Corrective Action Required</h4>
+
                 <p>
-                  Continue normal factory cleaning, inspection and pre-roast
-                  quality-control procedures.
+                  The current batch can continue through the normal factory
+                  pre-roast preparation process.
                 </p>
               </div>
             )}
           </div>
 
-          <div className="pre-roast-section">
-            <div className="pre-roast-section-heading">
+          {/* ==================================================
+              ONLY ACTIVE CONTROLS
+          ================================================== */}
+
+          <section className="active-controls-section">
+            <div className="section-title-row">
               <div>
-                <h4>Preparation Summary</h4>
-                <p>
-                  Current release state and the main corrective-processing
-                  indicators returned by the backend.
-                </p>
+                <h4>Required Controls</h4>
+
+                <p>Only controls that require attention are shown here.</p>
               </div>
+
+              <span className="section-count">
+                {activeControls.length} Active
+              </span>
             </div>
 
-            <div className="pre-roast-summary-grid">
-              <div className="pre-roast-summary-card">
-                <span>Readiness Status</span>
-                <strong>{humanize(readinessStatus)}</strong>
-              </div>
+            {activeControls.length > 0 ? (
+              <div className="active-controls-grid">
+                {activeControls.map((item) => (
+                  <div className="active-control-card" key={item.key}>
+                    <div className="active-control-code">{item.short}</div>
 
-              <div className="pre-roast-summary-card">
-                <span>Preparation Level</span>
-                <strong>
-                  {humanize(data.estimated_preparation_level || "MINIMAL")}
-                </strong>
-              </div>
+                    <div>
+                      <strong>{item.label}</strong>
 
-              <div className="pre-roast-summary-card">
-                <span>Reinspection</span>
-                <strong>
-                  {data.reinspection_required ? "Required" : "Not Required"}
-                </strong>
+                      <small>Required</small>
+                    </div>
+                  </div>
+                ))}
               </div>
+            ) : (
+              <div className="no-controls-card">
+                No additional corrective controls are currently required.
+              </div>
+            )}
+          </section>
 
-              <div className="pre-roast-summary-card">
-                <span>Sensor Retest</span>
-                <strong>
-                  {data.sensor_retest_required ? "Required" : "Not Required"}
-                </strong>
-              </div>
+          {/* ==================================================
+              DETAILS BUTTON
+          ================================================== */}
 
-              <div className="pre-roast-summary-card">
-                <span>Physical Retest</span>
-                <strong>
-                  {data.physical_retest_required ? "Required" : "Not Required"}
-                </strong>
-              </div>
-
-              <div className="pre-roast-summary-card">
-                <span>Manual Inspection</span>
-                <strong>
-                  {data.manual_inspection_required
-                    ? "Required"
-                    : "Not Required"}
-                </strong>
-              </div>
-            </div>
+          <div className="details-toggle-wrap">
+            <button
+              type="button"
+              className="details-toggle"
+              aria-expanded={showDetails}
+              onClick={() => setShowDetails((current) => !current)}
+            >
+              {showDetails
+                ? "Hide Detailed Analysis"
+                : "View Detailed Analysis"}
+            </button>
           </div>
 
-          {data.methodology_note && (
-            <div className="pre-roast-section">
-              <div className="pre-roast-methodology">
-                <strong>Methodology Transparency</strong>
-                <p>{data.methodology_note}</p>
+          {/* ==================================================
+              DETAILED ANALYSIS
+          ================================================== */}
+
+          {showDetails && (
+            <div className="detailed-analysis">
+              <div className="details-header">
+                <span>Additional Technical Information</span>
+
+                <h4>Detailed Pre-Roast Analysis</h4>
+
+                <p>
+                  This section provides the supporting corrective actions,
+                  control status, evidence and methodology for users who need
+                  additional technical detail.
+                </p>
               </div>
+
+              {/* ----------------------------------------------
+                  All control flags
+              ---------------------------------------------- */}
+
+              <section className="detail-section">
+                <div className="section-title-row">
+                  <div>
+                    <h4>Control Status</h4>
+
+                    <p>
+                      Complete operational control status for the current batch.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="control-details-grid">
+                  {controlFlags.map((item) => (
+                    <div
+                      key={item.key}
+                      className={`control-detail-card ${
+                        item.active ? "" : "inactive"
+                      }`}
+                    >
+                      <div className="control-detail-icon">{item.short}</div>
+
+                      <div>
+                        <strong>{item.label}</strong>
+
+                        <small>
+                          {item.active ? "Required" : "Not Triggered"}
+                        </small>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* ----------------------------------------------
+                  Defect-specific actions
+              ---------------------------------------------- */}
+
+              <section className="detail-section">
+                <div className="section-title-row">
+                  <div>
+                    <h4>Defect-Specific Corrective Actions</h4>
+
+                    <p>Actions are ordered by priority and processing step.</p>
+                  </div>
+
+                  <span className="section-count">
+                    {sortedActions.length} Action
+                    {sortedActions.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+
+                {sortedActions.length > 0 ? (
+                  <div className="action-list">
+                    {sortedActions.map((item, index) => (
+                      <article
+                        className="action-card"
+                        key={`${item.defect || "action"}-${
+                          item.step_number || index
+                        }`}
+                      >
+                        <div className="action-card-head">
+                          <div
+                            className={`action-icon ${normalizeClass(
+                              item.priority,
+                            )}`}
+                          >
+                            {getActionIcon(item.action_type)}
+                          </div>
+
+                          <div>
+                            <div className="action-tags">
+                              {item.defect && (
+                                <span className="action-tag">
+                                  {humanize(item.defect)}
+                                </span>
+                              )}
+
+                              {item.priority && (
+                                <span
+                                  className={`action-tag ${normalizeClass(
+                                    item.priority,
+                                  )}`}
+                                >
+                                  {humanize(item.priority)}
+                                </span>
+                              )}
+
+                              {item.required !== false && (
+                                <span className="action-tag required">
+                                  Required
+                                </span>
+                              )}
+                            </div>
+
+                            <h5>{item.title || "Corrective Action"}</h5>
+                          </div>
+
+                          <div className="action-step">
+                            <span>Step</span>
+
+                            <strong>{item.step_number ?? index + 1}</strong>
+                          </div>
+                        </div>
+
+                        <div className="action-card-body">
+                          <p>
+                            {item.description ||
+                              "Complete the required corrective action before release."}
+                          </p>
+                        </div>
+
+                        {(item.action_type ||
+                          item.evidence_class ||
+                          (item.detected_count !== null &&
+                            item.detected_count !== undefined)) && (
+                          <div className="action-card-footer">
+                            {item.action_type && (
+                              <span className="footer-chip">
+                                Action: {humanize(item.action_type)}
+                              </span>
+                            )}
+
+                            {item.evidence_class && (
+                              <span className="footer-chip">
+                                Evidence: {humanize(item.evidence_class)}
+                              </span>
+                            )}
+
+                            {item.detected_count !== null &&
+                              item.detected_count !== undefined && (
+                                <span className="footer-chip">
+                                  Detected: {item.detected_count}
+                                </span>
+                              )}
+                          </div>
+                        )}
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-action-card">
+                    <strong>No corrective pre-roast action triggered</strong>
+
+                    <p>
+                      Continue normal factory cleaning, inspection and pre-roast
+                      quality-control procedures.
+                    </p>
+                  </div>
+                )}
+              </section>
+
+              {/* ----------------------------------------------
+                  Technical summary
+              ---------------------------------------------- */}
+
+              <section className="detail-section">
+                <div className="section-title-row">
+                  <div>
+                    <h4>Technical Assessment</h4>
+
+                    <p>
+                      Supporting processing indicators returned by the backend.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="technical-summary-grid">
+                  <div className="technical-summary-card">
+                    <span>Readiness Status</span>
+
+                    <strong>{humanize(readinessStatus)}</strong>
+                  </div>
+
+                  <div className="technical-summary-card">
+                    <span>Preparation Level</span>
+
+                    <strong>{humanize(preparationLevel)}</strong>
+                  </div>
+
+                  <div className="technical-summary-card">
+                    <span>Total Actions</span>
+
+                    <strong>{data.total_actions ?? actions.length}</strong>
+                  </div>
+
+                  <div className="technical-summary-card">
+                    <span>Active Defects</span>
+
+                    <strong>
+                      {data.active_defect_count ?? actions.length}
+                    </strong>
+                  </div>
+
+                  <div className="technical-summary-card">
+                    <span>Inspection</span>
+
+                    <strong>
+                      {data.inspection_complete === false
+                        ? "Review Required"
+                        : "Complete"}
+                    </strong>
+                  </div>
+
+                  <div className="technical-summary-card">
+                    <span>Reinspection</span>
+
+                    <strong>
+                      {data.reinspection_required ? "Required" : "Not Required"}
+                    </strong>
+                  </div>
+
+                  <div className="technical-summary-card">
+                    <span>Sensor Retest</span>
+
+                    <strong>
+                      {data.sensor_retest_required
+                        ? "Required"
+                        : "Not Required"}
+                    </strong>
+                  </div>
+
+                  <div className="technical-summary-card">
+                    <span>Physical Retest</span>
+
+                    <strong>
+                      {data.physical_retest_required
+                        ? "Required"
+                        : "Not Required"}
+                    </strong>
+                  </div>
+
+                  <div className="technical-summary-card">
+                    <span>Manual Inspection</span>
+
+                    <strong>
+                      {data.manual_inspection_required
+                        ? "Required"
+                        : "Not Required"}
+                    </strong>
+                  </div>
+                </div>
+              </section>
+
+              {/* ----------------------------------------------
+                  Methodology
+              ---------------------------------------------- */}
+
+              {data.methodology_note && (
+                <section className="detail-section">
+                  <div className="methodology-card">
+                    <strong>Methodology Transparency</strong>
+
+                    <p>{data.methodology_note}</p>
+                  </div>
+                </section>
+              )}
             </div>
           )}
         </div>

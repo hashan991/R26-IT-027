@@ -1,7 +1,15 @@
+import { useState } from "react";
+
 function StorageHandling({ data }) {
+  const [showDetails, setShowDetails] = useState(false);
+
   if (!data) {
     return null;
   }
+
+  // -------------------------------------------------------
+  // Helper functions
+  // -------------------------------------------------------
 
   const normalizeClass = (value) =>
     String(value || "")
@@ -15,6 +23,10 @@ function StorageHandling({ data }) {
       .replaceAll("_", " ")
       .toLowerCase()
       .replace(/\b\w/g, (char) => char.toUpperCase());
+
+  // -------------------------------------------------------
+  // Data preparation
+  // -------------------------------------------------------
 
   const recommendations = Array.isArray(data.recommendations)
     ? data.recommendations
@@ -74,6 +86,33 @@ function StorageHandling({ data }) {
       (priorityRank[String(a?.priority || "").toUpperCase()] || 0),
   );
 
+  const overallStatus = data.overall_status || "UNKNOWN";
+
+  const recommendationCount =
+    data.total_recommendations ?? sortedRecommendations.length;
+
+  // -------------------------------------------------------
+  // Simple meaning for user-facing summary
+  // -------------------------------------------------------
+
+  const getStatusMeaning = () => {
+    const value = String(overallStatus || "").toUpperCase();
+
+    if (value === "HOLD_AND_PROTECT" || value === "INSPECTION_REQUIRED") {
+      return "Do not continue with normal storage yet. Protect the batch and complete the required controls before release.";
+    }
+
+    if (value === "ACTION_REQUIRED") {
+      return "Storage or handling action is required before the batch continues to normal storage.";
+    }
+
+    if (value === "NORMAL_STORAGE") {
+      return "The batch can continue with normal clean, dry and protected storage practices.";
+    }
+
+    return "Review the storage and handling recommendations below before deciding the next action for this batch.";
+  };
+
   return (
     <section className="storage-handling-module">
       <style>{`
@@ -83,706 +122,1794 @@ function StorageHandling({ data }) {
           --coffee-800: #3d281b;
           --coffee-700: #5a3a25;
           --coffee-600: #7a5132;
-          --coffee-500: #9a6a45;
+
           --cream-50: #fffdf9;
           --cream-100: #fbf6ee;
           --cream-200: #f2e7d8;
+
           --text-main: #2a211c;
           --text-soft: #74665c;
+
           --line: rgba(91, 61, 40, 0.14);
-          --shadow: 0 18px 55px rgba(67, 43, 28, 0.10);
+
           width: 100%;
           color: var(--text-main);
-          font-family: Inter, ui-sans-serif, system-ui, -apple-system,
-            BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+          font-family:
+            Inter,
+            ui-sans-serif,
+            system-ui,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
         }
 
         .storage-handling-module * {
           box-sizing: border-box;
         }
 
+        /* --------------------------------------------------
+           MAIN CONTAINER
+        -------------------------------------------------- */
+
         .storage-shell {
           overflow: hidden;
+
           border: 1px solid var(--line);
           border-radius: 24px;
+
           background:
-            radial-gradient(circle at top right, rgba(154, 106, 69, 0.13), transparent 30%),
-            linear-gradient(145deg, #fffdf9 0%, #fbf6ee 100%);
-          box-shadow: var(--shadow);
+            linear-gradient(
+              145deg,
+              #fffdf9,
+              #fbf6ee
+            );
+
+          box-shadow:
+            0 18px 55px
+            rgba(67, 43, 28, 0.10);
         }
 
-        .storage-hero {
+        /* --------------------------------------------------
+           DECISION HEADER
+        -------------------------------------------------- */
+
+        .storage-decision {
           position: relative;
-          padding: 26px;
-          background:
-            radial-gradient(circle at 88% 10%, rgba(255,255,255,0.10), transparent 26%),
-            linear-gradient(135deg, #2b1d15 0%, #4b3020 58%, #664126 100%);
+
+          padding: 28px;
+
           color: #fff;
+
+          background:
+            radial-gradient(
+              circle at 90% 5%,
+              rgba(255,255,255,0.10),
+              transparent 30%
+            ),
+            linear-gradient(
+              135deg,
+              #2b1d15 0%,
+              #4b3020 58%,
+              #664126 100%
+            );
         }
 
-        .storage-hero::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          background-image:
-            linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-          background-size: 24px 24px;
-          mask-image: linear-gradient(to bottom, black, transparent);
-        }
-
-        .storage-hero-top {
-          position: relative;
-          z-index: 1;
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 18px;
-        }
-
-        .storage-kicker {
+        .storage-decision-kicker {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          margin-bottom: 9px;
-          font-size: 11px;
-          font-weight: 800;
-          letter-spacing: 0.13em;
-          text-transform: uppercase;
+
+          margin-bottom: 10px;
+
           color: #dbc4ad;
+
+          font-size: 11px;
+          font-weight: 850;
+
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
         }
 
-        .storage-kicker-dot {
+        .storage-decision-kicker-dot {
           width: 8px;
           height: 8px;
+
           border-radius: 50%;
+
           background: #e0b68e;
-          box-shadow: 0 0 0 5px rgba(224, 182, 142, 0.12);
+
+          box-shadow:
+            0 0 0 5px
+            rgba(224, 182, 142, 0.12);
         }
 
-        .storage-title {
+        .storage-decision-header {
+          display: flex;
+
+          align-items: flex-start;
+          justify-content: space-between;
+
+          gap: 22px;
+        }
+
+        .storage-decision-heading {
+          flex: 1;
+        }
+
+        .storage-decision-heading h3 {
           margin: 0;
-          max-width: 720px;
-          font-size: clamp(24px, 3vw, 34px);
+
+          color: #fff8f1;
+
+          font-size:
+            clamp(
+              25px,
+              3vw,
+              35px
+            );
+
           line-height: 1.12;
+
           letter-spacing: -0.035em;
         }
 
-        .storage-summary {
-          position: relative;
-          z-index: 1;
-          max-width: 830px;
-          margin: 13px 0 0;
+        .storage-decision-heading p {
+          max-width: 820px;
+
+          margin: 12px 0 0;
+
           color: #eadfd5;
+
           font-size: 14px;
-          line-height: 1.72;
+
+          line-height: 1.68;
         }
 
-        .storage-status {
-          position: relative;
-          z-index: 1;
-          flex: 0 0 auto;
+        /* --------------------------------------------------
+           STATUS
+        -------------------------------------------------- */
+
+        .storage-decision-status {
           display: inline-flex;
+
           align-items: center;
-          gap: 8px;
-          min-height: 38px;
-          padding: 0 13px;
-          border: 1px solid rgba(255,255,255,0.16);
+          justify-content: center;
+
+          min-height: 42px;
+
+          padding: 0 15px;
+
+          border:
+            1px solid
+            rgba(255,255,255,0.18);
+
           border-radius: 999px;
-          background: rgba(255,255,255,0.08);
+
+          background:
+            rgba(255,255,255,0.08);
+
           backdrop-filter: blur(9px);
+
           font-size: 11px;
           font-weight: 900;
-          letter-spacing: 0.08em;
+
+          letter-spacing: 0.06em;
+
+          text-align: center;
           text-transform: uppercase;
         }
 
-        .storage-status.normal-storage {
+        .storage-decision-status.normal-storage {
           color: #d7f8df;
-          background: rgba(46, 125, 70, 0.18);
-          border-color: rgba(112, 212, 140, 0.26);
+
+          background:
+            rgba(46, 125, 70, 0.18);
+
+          border-color:
+            rgba(112, 212, 140, 0.28);
         }
 
-        .storage-status.action-required {
+        .storage-decision-status.action-required {
           color: #fff0c7;
-          background: rgba(196, 132, 27, 0.19);
-          border-color: rgba(239, 190, 90, 0.30);
+
+          background:
+            rgba(196, 132, 27, 0.20);
+
+          border-color:
+            rgba(239, 190, 90, 0.32);
         }
 
-        .storage-status.hold-and-protect,
-        .storage-status.inspection-required {
+        .storage-decision-status.hold-and-protect,
+        .storage-decision-status.inspection-required {
           color: #ffd8d0;
-          background: rgba(165, 57, 39, 0.20);
-          border-color: rgba(240, 123, 101, 0.30);
+
+          background:
+            rgba(165, 57, 39, 0.22);
+
+          border-color:
+            rgba(240, 123, 101, 0.32);
         }
 
-        .storage-metrics {
-          position: relative;
-          z-index: 1;
+        /* --------------------------------------------------
+           MAIN METRICS
+        -------------------------------------------------- */
+
+        .storage-decision-metrics {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+
+          grid-template-columns:
+            repeat(
+              3,
+              minmax(0, 1fr)
+            );
+
           gap: 12px;
-          margin-top: 22px;
+
+          margin-top: 24px;
         }
 
-        .storage-metric {
-          padding: 14px 16px;
-          border: 1px solid rgba(255,255,255,0.10);
+        .storage-decision-metric {
+          padding: 15px 16px;
+
+          border:
+            1px solid
+            rgba(255,255,255,0.11);
+
           border-radius: 16px;
-          background: rgba(255,255,255,0.065);
-          backdrop-filter: blur(7px);
+
+          background:
+            rgba(255,255,255,0.07);
+
+          backdrop-filter: blur(8px);
         }
 
-        .storage-metric span {
+        .storage-decision-metric span {
           display: block;
+
           color: #cbb8a8;
-          font-size: 10px;
-          font-weight: 800;
+
+          font-size: 9px;
+          font-weight: 850;
+
           letter-spacing: 0.08em;
+
           text-transform: uppercase;
         }
 
-        .storage-metric strong {
+        .storage-decision-metric strong {
           display: block;
-          margin-top: 5px;
+
+          margin-top: 6px;
+
           color: #fff;
-          font-size: 20px;
-          line-height: 1;
+
+          font-size: 18px;
+
+          line-height: 1.2;
+
+          overflow-wrap: anywhere;
         }
+
+        /* --------------------------------------------------
+           CONTENT
+        -------------------------------------------------- */
 
         .storage-content {
-          padding: 24px;
+          padding: 25px;
         }
 
-        .storage-section + .storage-section {
-          margin-top: 25px;
+        /* --------------------------------------------------
+           SIMPLE MEANING
+        -------------------------------------------------- */
+
+        .storage-meaning-card {
+          padding: 20px;
+
+          border:
+            1px solid
+            rgba(122, 81, 50, 0.18);
+
+          border-radius: 18px;
+
+          background:
+            linear-gradient(
+              145deg,
+              #fffaf4,
+              #f7ede1
+            );
+
+          box-shadow:
+            0 10px 30px
+            rgba(64, 41, 28, 0.05);
+        }
+
+        .storage-meaning-label {
+          display: flex;
+
+          align-items: center;
+
+          gap: 8px;
+
+          margin-bottom: 9px;
+
+          color: #866448;
+
+          font-size: 10px;
+          font-weight: 900;
+
+          letter-spacing: 0.09em;
+
+          text-transform: uppercase;
+        }
+
+        .storage-meaning-label::before {
+          content: "→";
+
+          display: grid;
+          place-items: center;
+
+          width: 26px;
+          height: 26px;
+
+          border-radius: 8px;
+
+          color: #fff;
+          background: #765036;
+        }
+
+        .storage-meaning-card h4 {
+          margin: 0;
+
+          color: #34271f;
+
+          font-size: 20px;
+
+          line-height: 1.28;
+        }
+
+        .storage-meaning-card p {
+          max-width: 920px;
+
+          margin: 8px 0 0;
+
+          color: #64574e;
+
+          font-size: 13px;
+
+          line-height: 1.7;
+        }
+
+        /* --------------------------------------------------
+           SECTION HEADINGS
+        -------------------------------------------------- */
+
+        .storage-main-section {
+          margin-top: 24px;
         }
 
         .storage-section-heading {
           display: flex;
+
           align-items: flex-end;
           justify-content: space-between;
+
           gap: 14px;
+
           margin-bottom: 13px;
         }
 
         .storage-section-heading h4 {
           margin: 0;
+
+          color: #32261f;
+
           font-size: 17px;
-          letter-spacing: -0.015em;
         }
 
         .storage-section-heading p {
           margin: 4px 0 0;
+
           color: var(--text-soft);
+
           font-size: 12px;
+
+          line-height: 1.55;
         }
 
         .storage-count-pill {
           flex: 0 0 auto;
-          padding: 6px 9px;
+
+          padding: 6px 10px;
+
           border-radius: 999px;
+
           background: #f2e7d8;
+
           color: #5d402d;
+
           font-size: 10px;
           font-weight: 900;
-          letter-spacing: 0.06em;
+
           text-transform: uppercase;
         }
 
-        .storage-controls {
+        /* --------------------------------------------------
+           ACTIVE CONTROLS
+        -------------------------------------------------- */
+
+        .storage-active-controls {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+
+          grid-template-columns:
+            repeat(
+              3,
+              minmax(0, 1fr)
+            );
+
           gap: 10px;
         }
 
-        .storage-control {
+        .storage-active-control {
           display: flex;
+
           align-items: center;
+
           gap: 11px;
-          min-height: 68px;
+
+          min-height: 66px;
+
           padding: 12px;
-          border: 1px solid var(--line);
-          border-radius: 16px;
-          background: rgba(255,255,255,0.64);
+
+          border:
+            1px solid
+            rgba(122, 81, 50, 0.17);
+
+          border-radius: 15px;
+
+          background: #fff;
         }
 
-        .storage-control-code {
+        .storage-active-control-code {
           display: grid;
-          flex: 0 0 40px;
-          height: 40px;
+
           place-items: center;
-          border-radius: 12px;
-          background: #eee0d1;
+
+          flex: 0 0 40px;
+
+          height: 40px;
+
+          border-radius: 11px;
+
           color: #573a27;
+          background: #eee0d1;
+
           font-size: 9px;
           font-weight: 900;
-          letter-spacing: 0.05em;
         }
 
-        .storage-control strong {
+        .storage-active-control strong {
           display: block;
+
+          color: #3d3028;
+
           font-size: 12px;
         }
 
-        .storage-control small {
+        .storage-active-control small {
           display: block;
+
           margin-top: 3px;
-          color: #7a6d63;
+
+          color: #3d7148;
+
           font-size: 10px;
+          font-weight: 800;
+        }
+
+        .storage-no-controls {
+          padding: 16px;
+
+          border:
+            1px solid
+            #dbe9dd;
+
+          border-radius: 15px;
+
+          color: #416349;
+          background: #f2f8f3;
+
+          font-size: 12px;
           font-weight: 700;
         }
 
-        .storage-control.inactive {
-          opacity: 0.48;
-          background: rgba(255,255,255,0.34);
-        }
+        /* --------------------------------------------------
+           MAIN RECOMMENDATION CARDS
+        -------------------------------------------------- */
 
-        .storage-control.active {
-          border-color: rgba(122, 81, 50, 0.25);
-          box-shadow: inset 0 0 0 1px rgba(122, 81, 50, 0.04);
-        }
-
-        .storage-recommendations {
+        .storage-main-recommendations {
           display: grid;
-          gap: 14px;
+
+          gap: 12px;
         }
 
-        .storage-item {
-          overflow: hidden;
-          border: 1px solid var(--line);
-          border-radius: 19px;
-          background: rgba(255,255,255,0.76);
-          box-shadow: 0 8px 24px rgba(64, 41, 28, 0.05);
+        .storage-main-recommendation {
+          padding: 17px;
+
+          border:
+            1px solid
+            var(--line);
+
+          border-radius: 17px;
+
+          background: #fff;
+
+          box-shadow:
+            0 7px 20px
+            rgba(64, 41, 28, 0.04);
         }
 
-        .storage-item-head {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          gap: 14px;
-          padding: 17px 18px 14px;
-        }
-
-        .storage-item-kicker {
+        .storage-main-recommendation-top {
           display: flex;
+
           flex-wrap: wrap;
+
           align-items: center;
+
           gap: 7px;
-          margin-bottom: 7px;
+
+          margin-bottom: 8px;
         }
 
-        .storage-defect-chip,
-        .storage-priority,
-        .storage-item-status {
+        .storage-chip {
           display: inline-flex;
+
           align-items: center;
+
           min-height: 24px;
+
           padding: 0 8px;
+
           border-radius: 999px;
+
           font-size: 9px;
           font-weight: 900;
-          letter-spacing: 0.055em;
+
           text-transform: uppercase;
         }
 
-        .storage-defect-chip {
-          background: #f3eadf;
+        .storage-chip.defect {
           color: #65452e;
+          background: #f3eadf;
         }
 
-        .storage-priority {
-          background: #eee;
-          color: #555;
+        .storage-chip.priority {
+          color: #5e5148;
+          background: #eeeae6;
         }
 
-        .storage-priority.critical {
+        .storage-chip.priority.critical {
+          color: #9c3527;
           background: #fee4df;
-          color: #a13728;
         }
 
-        .storage-priority.high {
+        .storage-chip.priority.high {
+          color: #8a5a16;
           background: #fff0d6;
-          color: #9a5f0e;
         }
 
-        .storage-priority.medium {
-          background: #f2ecd7;
+        .storage-chip.priority.medium {
           color: #72611d;
+          background: #f2ecd7;
         }
 
-        .storage-priority.low {
-          background: #e8f3e9;
+        .storage-chip.priority.low {
           color: #357142;
+          background: #e8f3e9;
         }
 
-        .storage-item h5 {
+        .storage-chip.status {
+          color: #66462f;
+          background: #eee0d1;
+        }
+
+        .storage-main-recommendation h5 {
           margin: 0;
+
+          color: #34271f;
+
           font-size: 15px;
+
           line-height: 1.35;
         }
 
-        .storage-item-status {
-          align-self: start;
-          background: #ece7e2;
-          color: #5e5148;
-          text-align: center;
-        }
+        .storage-main-advice {
+          margin-top: 11px;
 
-        .storage-item-body {
-          display: grid;
-          grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-          gap: 14px;
-          padding: 0 18px 18px;
-        }
+          padding: 12px 13px;
 
-        .storage-advice,
-        .storage-reason {
-          padding: 13px 14px;
-          border-radius: 14px;
-        }
+          border:
+            1px solid
+            rgba(122, 81, 50, 0.10);
 
-        .storage-advice {
+          border-radius: 12px;
+
           background: #f8f1e7;
-          border: 1px solid rgba(122, 81, 50, 0.10);
         }
 
-        .storage-reason {
-          background: #f7f7f6;
-          border: 1px solid rgba(0,0,0,0.05);
-        }
-
-        .storage-advice span,
-        .storage-reason span {
+        .storage-main-advice span {
           display: block;
+
           margin-bottom: 5px;
+
           color: #8b7768;
-          font-size: 9px;
+
+          font-size: 8px;
           font-weight: 900;
-          letter-spacing: 0.08em;
+
+          letter-spacing: 0.07em;
+
           text-transform: uppercase;
         }
 
-        .storage-advice p,
-        .storage-reason p {
+        .storage-main-advice p {
           margin: 0;
+
           color: #51463f;
+
           font-size: 12px;
+
           line-height: 1.65;
         }
 
-        .storage-item-footer {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          gap: 8px;
-          padding: 11px 18px;
-          border-top: 1px solid var(--line);
-          background: rgba(250,247,242,0.72);
-        }
-
-        .storage-evidence {
-          padding: 5px 8px;
-          border-radius: 8px;
-          background: #e9e2db;
-          color: #5d5148;
-          font-size: 9px;
-          font-weight: 900;
-        }
-
-        .storage-source {
-          padding: 5px 8px;
-          border: 1px solid rgba(76, 56, 42, 0.10);
-          border-radius: 8px;
-          background: #fff;
-          color: #72645a;
-          font-size: 9px;
-          font-weight: 800;
-        }
-
-        .storage-detected {
-          margin-left: auto;
-          color: #6c5a4c;
-          font-size: 10px;
-          font-weight: 800;
-        }
+        /* --------------------------------------------------
+           EMPTY STATE
+        -------------------------------------------------- */
 
         .storage-empty {
-          padding: 22px;
-          border: 1px dashed rgba(91, 61, 40, 0.22);
-          border-radius: 17px;
-          background: rgba(255,255,255,0.52);
+          padding: 19px;
+
+          border:
+            1px dashed
+            rgba(91, 61, 40, 0.22);
+
+          border-radius: 15px;
+
+          background: #faf8f4;
+
           text-align: center;
         }
 
         .storage-empty strong {
           display: block;
+
+          color: #3f583f;
+
           font-size: 14px;
         }
 
         .storage-empty p {
           margin: 5px 0 0;
+
           color: var(--text-soft);
+
           font-size: 12px;
+
+          line-height: 1.55;
         }
 
-        .storage-methodology {
-          padding: 15px 16px;
-          border-left: 4px solid #8b6345;
-          border-radius: 0 14px 14px 0;
-          background: #f3eadf;
+        /* --------------------------------------------------
+           DETAILS BUTTON
+        -------------------------------------------------- */
+
+        .storage-details-toggle-wrap {
+          display: flex;
+
+          justify-content: center;
+
+          margin-top: 25px;
         }
 
-        .storage-methodology strong {
+        .storage-details-toggle {
+          min-height: 44px;
+
+          padding: 0 18px;
+
+          border:
+            1px solid
+            #72513a;
+
+          border-radius: 12px;
+
+          color: #fff;
+          background: #543724;
+
+          cursor: pointer;
+
+          font-size: 12px;
+          font-weight: 850;
+
+          transition:
+            transform 0.15s ease,
+            background 0.15s ease;
+        }
+
+        .storage-details-toggle:hover {
+          background: #68452d;
+
+          transform: translateY(-1px);
+        }
+
+        /* --------------------------------------------------
+           DETAILED ANALYSIS
+        -------------------------------------------------- */
+
+        .storage-detailed-analysis {
+          margin-top: 28px;
+
+          padding-top: 27px;
+
+          border-top:
+            1px solid
+            var(--line);
+        }
+
+        .storage-details-header {
+          margin-bottom: 22px;
+        }
+
+        .storage-details-header span {
           display: block;
-          margin-bottom: 5px;
-          color: #5c3d29;
-          font-size: 11px;
+
+          color: #8b674c;
+
+          font-size: 10px;
+          font-weight: 900;
+
+          letter-spacing: 0.09em;
+
           text-transform: uppercase;
-          letter-spacing: 0.07em;
         }
 
-        .storage-methodology p {
-          margin: 0;
-          color: #6f5e52;
-          font-size: 11px;
+        .storage-details-header h4 {
+          margin: 5px 0 0;
+
+          color: #33271f;
+
+          font-size: 21px;
+        }
+
+        .storage-details-header p {
+          max-width: 760px;
+
+          margin: 7px 0 0;
+
+          color: var(--text-soft);
+
+          font-size: 12px;
+
           line-height: 1.65;
         }
 
+        .storage-detail-section + .storage-detail-section {
+          margin-top: 26px;
+        }
+
+        /* --------------------------------------------------
+           ALL CONTROL FLAGS
+        -------------------------------------------------- */
+
+        .storage-control-details-grid {
+          display: grid;
+
+          grid-template-columns:
+            repeat(
+              3,
+              minmax(0, 1fr)
+            );
+
+          gap: 10px;
+        }
+
+        .storage-control-detail {
+          display: flex;
+
+          align-items: center;
+
+          gap: 10px;
+
+          padding: 12px;
+
+          border:
+            1px solid
+            var(--line);
+
+          border-radius: 14px;
+
+          background: #fff;
+        }
+
+        .storage-control-detail.inactive {
+          opacity: 0.55;
+
+          background: #faf8f5;
+        }
+
+        .storage-control-detail-code {
+          display: grid;
+
+          place-items: center;
+
+          width: 38px;
+          height: 38px;
+
+          border-radius: 10px;
+
+          color: #5c3d29;
+          background: #eee0d1;
+
+          font-size: 9px;
+          font-weight: 900;
+        }
+
+        .storage-control-detail strong {
+          display: block;
+
+          color: #3d3028;
+
+          font-size: 11px;
+        }
+
+        .storage-control-detail small {
+          display: block;
+
+          margin-top: 3px;
+
+          color: #7a6d63;
+
+          font-size: 10px;
+        }
+
+        /* --------------------------------------------------
+           DETAILED RECOMMENDATIONS
+        -------------------------------------------------- */
+
+        .storage-detail-list {
+          display: grid;
+
+          gap: 14px;
+        }
+
+        .storage-detail-card {
+          overflow: hidden;
+
+          border:
+            1px solid
+            var(--line);
+
+          border-radius: 17px;
+
+          background: #fff;
+        }
+
+        .storage-detail-head {
+          display: flex;
+
+          align-items: flex-start;
+          justify-content: space-between;
+
+          gap: 14px;
+
+          padding: 15px 16px;
+
+          background: #fcf8f3;
+        }
+
+        .storage-detail-head h5 {
+          margin: 6px 0 0;
+
+          color: #34271f;
+
+          font-size: 15px;
+
+          line-height: 1.35;
+        }
+
+        .storage-detail-status {
+          flex: 0 0 auto;
+
+          padding: 6px 8px;
+
+          border-radius: 999px;
+
+          color: #5e5148;
+          background: #ece7e2;
+
+          font-size: 9px;
+          font-weight: 900;
+
+          text-transform: uppercase;
+        }
+
+        .storage-detail-body {
+          display: grid;
+
+          grid-template-columns:
+            minmax(0, 1.35fr)
+            minmax(0, 1fr);
+
+          gap: 13px;
+
+          padding: 15px 16px;
+        }
+
+        .storage-detail-box {
+          padding: 13px 14px;
+
+          border-radius: 13px;
+
+          background: #f8f4ef;
+
+          border:
+            1px solid
+            rgba(91, 61, 40, 0.08);
+        }
+
+        .storage-detail-box span {
+          display: block;
+
+          margin-bottom: 5px;
+
+          color: #8b7768;
+
+          font-size: 9px;
+          font-weight: 900;
+
+          letter-spacing: 0.07em;
+
+          text-transform: uppercase;
+        }
+
+        .storage-detail-box p {
+          margin: 0;
+
+          color: #51463f;
+
+          font-size: 12px;
+
+          line-height: 1.68;
+        }
+
+        .storage-detail-footer {
+          display: flex;
+
+          flex-wrap: wrap;
+
+          gap: 7px;
+
+          padding: 10px 16px;
+
+          border-top:
+            1px solid
+            var(--line);
+
+          background: #faf7f2;
+        }
+
+        .storage-footer-chip {
+          display: inline-flex;
+
+          align-items: center;
+
+          min-height: 25px;
+
+          padding: 0 8px;
+
+          border-radius: 7px;
+
+          color: #5d5148;
+          background: #ebe4dd;
+
+          font-size: 9px;
+          font-weight: 850;
+        }
+
+        /* --------------------------------------------------
+           TECHNICAL SUMMARY
+        -------------------------------------------------- */
+
+        .storage-technical-grid {
+          display: grid;
+
+          grid-template-columns:
+            repeat(
+              3,
+              minmax(0, 1fr)
+            );
+
+          gap: 10px;
+        }
+
+        .storage-technical-card {
+          padding: 14px;
+
+          border:
+            1px solid
+            var(--line);
+
+          border-radius: 14px;
+
+          background: #fff;
+        }
+
+        .storage-technical-card span {
+          display: block;
+
+          color: #8a7566;
+
+          font-size: 9px;
+          font-weight: 900;
+
+          text-transform: uppercase;
+        }
+
+        .storage-technical-card strong {
+          display: block;
+
+          margin-top: 6px;
+
+          color: #46362d;
+
+          font-size: 15px;
+
+          line-height: 1.3;
+        }
+
+        /* --------------------------------------------------
+           METHODOLOGY
+        -------------------------------------------------- */
+
+        .storage-methodology-card {
+          padding: 15px 16px;
+
+          border-left:
+            4px solid
+            #8b6345;
+
+          border-radius:
+            0 13px 13px 0;
+
+          background: #f3eadf;
+        }
+
+        .storage-methodology-card strong {
+          display: block;
+
+          margin-bottom: 5px;
+
+          color: #5c3d29;
+
+          font-size: 10px;
+
+          letter-spacing: 0.07em;
+
+          text-transform: uppercase;
+        }
+
+        .storage-methodology-card p {
+          margin: 0;
+
+          color: #6f5e52;
+
+          font-size: 11px;
+
+          line-height: 1.67;
+        }
+
+        /* --------------------------------------------------
+           RESPONSIVE
+        -------------------------------------------------- */
+
         @media (max-width: 900px) {
-          .storage-controls {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+          .storage-decision-header {
+            flex-direction: column;
           }
 
-          .storage-item-body {
+          .storage-active-controls,
+          .storage-control-details-grid,
+          .storage-decision-metrics,
+          .storage-technical-grid {
+            grid-template-columns:
+              repeat(
+                2,
+                minmax(0, 1fr)
+              );
+          }
+
+          .storage-detail-body {
             grid-template-columns: 1fr;
           }
         }
 
-        @media (max-width: 650px) {
-          .storage-hero,
+        @media (max-width: 620px) {
+          .storage-decision,
           .storage-content {
             padding: 18px;
           }
 
-          .storage-hero-top {
+          .storage-active-controls,
+          .storage-control-details-grid,
+          .storage-decision-metrics,
+          .storage-technical-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .storage-detail-head {
             flex-direction: column;
           }
 
-          .storage-metrics,
-          .storage-controls {
-            grid-template-columns: 1fr;
-          }
-
-          .storage-status {
+          .storage-detail-status {
             align-self: flex-start;
-          }
-
-          .storage-item-head {
-            grid-template-columns: 1fr;
-          }
-
-          .storage-item-status {
-            justify-self: start;
-          }
-
-          .storage-detected {
-            width: 100%;
-            margin-left: 0;
           }
         }
       `}</style>
 
       <div className="storage-shell">
-        <header className="storage-hero">
-          <div className="storage-hero-top">
-            <div>
-              <div className="storage-kicker">
-                <span className="storage-kicker-dot" />
-                Module 6 · Pre-Roast Processing Intelligence
-              </div>
 
-              <h3 className="storage-title">
+        {/* ==================================================
+            MAIN DECISION
+        ================================================== */}
+
+        <header className="storage-decision">
+
+          <div className="storage-decision-kicker">
+            <span className="storage-decision-kicker-dot" />
+            Storage & Handling Decision
+          </div>
+
+          <div className="storage-decision-header">
+
+            <div className="storage-decision-heading">
+
+              <h3>
                 {data.title || "Storage & Handling Recommendation"}
               </h3>
+
+              <p>
+                {data.summary ||
+                  "The system has evaluated the current batch and generated the required storage and handling guidance."}
+              </p>
+
             </div>
 
             <span
-              className={`storage-status ${normalizeClass(
-                data.overall_status,
+              className={`storage-decision-status ${normalizeClass(
+                overallStatus,
               )}`}
             >
-              {humanize(data.overall_status || "UNKNOWN")}
+              {humanize(overallStatus)}
             </span>
+
           </div>
 
-          <p className="storage-summary">
-            {data.summary ||
-              "Storage and handling guidance is available for the current batch."}
-          </p>
+          <div className="storage-decision-metrics">
 
-          <div className="storage-metrics">
-            <div className="storage-metric">
+            <div className="storage-decision-metric">
+              <span>Storage Status</span>
+
+              <strong>
+                {humanize(overallStatus)}
+              </strong>
+            </div>
+
+            <div className="storage-decision-metric">
               <span>Recommendations</span>
+
               <strong>
-                {data.total_recommendations ?? recommendations.length}
+                {recommendationCount}
               </strong>
             </div>
 
-            <div className="storage-metric">
-              <span>Active Defects</span>
-              <strong>{data.active_defect_count ?? 0}</strong>
-            </div>
+            <div className="storage-decision-metric">
+              <span>Required Controls</span>
 
-            <div className="storage-metric">
-              <span>Inspection</span>
               <strong>
-                {data.inspection_complete ? "Complete" : "Review"}
+                {activeControls.length}
               </strong>
             </div>
+
           </div>
+
         </header>
 
         <div className="storage-content">
-          <div className="storage-section">
+
+          {/* ==================================================
+              SIMPLE MEANING
+          ================================================== */}
+
+          <div className="storage-meaning-card">
+
+            <div className="storage-meaning-label">
+              What Should I Do With This Batch?
+            </div>
+
+            <h4>
+              {humanize(overallStatus)}
+            </h4>
+
+            <p>
+              {getStatusMeaning()}
+            </p>
+
+          </div>
+
+          {/* ==================================================
+              ACTIVE CONTROLS ONLY
+          ================================================== */}
+
+          <section className="storage-main-section">
+
             <div className="storage-section-heading">
+
               <div>
-                <h4>Required Storage Controls</h4>
+                <h4>
+                  Required Storage Controls
+                </h4>
+
                 <p>
-                  Operational controls activated by the current defect profile.
+                  Only controls that require attention are shown here.
                 </p>
               </div>
 
               <span className="storage-count-pill">
-                {activeControls.length} active
+                {activeControls.length} Active
               </span>
+
             </div>
 
-            <div className="storage-controls">
-              {controlFlags.map((item) => (
-                <div
-                  className={`storage-control ${
-                    item.active ? "active" : "inactive"
-                  }`}
-                  key={item.key}
-                >
-                  <div className="storage-control-code">{item.short}</div>
+            {activeControls.length > 0 ? (
+              <div className="storage-active-controls">
 
-                  <div>
-                    <strong>{item.label}</strong>
-                    <small>{item.active ? "Required" : "Not triggered"}</small>
+                {activeControls.map((item) => (
+                  <div
+                    className="storage-active-control"
+                    key={item.key}
+                  >
+
+                    <div className="storage-active-control-code">
+                      {item.short}
+                    </div>
+
+                    <div>
+                      <strong>
+                        {item.label}
+                      </strong>
+
+                      <small>
+                        Required
+                      </small>
+                    </div>
+
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                ))}
 
-          <div className="storage-section">
+              </div>
+            ) : (
+              <div className="storage-no-controls">
+                No additional storage or handling control is currently required.
+              </div>
+            )}
+
+          </section>
+
+          {/* ==================================================
+              ALL RECOMMENDATIONS ON MAIN SCREEN
+          ================================================== */}
+
+          <section className="storage-main-section">
+
             <div className="storage-section-heading">
+
               <div>
-                <h4>Defect-Specific Recommendations</h4>
+                <h4>
+                  What Should I Do Now?
+                </h4>
+
                 <p>
-                  Each detected defect is shown with its storage or handling
-                  control.
+                  All current storage and handling recommendations are shown below.
                 </p>
               </div>
+
+              <span className="storage-count-pill">
+                {sortedRecommendations.length} Recommendation
+                {sortedRecommendations.length === 1 ? "" : "s"}
+              </span>
+
             </div>
 
             {sortedRecommendations.length > 0 ? (
-              <div className="storage-recommendations">
+              <div className="storage-main-recommendations">
+
                 {sortedRecommendations.map((item, index) => (
                   <article
-                    className="storage-item"
+                    className="storage-main-recommendation"
                     key={`${item.defect || "storage"}-${index}`}
                   >
-                    <div className="storage-item-head">
-                      <div>
-                        <div className="storage-item-kicker">
-                          <span className="storage-defect-chip">
-                            {humanize(item.defect)}
-                          </span>
 
-                          <span
-                            className={`storage-priority ${normalizeClass(
-                              item.priority,
-                            )}`}
-                          >
-                            {item.priority || "N/A"}
-                          </span>
-                        </div>
+                    <div className="storage-main-recommendation-top">
 
-                        <h5>
-                          {item.title || "Storage / Handling Recommendation"}
-                        </h5>
-                      </div>
-
-                      <span className="storage-item-status">
-                        {humanize(item.status)}
-                      </span>
-                    </div>
-
-                    <div className="storage-item-body">
-                      <div className="storage-advice">
-                        <span>Recommended Control</span>
-                        <p>
-                          {item.recommendation || "No recommendation text."}
-                        </p>
-                      </div>
-
-                      <div className="storage-reason">
-                        <span>Why This Matters</span>
-                        <p>{item.reason || "No reason provided."}</p>
-                      </div>
-                    </div>
-
-                    <div className="storage-item-footer">
-                      {item.evidence_class && (
-                        <span className="storage-evidence">
-                          {humanize(item.evidence_class)}
+                      {item.defect && (
+                        <span className="storage-chip defect">
+                          {humanize(item.defect)}
                         </span>
                       )}
 
-                      {(Array.isArray(item.source_basis)
-                        ? item.source_basis
-                        : []
-                      ).map((source) => (
+                      {item.priority && (
                         <span
-                          className="storage-source"
-                          key={`${item.defect}-${source}`}
+                          className={`storage-chip priority ${normalizeClass(
+                            item.priority,
+                          )}`}
                         >
-                          {humanize(source)}
+                          {humanize(item.priority)} Priority
                         </span>
-                      ))}
+                      )}
 
-                      {item.detected_count !== null &&
-                        item.detected_count !== undefined && (
-                          <span className="storage-detected">
-                            Detected count: {item.detected_count}
-                          </span>
-                        )}
+                      {item.status && (
+                        <span className="storage-chip status">
+                          {humanize(item.status)}
+                        </span>
+                      )}
+
                     </div>
+
+                    <h5>
+                      {item.title ||
+                        "Storage / Handling Recommendation"}
+                    </h5>
+
+                    <div className="storage-main-advice">
+
+                      <span>
+                        Recommended Action
+                      </span>
+
+                      <p>
+                        {item.recommendation ||
+                          "Continue normal clean, dry and protected green-coffee storage practices."}
+                      </p>
+
+                    </div>
+
                   </article>
                 ))}
+
               </div>
             ) : (
               <div className="storage-empty">
-                <strong>No additional storage action triggered</strong>
+
+                <strong>
+                  No additional storage action triggered
+                </strong>
+
                 <p>
-                  Continue normal clean, dry and protected green-coffee storage
-                  practices.
+                  Continue normal clean, dry and protected green-coffee storage practices.
                 </p>
+
               </div>
             )}
+
+          </section>
+
+          {/* ==================================================
+              DETAILS BUTTON
+          ================================================== */}
+
+          <div className="storage-details-toggle-wrap">
+
+            <button
+              type="button"
+              className="storage-details-toggle"
+              aria-expanded={showDetails}
+              onClick={() =>
+                setShowDetails(
+                  (current) => !current,
+                )
+              }
+            >
+              {showDetails
+                ? "Hide Detailed Analysis"
+                : "View Detailed Analysis"}
+            </button>
+
           </div>
 
-          {data.methodology_note && (
-            <div className="storage-section">
-              <div className="storage-methodology">
-                <strong>Methodology Transparency</strong>
-                <p>{data.methodology_note}</p>
+          {/* ==================================================
+              DETAILED ANALYSIS
+          ================================================== */}
+
+          {showDetails && (
+            <div className="storage-detailed-analysis">
+
+              <div className="storage-details-header">
+
+                <span>
+                  Additional Technical Information
+                </span>
+
+                <h4>
+                  Detailed Storage & Handling Analysis
+                </h4>
+
+                <p>
+                  This section provides the supporting reasons, evidence,
+                  source basis, complete control status and methodology behind
+                  the main storage decision.
+                </p>
+
               </div>
+
+              {/* ----------------------------------------------
+                  Complete control status
+              ---------------------------------------------- */}
+
+              <section className="storage-detail-section">
+
+                <div className="storage-section-heading">
+
+                  <div>
+                    <h4>
+                      Complete Control Status
+                    </h4>
+
+                    <p>
+                      All storage and handling control flags for the current batch.
+                    </p>
+                  </div>
+
+                </div>
+
+                <div className="storage-control-details-grid">
+
+                  {controlFlags.map((item) => (
+                    <div
+                      key={item.key}
+                      className={`storage-control-detail ${
+                        item.active ? "" : "inactive"
+                      }`}
+                    >
+
+                      <div className="storage-control-detail-code">
+                        {item.short}
+                      </div>
+
+                      <div>
+                        <strong>
+                          {item.label}
+                        </strong>
+
+                        <small>
+                          {item.active
+                            ? "Required"
+                            : "Not Triggered"}
+                        </small>
+                      </div>
+
+                    </div>
+                  ))}
+
+                </div>
+
+              </section>
+
+              {/* ----------------------------------------------
+                  Detailed recommendations
+              ---------------------------------------------- */}
+
+              <section className="storage-detail-section">
+
+                <div className="storage-section-heading">
+
+                  <div>
+                    <h4>
+                      Recommendation Evidence
+                    </h4>
+
+                    <p>
+                      Detailed reason and supporting evidence for each recommendation.
+                    </p>
+                  </div>
+
+                </div>
+
+                {sortedRecommendations.length > 0 ? (
+                  <div className="storage-detail-list">
+
+                    {sortedRecommendations.map((item, index) => {
+                      const sourceBasis = Array.isArray(item.source_basis)
+                        ? item.source_basis
+                        : [];
+
+                      return (
+                        <article
+                          className="storage-detail-card"
+                          key={`detail-${item.defect || "storage"}-${index}`}
+                        >
+
+                          <div className="storage-detail-head">
+
+                            <div>
+
+                              <div className="storage-main-recommendation-top">
+
+                                {item.defect && (
+                                  <span className="storage-chip defect">
+                                    {humanize(item.defect)}
+                                  </span>
+                                )}
+
+                                {item.priority && (
+                                  <span
+                                    className={`storage-chip priority ${normalizeClass(
+                                      item.priority,
+                                    )}`}
+                                  >
+                                    {humanize(item.priority)}
+                                  </span>
+                                )}
+
+                              </div>
+
+                              <h5>
+                                {item.title ||
+                                  "Storage / Handling Recommendation"}
+                              </h5>
+
+                            </div>
+
+                            {item.status && (
+                              <span className="storage-detail-status">
+                                {humanize(item.status)}
+                              </span>
+                            )}
+
+                          </div>
+
+                          <div className="storage-detail-body">
+
+                            <div className="storage-detail-box">
+
+                              <span>
+                                Recommended Control
+                              </span>
+
+                              <p>
+                                {item.recommendation ||
+                                  "No recommendation text was provided."}
+                              </p>
+
+                            </div>
+
+                            <div className="storage-detail-box">
+
+                              <span>
+                                Why This Matters
+                              </span>
+
+                              <p>
+                                {item.reason ||
+                                  "No supporting reason was provided."}
+                              </p>
+
+                            </div>
+
+                          </div>
+
+                          {(item.evidence_class ||
+                            sourceBasis.length > 0 ||
+                            (item.detected_count !== null &&
+                              item.detected_count !== undefined)) && (
+                            <div className="storage-detail-footer">
+
+                              {item.evidence_class && (
+                                <span className="storage-footer-chip">
+                                  Evidence:{" "}
+                                  {humanize(item.evidence_class)}
+                                </span>
+                              )}
+
+                              {sourceBasis.map((source, sourceIndex) => (
+                                <span
+                                  className="storage-footer-chip"
+                                  key={`source-${index}-${sourceIndex}`}
+                                >
+                                  {humanize(source)}
+                                </span>
+                              ))}
+
+                              {item.detected_count !== null &&
+                                item.detected_count !== undefined && (
+                                  <span className="storage-footer-chip">
+                                    Detected: {item.detected_count}
+                                  </span>
+                                )}
+
+                            </div>
+                          )}
+
+                        </article>
+                      );
+                    })}
+
+                  </div>
+                ) : (
+                  <div className="storage-empty">
+
+                    <strong>
+                      No detailed recommendation evidence available
+                    </strong>
+
+                    <p>
+                      No additional storage or handling recommendation is currently active.
+                    </p>
+
+                  </div>
+                )}
+
+              </section>
+
+              {/* ----------------------------------------------
+                  Technical assessment
+              ---------------------------------------------- */}
+
+              <section className="storage-detail-section">
+
+                <div className="storage-section-heading">
+
+                  <div>
+                    <h4>
+                      Technical Assessment
+                    </h4>
+
+                    <p>
+                      Supporting indicators returned by the backend module.
+                    </p>
+                  </div>
+
+                </div>
+
+                <div className="storage-technical-grid">
+
+                  <div className="storage-technical-card">
+                    <span>
+                      Overall Status
+                    </span>
+
+                    <strong>
+                      {humanize(overallStatus)}
+                    </strong>
+                  </div>
+
+                  <div className="storage-technical-card">
+                    <span>
+                      Recommendations
+                    </span>
+
+                    <strong>
+                      {recommendationCount}
+                    </strong>
+                  </div>
+
+                  <div className="storage-technical-card">
+                    <span>
+                      Active Controls
+                    </span>
+
+                    <strong>
+                      {activeControls.length}
+                    </strong>
+                  </div>
+
+                  <div className="storage-technical-card">
+                    <span>
+                      Active Defects
+                    </span>
+
+                    <strong>
+                      {data.active_defect_count ?? 0}
+                    </strong>
+                  </div>
+
+                  <div className="storage-technical-card">
+                    <span>
+                      Inspection
+                    </span>
+
+                    <strong>
+                      {data.inspection_complete
+                        ? "Complete"
+                        : "Review Required"}
+                    </strong>
+                  </div>
+
+                  <div className="storage-technical-card">
+                    <span>
+                      Isolation
+                    </span>
+
+                    <strong>
+                      {data.requires_isolation
+                        ? "Required"
+                        : "Not Required"}
+                    </strong>
+                  </div>
+
+                  <div className="storage-technical-card">
+                    <span>
+                      Dry Storage
+                    </span>
+
+                    <strong>
+                      {data.requires_dry_storage
+                        ? "Required"
+                        : "Not Required"}
+                    </strong>
+                  </div>
+
+                  <div className="storage-technical-card">
+                    <span>
+                      Retest
+                    </span>
+
+                    <strong>
+                      {data.requires_retest
+                        ? "Required"
+                        : "Not Required"}
+                    </strong>
+                  </div>
+
+                  <div className="storage-technical-card">
+                    <span>
+                      Reject Segregation
+                    </span>
+
+                    <strong>
+                      {data.requires_reject_segregation
+                        ? "Required"
+                        : "Not Required"}
+                    </strong>
+                  </div>
+
+                </div>
+
+              </section>
+
+              {/* ----------------------------------------------
+                  Methodology
+              ---------------------------------------------- */}
+
+              {data.methodology_note && (
+                <section className="storage-detail-section">
+
+                  <div className="storage-methodology-card">
+
+                    <strong>
+                      Methodology Transparency
+                    </strong>
+
+                    <p>
+                      {data.methodology_note}
+                    </p>
+
+                  </div>
+
+                </section>
+              )}
+
             </div>
           )}
+
         </div>
       </div>
     </section>

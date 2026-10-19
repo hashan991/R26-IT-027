@@ -17,7 +17,7 @@ import {
 
 // Coffee beans දාලා Scan Now click කරපු පස්සේ
 // stability checking start කරන්න කලින් wait කරන කාලය.
-const SAMPLE_EXPOSURE_TIME = 120;
+const SAMPLE_EXPOSURE_TIME = 1;
 
 // =========================================================
 // SENSOR QUALITY VOTING + SCORING

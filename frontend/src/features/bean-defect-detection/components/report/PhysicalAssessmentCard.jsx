@@ -28,8 +28,6 @@ function PhysicalAssessmentCard({ physicalAssessment = {} }) {
 
   const blackAndBrokenCount = Number(counts.black_and_broken ?? 0);
 
-  const unknownCount = Number(counts.unknown ?? 0);
-
   // =========================================================
   // PERCENTAGE
   // Descriptive distribution only
@@ -83,15 +81,6 @@ function PhysicalAssessmentCard({ physicalAssessment = {} }) {
       count: blackAndBrokenCount,
       className: "black-broken",
       description: "Beans showing both black and broken characteristics.",
-    },
-
-    {
-      key: "unknown",
-      label: "Unknown",
-      shortLabel: "UNKNOWN",
-      count: unknownCount,
-      className: "unknown",
-      description: "Detections that could not be assigned to a final category.",
     },
   ];
 
@@ -217,11 +206,11 @@ function PhysicalAssessmentCard({ physicalAssessment = {} }) {
             <strong>{brokenCount + blackCount + blackAndBrokenCount}</strong>
           </div>
 
-          <div>
+          {/*<div>
             <span>Unknown</span>
 
             <strong>{unknownCount}</strong>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -368,13 +357,13 @@ function PhysicalAssessmentCard({ physicalAssessment = {} }) {
                 title={`Black + Broken: ${blackAndBrokenCount}`}
               />
 
-              <div
+              {/*<div
                 className="distribution-part distribution-unknown"
                 style={{
                   width: `${getPercentage(unknownCount)}%`,
                 }}
                 title={`Unknown: ${unknownCount}`}
-              />
+              /> */}
             </>
           )}
         </div>
@@ -400,10 +389,10 @@ function PhysicalAssessmentCard({ physicalAssessment = {} }) {
             Black + Broken
           </div>
 
-          <div>
+          {/* <div>
             <span className="legend-dot legend-unknown" />
             Unknown
-          </div>
+          </div> */}
         </div>
       </div>
 

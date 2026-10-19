@@ -1719,114 +1719,65 @@ function PhysicalAnalysis({
 
         {/* ===================================================
             STEP 2.3 - IMAGE SOURCE
-        =================================================== 
+        =================================================== */}
 
         <div className="image-source-card">
-
           <div className="image-source-heading">
-
             <div>
-              <span>
-                IMAGE INPUT
-              </span>
+              <span>IMAGE INPUT</span>
 
-              <h3>
-                Choose Image Source
-              </h3>
+              <h3>Choose Image Source</h3>
             </div>
 
-
             <span className="image-source-status">
-              {imageSource ===
-              "phone"
-                ? "Phone Camera"
-                : "Image Upload"}
+              {imageSource === "phone" ? "Phone Camera" : "Image Upload"}
             </span>
-
           </div>
 
-
           <p className="image-source-description">
-            {analysisMode ===
-            ANALYSIS_MODES.SINGLE
+            {analysisMode === ANALYSIS_MODES.SINGLE
               ? "Use the connected phone camera or upload one coffee bean image."
-              : imageSource ===
-                  "phone"
+              : imageSource === "phone"
                 ? "Capture three views with the phone. Change bean orientation between each capture."
                 : "Upload three different top-view images first, then analyze all three with one button click."}
           </p>
 
-
           <div className="image-source-buttons">
+            <button
+              type="button"
+              className={`image-source-button ${
+                imageSource === "phone" ? "active" : ""
+              }`}
+              onClick={() => handleSourceChange("phone")}
+              disabled={loading}
+            >
+              <span className="source-icon">📱</span>
+
+              <div>
+                <strong>Phone Camera</strong>
+
+                <small>USB + ADB native capture</small>
+              </div>
+            </button>
 
             <button
               type="button"
               className={`image-source-button ${
-                imageSource ===
-                "phone"
-                  ? "active"
-                  : ""
+                imageSource === "upload" ? "active" : ""
               }`}
-              onClick={() =>
-                handleSourceChange(
-                  "phone",
-                )
-              }
-              disabled={
-                loading
-              }
+              onClick={() => handleSourceChange("upload")}
+              disabled={loading}
             >
-              <span className="source-icon">
-                📱
-              </span>
+              <span className="source-icon">🖼</span>
 
               <div>
-                <strong>
-                  Phone Camera
-                </strong>
+                <strong>Upload Image</strong>
 
-                <small>
-                  USB + ADB native capture
-                </small>
+                <small>Select existing sample image</small>
               </div>
             </button>
-
-
-            <button
-              type="button"
-              className={`image-source-button ${
-                imageSource ===
-                "upload"
-                  ? "active"
-                  : ""
-              }`}
-              onClick={() =>
-                handleSourceChange(
-                  "upload",
-                )
-              }
-              disabled={
-                loading
-              }
-            >
-              <span className="source-icon">
-                🖼
-              </span>
-
-              <div>
-                <strong>
-                  Upload Image
-                </strong>
-
-                <small>
-                  Select existing sample image
-                </small>
-              </div>
-            </button>
-
           </div>
-
-        </div> */}
+        </div>
 
         {/* ===================================================
             OPTIONAL MULTI-VIEW STATUS

@@ -980,7 +980,7 @@ function QualityFindings({
           </div>
         </div>
 
-        {/* ADDITIONAL SENSOR FINDINGS */}
+        {/* ADDITIONAL SENSOR FINDINGS 
 
         <div className="evidence-trace">
           <span>SENSOR EVIDENCE TRACE</span>
@@ -988,7 +988,7 @@ function QualityFindings({
           <h5>Additional Sensor Findings</h5>
         </div>
 
-        {renderFindingList(sensorFindings, "sensor")}
+        {renderFindingList(sensorFindings, "sensor")} */}
       </section>
 
       {/* =====================================================
@@ -1189,7 +1189,7 @@ function QualityFindings({
           </div>
         </div>
 
-        {/* PHYSICAL FINDINGS */}
+        {/* PHYSICAL FINDINGS 
 
         <div className="evidence-trace">
           <span>PHYSICAL AI EVIDENCE TRACE</span>
@@ -1197,7 +1197,7 @@ function QualityFindings({
           <h5>Detected Quality Findings</h5>
         </div>
 
-        {renderFindingList(physicalFindings, "physical")}
+        {renderFindingList(physicalFindings, "physical")} */}
       </section>
 
       {/* =====================================================

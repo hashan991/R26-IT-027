@@ -28,9 +28,7 @@ function ProcessingIntelligence({ data }) {
       <div className="pi-header">
         <div className="pi-header-main">
           <div className="pi-header-topline">
-            <span className="pi-label">
-              PRE-ROAST PROCESSING INTELLIGENCE
-            </span>
+            <span className="pi-label">PRE-ROAST PROCESSING INTELLIGENCE</span>
 
             <span className="pi-module-counter">
               {availableModuleCount} / 7 MODULES
@@ -81,7 +79,7 @@ function ProcessingIntelligence({ data }) {
         </div>
       </div>
 
-      {data.roasting_recommendation && (
+      {/* {data.roasting_recommendation && (
         <div className="pi-module-section">
           <div className="pi-module-heading">
             <div className="pi-module-number">01</div>
@@ -94,7 +92,7 @@ function ProcessingIntelligence({ data }) {
 
           <RoastingRecommendation data={data.roasting_recommendation} />
         </div>
-      )}
+      )} */}
 
       <div className="pi-grid">
         {data.pre_roast_plan && (
@@ -103,7 +101,7 @@ function ProcessingIntelligence({ data }) {
               <div className="pi-module-number">02</div>
 
               <div>
-                <span>MODULE 2</span>
+                <span>MODULE 1</span>
                 <h3>Pre-Roast Corrective Actions</h3>
               </div>
             </div>
@@ -118,7 +116,7 @@ function ProcessingIntelligence({ data }) {
               <div className="pi-module-number">03</div>
 
               <div>
-                <span>MODULE 3</span>
+                <span>MODULE 2</span>
                 <h3>Roast Quality Risks</h3>
               </div>
             </div>
@@ -128,7 +126,7 @@ function ProcessingIntelligence({ data }) {
         )}
       </div>
 
-     {/*} <div className="pi-grid">
+      {/*} <div className="pi-grid">
         {data.batch_usage && (
           <div className="pi-module-section">
             <div className="pi-module-heading">
@@ -167,7 +165,7 @@ function ProcessingIntelligence({ data }) {
               <div className="pi-module-number">06</div>
 
               <div>
-                <span>MODULE 6</span>
+                <span>MODULE 3</span>
                 <h3>Storage & Handling Recommendation</h3>
               </div>
             </div>
@@ -182,7 +180,7 @@ function ProcessingIntelligence({ data }) {
               <div className="pi-module-number">07</div>
 
               <div>
-                <span>MODULE 7</span>
+                <span>MODULE 4</span>
                 <h3>Preventive Process Guidance</h3>
               </div>
             </div>
@@ -216,8 +214,8 @@ function ProcessingIntelligence({ data }) {
           <strong>Defect-Driven Decision Method</strong>
 
           <p>
-            Processing recommendations are activated by detected defect
-            evidence rather than by the final quality score or grade alone.
+            Processing recommendations are activated by detected defect evidence
+            rather than by the final quality score or grade alone.
             Black-and-broken beans contribute to both the black and broken
             recommendation rules, while Usable Yield Estimation keeps Good,
             Broken, Black and Black + Broken categories separate.
